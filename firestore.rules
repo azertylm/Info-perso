@@ -1,0 +1,150 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net (Pillar 1)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Primitives & Helpers (Phase 3)
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprints (Pillar 2)
+    function isValidSubscription(data) {
+      return data.status is string && data.status in ['free', 'active', 'expired']
+        && data.planName is string && data.planName.size() <= 150
+        && data.subscribedApps is list && data.subscribedApps.size() <= 20
+        && (data.expiresAt == null || (data.expiresAt is string && data.expiresAt.size() <= 100))
+        && data.createdAt is string && data.createdAt.size() <= 100
+        && data.updatedAt is string && data.updatedAt.size() <= 100
+        && data.customerEmail is string && data.customerEmail.size() <= 200
+        && data.appSource is string && data.appSource.size() <= 150;
+    }
+
+    function isValidProposedArticle(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.source is string && data.source.size() > 0 && data.source.size() <= 100
+        && data.category is string && data.category.size() > 0 && data.category.size() <= 100
+        && data.emoji is string && data.emoji.size() <= 10
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 10 && (data.tags.size() == 0 || data.tags[0] is string)))
+        && data.summary is string && data.summary.size() > 0 && data.summary.size() <= 1000
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 20000
+        && data.score is int && data.score >= 0 && data.score <= 100
+        && data.authorName is string && data.authorName.size() <= 100
+        && data.authorEmail is string && data.authorEmail.size() <= 200
+        && data.authorUid is string && data.authorUid.size() <= 128
+        && (!('authorVerified' in data) || data.authorVerified is bool)
+        && data.likes is int && data.likes >= 0
+        && (!('flags' in data) || (data.flags is int && data.flags >= 0));
+    }
+
+    function isValidCommunityComment(data) {
+      return data.articleId is string && data.articleId.size() <= 128
+        && data.authorName is string && data.authorName.size() <= 100
+        && data.authorEmail is string && data.authorEmail.size() <= 200
+        && data.authorUid is string && data.authorUid.size() <= 128
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 2000
+        && data.likes is int && data.likes >= 0;
+    }
+
+    // 1. Shared Multi-App Subscription collection (PII Protected)
+    match /subscriptions/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId 
+                    && isValidId(userId)
+                    && isValidSubscription(incoming())
+                    && incoming().customerEmail == request.auth.token.email;
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    && isValidId(userId)
+                    && isValidSubscription(incoming())
+                    && incoming().customerEmail == existing().customerEmail
+                    && incoming().createdAt == existing().createdAt;
+      allow delete: if false; // Subscriptions are immortal
+    }
+
+    // 2. Proposed articles collection
+    match /proposed_articles/{articleId} {
+      allow read, list: if true;
+      
+      allow create: if isEmailVerified()
+                    && isValidId(articleId)
+                    && isValidProposedArticle(incoming())
+                    && incoming().authorUid == request.auth.uid
+                    && incoming().likes == 0
+                    && (!('flags' in incoming()) || incoming().flags == 0)
+                    && (!('createdAt' in incoming()) || incoming().createdAt == request.time)
+                    && (!('authorVerified' in incoming()) || incoming().authorVerified == request.auth.token.email_verified);
+                    
+      allow update: if isSignedIn() && (
+        // Action 1: Like action (by any signed-in user) - affectedKeys must strictly contain likes
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes']) && incoming().likes == existing().likes + 1)
+        ||
+        // Action 2: Flag action (by any signed-in user) - affectedKeys must strictly contain flags
+        (incoming().diff(existing()).affectedKeys().hasOnly(['flags']) && incoming().flags == existing().flags + 1)
+        ||
+        // Action 3: Edit by Author (verified email, immutable authorUid/score/createdAt)
+        (isEmailVerified()
+         && request.auth.uid == existing().authorUid
+         && incoming().authorUid == existing().authorUid
+         && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
+         && incoming().score == existing().score
+         && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'source', 'category', 'emoji', 'tags', 'summary', 'content', 'likes', 'flags', 'authorVerified', 'authorName', 'authorEmail'])
+         && isValidProposedArticle(incoming()))
+      );
+      
+      allow delete: if isEmailVerified() && request.auth.uid == existing().authorUid;
+    }
+
+    // 3. Community comments
+    match /community_comments/{commentId} {
+      allow read, list: if true;
+      
+      allow create: if isEmailVerified()
+                    && isValidId(commentId)
+                    && isValidCommunityComment(incoming())
+                    && incoming().authorUid == request.auth.uid
+                    && incoming().likes == 0
+                    && (!('createdAt' in incoming()) || incoming().createdAt == request.time)
+                    && exists(/databases/$(database)/documents/proposed_articles/$(incoming().articleId));
+                    
+      allow update: if isSignedIn() && (
+        // Action 1: Like comment (by any signed-in user)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes']) && incoming().likes == existing().likes + 1)
+        ||
+        // Action 2: Edit comment (by author)
+        (isEmailVerified()
+         && request.auth.uid == existing().authorUid
+         && incoming().authorUid == existing().authorUid
+         && incoming().articleId == existing().articleId
+         && incoming().diff(existing()).affectedKeys().hasOnly(['content'])
+         && isValidCommunityComment(incoming()))
+      );
+      
+      allow delete: if isEmailVerified() && request.auth.uid == existing().authorUid;
+    }
+
+    // User profiles matching fallback
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+    }
+  }
+}

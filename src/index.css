@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+}
+
+/* Overrides to increase all font sizes and force bold ONLY when Mode Facile (easy-mode) is active */
+.easy-mode {
+  font-size: 125% !important;
+
+  body, button, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6, a {
+    font-weight: 700 !important;
+  }
+
+  /* Force all font weight utilities to bold */
+  .font-thin, .font-extralight, .font-light, .font-normal, .font-medium, .font-semibold, .font-bold, .font-extrabold, .font-black {
+    font-weight: 700 !important;
+  }
+
+  .text-\[8px\] {
+    font-size: 13px !important;
+  }
+  .text-\[9px\] {
+    font-size: 14.5px !important;
+  }
+  .text-\[10px\] {
+    font-size: 16px !important;
+  }
+  .text-\[11px\] {
+    font-size: 17.5px !important;
+  }
+  .text-xs {
+    font-size: 16px !important;
+  }
+  .text-sm {
+    font-size: 19px !important;
+  }
+  .text-base {
+    font-size: 22px !important;
+  }
+  .text-lg {
+    font-size: 25px !important;
+  }
+  .text-xl {
+    font-size: 28px !important;
+  }
+  .text-2xl {
+    font-size: 34px !important;
+  }
+  .text-3xl {
+    font-size: 42px !important;
+  }
+  .text-4xl {
+    font-size: 50px !important;
+  }
+
+  /* Boost touch targets & readability padding only for interactive components */
+  button, select, input, a {
+    min-height: 48px !important;
+  }
+}
+
+/* Custom modern scrollbar stylings */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+

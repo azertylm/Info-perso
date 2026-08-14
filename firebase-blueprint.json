@@ -1,0 +1,166 @@
+{
+  "entities": {
+    "Subscription": {
+      "title": "Subscription",
+      "description": "User multi-app premium subscription status",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["free", "active", "expired"],
+          "description": "The current status of the subscription"
+        },
+        "planName": {
+          "type": "string",
+          "description": "Name of the subscription plan"
+        },
+        "subscribedApps": {
+          "type": "array",
+          "description": "List of apps this subscription is valid for"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Expiration date-time of the subscription, or null if free"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp"
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Email address of the subscriber"
+        },
+        "appSource": {
+          "type": "string",
+          "description": "Source of the subscription request or simulator"
+        }
+      },
+      "required": ["status", "planName", "subscribedApps", "createdAt", "updatedAt", "customerEmail", "appSource"]
+    },
+    "ProposedArticle": {
+      "title": "ProposedArticle",
+      "description": "An article proposed/shared by a community member",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the proposed article"
+        },
+        "source": {
+          "type": "string",
+          "description": "The publisher or source of the article"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the article"
+        },
+        "emoji": {
+          "type": "string",
+          "description": "The decorative emoji for the article"
+        },
+        "tags": {
+          "type": "array",
+          "description": "List of hashtags associated with the article"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Short summary/description of the article"
+        },
+        "content": {
+          "type": "string",
+          "description": "The full text content of the article"
+        },
+        "score": {
+          "type": "number",
+          "description": "Relevance score percentage of the article"
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of the author"
+        },
+        "authorEmail": {
+          "type": "string",
+          "description": "Email address of the author"
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "Firebase Authentication UID of the author"
+        },
+        "authorVerified": {
+          "type": "boolean",
+          "description": "Whether the author's email is verified"
+        },
+        "likes": {
+          "type": "number",
+          "description": "Number of likes the article has received"
+        },
+        "flags": {
+          "type": "number",
+          "description": "Number of abuse flags the article has received"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": ["title", "source", "category", "emoji", "summary", "content", "score", "authorName", "authorEmail", "authorUid", "likes"]
+    },
+    "CommunityComment": {
+      "title": "CommunityComment",
+      "description": "A comment left by a user on a community article",
+      "type": "object",
+      "properties": {
+        "articleId": {
+          "type": "string",
+          "description": "The ID of the community article being commented on"
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of the commenter"
+        },
+        "authorEmail": {
+          "type": "string",
+          "description": "Email address of the commenter"
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "Firebase Authentication UID of the commenter"
+        },
+        "content": {
+          "type": "string",
+          "description": "Text content of the comment"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Server timestamp of comment creation"
+        },
+        "likes": {
+          "type": "number",
+          "description": "Number of likes on the comment"
+        }
+      },
+      "required": ["articleId", "authorName", "authorEmail", "authorUid", "content", "likes"]
+    }
+  },
+  "firestore": {
+    "subscriptions/{uid}": {
+      "schema": "Subscription",
+      "description": "Status of the user's multi-app premium subscription"
+    },
+    "proposed_articles/{articleId}": {
+      "schema": "ProposedArticle",
+      "description": "Articles submitted and shared by community members"
+    },
+    "community_comments/{commentId}": {
+      "schema": "CommunityComment",
+      "description": "Comments on community articles"
+    }
+  }
+}
