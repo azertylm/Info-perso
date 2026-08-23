@@ -21,7 +21,8 @@ import {
   Terminal,
   Keyboard,
   Maximize,
-  Minimize
+  Minimize,
+  Search
 } from "lucide-react";
 
 import { ApiKeys, RibInfo, NewsArticle } from "./types";
@@ -414,6 +415,13 @@ export default function App() {
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // "Back to top" floating button state
+  const mainScrollRef = React.useRef<HTMLElement>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollMainToTop = () => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -723,7 +731,7 @@ export default function App() {
 
       {/* GLOBAL TOAST NOTIFICATION */}
       {toastMessage && (
-        <div className={`fixed bottom-5 right-5 z-50 rounded-xl px-4 py-3 shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-bounce-short ${
+        <div className={`fixed bottom-20 right-5 lg:bottom-5 z-50 rounded-xl px-4 py-3 shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-bounce-short ${
           isSobre ? "bg-zinc-950 text-white border border-zinc-800" :
           isWarm ? "bg-amber-950 text-amber-100 border border-amber-900" :
           isCyber ? "bg-black text-[#00ffcc] border border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)] font-mono" :
@@ -746,7 +754,8 @@ export default function App() {
         <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-3 min-w-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-1.5 cursor-pointer transition-all ${
+            title="Afficher / masquer le menu de navigation"
+            className={`p-1.5 cursor-pointer transition-all lg:hidden ${
               isSobre ? isDark ? "bg-zinc-850 border border-zinc-750 text-zinc-300 hover:bg-zinc-800 rounded-lg" : "bg-zinc-100 border border-zinc-300 hover:bg-zinc-200 rounded-lg text-zinc-700" :
               isWarm ? isDark ? "bg-[#382F2A] border border-amber-900/20 text-amber-250 hover:bg-[#4a3e36] rounded-lg" : "bg-amber-100/40 border border-amber-900/10 hover:bg-amber-100 rounded-lg text-amber-905" :
               isCyber ? isDark ? "bg-black border border-cyan-500/40 hover:bg-zinc-900 rounded-none text-cyan-400" : "bg-[#e0f2f1] border border-teal-500/30 text-teal-800 hover:bg-[#b2dfdb] rounded-none" :
@@ -783,6 +792,17 @@ export default function App() {
 
         {/* Top actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* QUICK SEARCH / COMMAND BAR DISCOVERY BUTTON */}
+          <button
+            onClick={() => setSpotlightOpen(true)}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg cursor-pointer transition-all border text-xs font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
+            title="Recherche rapide et navigation (Ctrl/⌘ + K)"
+          >
+            <Search className="w-4 h-4" />
+            <span className="hidden md:inline">Rechercher</span>
+            <kbd className="hidden lg:inline-block ml-1 px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[10px] font-mono opacity-70">Ctrl+K</kbd>
+          </button>
+
           {/* EASY / BIG MODE TOGGLE BUTTON */}
           <button
             onClick={() => {
@@ -846,7 +866,7 @@ export default function App() {
         {/* SIDEBAR BACKDROP */}
         {sidebarOpen && (
           <div
-            className={`fixed inset-0 z-20 transition-all cursor-pointer ${
+            className={`fixed inset-0 z-20 transition-all cursor-pointer lg:hidden ${
               isSobre ? isDark ? "top-[53px] bg-black/60 backdrop-blur-xs" : "top-[53px] bg-zinc-900/40 backdrop-blur-xs" :
               isWarm ? isDark ? "top-[53px] bg-black/60 backdrop-blur-xs" : "top-[53px] bg-amber-950/30 backdrop-blur-xs" :
               isFun ? "top-[58px] bg-slate-900/60" :
@@ -858,7 +878,7 @@ export default function App() {
 
         {/* SIDEBAR NAVIGATION */}
         <aside
-          className={`fixed top-[53px] bottom-0 left-0 z-30 w-60 p-4 space-y-6 overflow-y-auto transform transition-transform duration-200 ease-in-out ${
+          className={`fixed top-[53px] bottom-0 left-0 z-30 w-60 shrink-0 p-4 space-y-6 overflow-y-auto transform transition-transform duration-200 ease-in-out lg:static lg:top-0 lg:translate-x-0 lg:shadow-none ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } ${
             isSobre ? isDark ? "bg-zinc-900 border-r border-zinc-800 text-zinc-200" : "bg-zinc-100/98 backdrop-blur-md border-r border-zinc-250 text-zinc-800" :
@@ -905,6 +925,95 @@ export default function App() {
               <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-250 text-zinc-900 font-bold border border-zinc-350 dark:bg-zinc-800 dark:text-zinc-150 dark:border-zinc-700">
                 {savedIds.size}
               </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("chat");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "chat", "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-cyan-500" />
+                Chat Curateur IA
+              </span>
+              <span className="text-[10px] opacity-50 font-normal hidden xl:inline">Alt+C</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("communaute");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "communaute", "violet")}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-violet-500" />
+                Communauté
+              </span>
+              <span className="text-[10px] opacity-50 font-normal hidden xl:inline">Alt+M</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("auth");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "auth", "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <UserIcon className="w-5 h-5 text-emerald-500" />
+                Mon Compte
+              </span>
+              <span className="text-[10px] opacity-50 font-normal hidden xl:inline">Alt+A</span>
+            </button>
+          </div>
+
+          {/* Réglages & espaces secondaires */}
+          <div className="space-y-1.5 pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+            <span className="block text-xs uppercase tracking-[0.2em] font-bold px-2 text-zinc-550 dark:text-zinc-400">Réglages & Espaces</span>
+
+            <button
+              onClick={() => {
+                setActiveTab("keys");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "keys", "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-slate-500" />
+                Clés API & Config
+              </span>
+              <span className="text-[10px] opacity-50 font-normal hidden xl:inline">Alt+K</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("donations");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "donations", "fuchsia")}
+            >
+              <span className="flex items-center gap-2">
+                <Heart className="w-5 h-5 text-rose-500" />
+                Soutenir & RIB
+              </span>
+              <span className="text-[10px] opacity-50 font-normal hidden xl:inline">Alt+D</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("shortcuts");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "shortcuts", "violet")}
+            >
+              <span className="flex items-center gap-2">
+                <Keyboard className="w-5 h-5 text-amber-500" />
+                Raccourcis clavier
+              </span>
+              <span className="text-[10px] opacity-50 font-normal hidden xl:inline">Alt+R</span>
             </button>
           </div>
 
@@ -968,13 +1077,27 @@ export default function App() {
               <RefreshCw className={`w-3.5 h-3.5 animate-spin-slow ${isFun ? "text-black font-black" : isCyber ? "text-[#00ffcc]" : isSobre ? isDark ? "text-black" : "text-zinc-950" : isWarm ? isDark ? "text-[#251f1c]" : "text-amber-955" : isDark ? "text-cyan-400" : "text-indigo-600"}`} />
               Actualiser le flux
             </button>
+
+            {/* Discoverability hint: help newcomers find the shortcuts & command bar */}
+            <button
+              onClick={() => {
+                setActiveTab("shortcuts");
+                setSidebarOpen(false);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] leading-snug bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-150 dark:hover:bg-zinc-850 transition-all"
+            >
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">👋 Nouveau ici ?</span> Découvrez tous les raccourcis clavier et la recherche rapide <kbd className="px-1 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-[10px]">Ctrl+K</kbd>
+            </button>
           </div>
         </aside>
 
         {/* MAIN VIEWPORT */}
-        <main className={`flex-1 p-4 sm:p-6 transition-all duration-300 ${
+        <main
+          ref={mainScrollRef}
+          onScroll={(e) => setShowScrollTop(e.currentTarget.scrollTop > 500)}
+          className={`flex-1 p-4 sm:p-6 pb-20 lg:pb-6 transition-all duration-300 relative ${
           activeTab === "chat"
-            ? `${isFun ? "h-[calc(100vh-125px)]" : "h-[calc(100vh-88px)]"} overflow-hidden flex flex-col`
+            ? `${isFun ? "h-[calc(100vh-125px)]" : "h-[calc(100vh-88px)]"} overflow-hidden flex flex-col pb-4 lg:pb-6`
             : "overflow-y-auto"
         }`}>
           {activeTab === "flux" && (
@@ -1005,7 +1128,18 @@ export default function App() {
           )}
 
           {activeTab === "chat" && (
-            <MultiChat apiKeys={apiKeys} onNotify={triggerToast} themeMode={themeMode} />
+            <div className="h-full flex flex-col gap-3 min-h-0">
+              <div className="shrink-0 flex items-center gap-2">
+                <Bot className="w-5 h-5 text-cyan-500" />
+                <div>
+                  <h2 className={`font-sans font-black text-sm sm:text-base leading-tight ${isDark ? "text-white" : "text-zinc-900"}`}>Chat Curateur IA</h2>
+                  <p className={`text-[11px] leading-tight ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>Posez vos questions à l'assistant IA, choisissez votre modèle dans le panneau de configuration.</p>
+                </div>
+              </div>
+              <div className="flex-1 min-h-0">
+                <MultiChat apiKeys={apiKeys} onNotify={triggerToast} themeMode={themeMode} />
+              </div>
+            </div>
           )}
 
           {activeTab === "keys" && (
@@ -1086,7 +1220,15 @@ export default function App() {
               isDark ? "bg-slate-950/40 border-slate-800 text-slate-400" : "bg-white/95 border-slate-200 text-slate-600 shadow-xs"
             }`}>
               <p>© 2026 InfoPerso. Tous droits réservés. Vos clés de connexion sont stockées de façon sécurisée.</p>
-              <div className="flex items-center gap-3 justify-center sm:justify-end">
+              <div className="flex items-center gap-3 justify-center sm:justify-end flex-wrap">
+                <button onClick={() => setActiveTab("chat")} className="hover:text-cyan-400 transition-colors font-medium cursor-pointer">
+                  Chat IA
+                </button>
+                <span className="opacity-40">•</span>
+                <button onClick={() => setActiveTab("communaute")} className="hover:text-violet-400 transition-colors font-medium cursor-pointer">
+                  Communauté
+                </button>
+                <span className="opacity-40">•</span>
                 <button onClick={() => setActiveTab("keys")} className="hover:text-violet-400 transition-colors font-medium cursor-pointer">
                   Clés API
                 </button>
@@ -1095,11 +1237,68 @@ export default function App() {
                   <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
                   RIB & Dons
                 </button>
+                <span className="opacity-40">•</span>
+                <button onClick={() => setActiveTab("shortcuts")} className="hover:text-amber-400 transition-colors font-medium cursor-pointer">
+                  Raccourcis
+                </button>
               </div>
             </footer>
           )}
         </main>
+
+        {/* BACK TO TOP FLOATING BUTTON */}
+        {showScrollTop && activeTab !== "chat" && (
+          <button
+            onClick={scrollMainToTop}
+            title="Retour en haut de page"
+            className={`fixed bottom-20 right-4 sm:right-6 z-40 p-2.5 rounded-full shadow-lg border transition-all cursor-pointer animate-fade-in ${
+              isDark ? "bg-zinc-900 border-zinc-700 text-zinc-100 hover:bg-zinc-800" : "bg-white border-zinc-300 text-zinc-800 hover:bg-zinc-100"
+            }`}
+          >
+            <ChevronRight className="w-4 h-4 -rotate-90" />
+          </button>
+        )}
       </div>
+
+      {/* MOBILE BOTTOM TAB BAR - quick access to the main sections on small screens */}
+      <nav
+        className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t ${
+          isDark ? "bg-zinc-950/95 backdrop-blur-md border-zinc-800" : "bg-white/95 backdrop-blur-md border-zinc-200"
+        }`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {[
+          { tab: "flux" as const, label: "Flux", icon: Newspaper, onClick: () => { setActiveTab("flux"); setOnlySaved(false); setActiveFilter(null); setActiveTag(null); } },
+          { tab: "chat" as const, label: "Chat IA", icon: Bot, onClick: () => setActiveTab("chat") },
+          { tab: "communaute" as const, label: "Communauté", icon: Users, onClick: () => setActiveTab("communaute") },
+          { tab: "auth" as const, label: "Compte", icon: UserIcon, onClick: () => setActiveTab("auth") }
+        ].map(({ tab, label, icon: Icon, onClick }) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={onClick}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-bold transition-colors cursor-pointer ${
+                isActive
+                  ? isDark ? "text-white" : "text-zinc-950"
+                  : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-400 hover:text-zinc-700"
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? "" : "opacity-70"}`} />
+              {label}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-bold transition-colors cursor-pointer ${
+            isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-400 hover:text-zinc-700"
+          }`}
+        >
+          <Menu className="w-5 h-5 opacity-70" />
+          Plus
+        </button>
+      </nav>
 
       {/* USER PROFILE DRAWER */}
       <UserProfileDrawer

@@ -76,6 +76,31 @@ html:not(.dark) {
   }
 }
 
+/* Small utility animations used across the app (fade-in, gentle spin/bounce) */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 2.5s linear infinite;
+}
+
+@keyframes bounce-short {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-bounce-short {
+  animation: bounce-short 0.6s ease-in-out 1;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Custom modern scrollbar stylings */
 ::-webkit-scrollbar {
   width: 5px;
