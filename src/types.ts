@@ -81,6 +81,7 @@ export interface NewsArticle {
   summary: string;
   content: string;
   featured: boolean;
+  imageUrl?: string;
   read?: boolean;
   aiSummaryCustom?: string;
   aiSummaryModelUsed?: string;
@@ -92,12 +93,12 @@ export interface NewsArticle {
 export const AVAILABLE_MODELS: ModelConfig[] = [
   // Gemini
   {
-    id: "gemini-3.5-flash",
-    name: "Gemini 3.5 Flash",
+    id: "gemini-3.7-flash",
+    name: "Gemini 3.7 Flash",
     provider: "gemini",
-    description: "Le modèle par excellence pour les tâches rapides, la synthèse et le chat courant.",
+    description: "Le modèle par excellence pour les tâches rapides, la synthèse et le chat d'actualité en temps réel.",
     contextWindow: "1M tokens",
-    strength: "Vitesse et de l'analyse en temps réel",
+    strength: "Vitesse et analyse en temps réel",
   },
   {
     id: "gemini-3.1-flash-lite",

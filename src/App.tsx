@@ -91,6 +91,17 @@ export default function App() {
     return (localStorage.getItem("infoperso_theme_mode") as any) || "dark";
   });
 
+  // Sync themeMode to document root
+  useEffect(() => {
+    if (themeMode === "dark") {
+      document.documentElement.classList.add("dark");
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  }, [themeMode]);
+
   // Curiosity score state
   const [curiosityScore, setCuriosityScore] = useState<number>(() => {
     return Number(localStorage.getItem("infoperso_curiosity_score") || "0");
@@ -137,7 +148,11 @@ export default function App() {
 
   // Custom App Title Override (Neutral Baseline)
   const [customTitle, setCustomTitle] = useState<string>(() => {
-    return localStorage.getItem("infoperso_custom_title") || "Info Perso Grand Format";
+    const saved = localStorage.getItem("infoperso_custom_title");
+    if (!saved || saved === "Info Perso Grand Format" || saved === "InfoPerso Master") {
+      return "Info Perso";
+    }
+    return saved;
   });
 
   // Custom Content Categories
@@ -457,22 +472,22 @@ export default function App() {
     if (isDark) {
       return {
         wrapper: "hidden",
-        title: "font-sans font-black tracking-tight text-lg sm:text-2xl text-white leading-none",
-        subtitle: "text-[10px] text-zinc-400 uppercase tracking-wider font-sans font-semibold hidden sm:block mt-1"
+        title: "font-sans font-black tracking-tight text-base sm:text-lg text-white leading-none",
+        subtitle: "text-[9px] text-zinc-400 uppercase tracking-wider font-sans font-semibold hidden md:block mt-0.5"
       };
     }
     if (isFun) {
       return {
         wrapper: "hidden",
-        title: "font-black tracking-tight text-xl sm:text-3xl text-black leading-none uppercase italic",
-        subtitle: "text-[10px] text-black uppercase tracking-wider font-extrabold hidden sm:block mt-1"
+        title: "font-black tracking-tight text-base sm:text-xl text-black leading-none uppercase italic",
+        subtitle: "text-[9px] text-black uppercase tracking-wider font-extrabold hidden md:block mt-0.5"
       };
     }
     // Sobre / Default
     return {
       wrapper: "hidden",
-      title: "font-sans font-black tracking-tight text-lg sm:text-2xl text-zinc-900 leading-none",
-      subtitle: "text-[10px] text-zinc-500 uppercase tracking-wider font-sans font-semibold hidden sm:block mt-1"
+      title: "font-sans font-black tracking-tight text-base sm:text-lg text-zinc-900 leading-none",
+      subtitle: "text-[9px] text-zinc-500 uppercase tracking-wider font-sans font-semibold hidden md:block mt-0.5"
     };
   };
 
@@ -643,7 +658,7 @@ export default function App() {
     localStorage.setItem("infoperso_onboarding_completed", "true");
     
     if (startFresh) {
-      localStorage.setItem("infoperso_articles", "[]");
+      localStorage.removeItem("infoperso_articles");
       triggerToast("🗑️ Flux d'articles réinitialisé à l'état neutre !");
       setTimeout(() => window.location.reload(), 800);
     } else {
@@ -722,27 +737,27 @@ export default function App() {
 
       {/* TOPBAR */}
       <header className={`sticky top-0 z-40 transition-all duration-300 flex items-center justify-between ${
-        isSobre ? `${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"} border-b min-h-[92px] pt-5 pb-2 px-3 sm:px-6 shadow-xs` :
-        isWarm ? `${isDark ? "bg-[#2c2622] border-[#443830]" : "bg-[#FAF6F0] border-amber-900/15"} border-b min-h-[92px] pt-5 pb-2 px-3 sm:px-6 shadow-xs` :
-        isCyber ? `${isDark ? "bg-black border-cyan-500/30 shadow-[0_4px_12px_rgba(0,0,0,0.8)]" : "bg-[#f4fffe] border-[#0d9488]/30 shadow-md"} border-b min-h-[92px] pt-5 pb-2 px-3 sm:px-6` :
-        isFun ? `${isDark ? "bg-[#252136]" : "bg-white"} border-3 border-black rounded-2xl min-h-[94px] py-2 px-3 sm:px-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] my-2 mx-1 sm:mx-3` :
-        `${isDark ? "bg-slate-900/80 border-indigo-500/20 shadow-indigo-950/20" : "bg-white/90 border-indigo-100 shadow-indigo-100/20"} backdrop-blur-md border-b min-h-[92px] pt-5 pb-2 px-3 sm:px-6 shadow-sm`
+        isSobre ? `${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"} border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5 shadow-xs` :
+        isWarm ? `${isDark ? "bg-[#2c2622] border-[#443830]" : "bg-[#FAF6F0] border-amber-900/15"} border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5 shadow-xs` :
+        isCyber ? `${isDark ? "bg-black border-cyan-500/30 shadow-[0_4px_12px_rgba(0,0,0,0.8)]" : "bg-[#f4fffe] border-[#0d9488]/30 shadow-md"} border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5` :
+        isFun ? `${isDark ? "bg-[#252136]" : "bg-white"} border-2 border-black rounded-xl min-h-[52px] sm:min-h-[56px] py-1 px-2.5 sm:px-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] my-1 mx-1 sm:mx-2` :
+        `${isDark ? "bg-slate-900/85 border-indigo-500/20 shadow-indigo-950/20" : "bg-white/95 border-indigo-100 shadow-indigo-100/20"} backdrop-blur-md border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5 shadow-xs`
       }`}>
-        <div className="flex items-center gap-1.5 sm:gap-2.5 mr-1.5 sm:mr-4 md:mr-6 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-3 min-w-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-2 cursor-pointer transition-all ${
+            className={`p-1.5 cursor-pointer transition-all ${
               isSobre ? isDark ? "bg-zinc-850 border border-zinc-750 text-zinc-300 hover:bg-zinc-800 rounded-lg" : "bg-zinc-100 border border-zinc-300 hover:bg-zinc-200 rounded-lg text-zinc-700" :
               isWarm ? isDark ? "bg-[#382F2A] border border-amber-900/20 text-amber-250 hover:bg-[#4a3e36] rounded-lg" : "bg-amber-100/40 border border-amber-900/10 hover:bg-amber-100 rounded-lg text-amber-905" :
               isCyber ? isDark ? "bg-black border border-cyan-500/40 hover:bg-zinc-900 rounded-none text-cyan-400" : "bg-[#e0f2f1] border border-teal-500/30 text-teal-800 hover:bg-[#b2dfdb] rounded-none" :
-              isFun ? "bg-cyan-300 border-3 border-black rounded-lg text-black hover:bg-cyan-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
+              isFun ? "bg-cyan-300 border-2 border-black rounded-lg text-black hover:bg-cyan-200 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5" :
               isDark ? "bg-slate-950/60 border border-slate-800 hover:bg-slate-800/60 rounded-lg text-zinc-400 hover:text-white" : "bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-lg text-slate-700 hover:text-slate-950"
             }`}
           >
             {sidebarOpen ? (
-              <X className={`w-5 h-5 ${isSobre ? isDark ? "text-zinc-200" : "text-zinc-900" : isWarm ? "text-amber-100" : isCyber ? "text-pink-500 animate-pulse" : isFun ? "text-black" : isDark ? "text-indigo-450" : "text-indigo-600"}`} />
+              <X className={`w-4 h-4 ${isSobre ? isDark ? "text-zinc-200" : "text-zinc-900" : isWarm ? "text-amber-100" : isCyber ? "text-pink-500 animate-pulse" : isFun ? "text-black" : isDark ? "text-indigo-450" : "text-indigo-600"}`} />
             ) : (
-              <Menu className={`w-5 h-5 ${isSobre ? isDark ? "text-zinc-100" : "text-zinc-950" : isWarm ? "text-amber-100" : isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : isDark ? "text-cyan-450" : "text-indigo-650"}`} />
+              <Menu className={`w-4 h-4 ${isSobre ? isDark ? "text-zinc-100" : "text-zinc-950" : isWarm ? "text-amber-100" : isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : isDark ? "text-cyan-450" : "text-indigo-650"}`} />
             )}
           </button>
 
@@ -753,13 +768,13 @@ export default function App() {
               setActiveTag(null);
               setOnlySaved(false);
             }}
-            className="flex items-center gap-2 cursor-pointer min-w-0 flex-1 sm:flex-initial"
+            className="flex items-center gap-1.5 cursor-pointer min-w-0 flex-1 sm:flex-initial"
           >
             <div className="min-w-0">
-              <h1 className={`${logo.title} truncate max-w-[260px] sm:max-w-xs md:max-w-none`}>
+              <h1 className={`${logo.title} truncate max-w-[200px] sm:max-w-xs md:max-w-none`}>
                 {customTitle || currentT.appName}
               </h1>
-              <p className={`${logo.subtitle} truncate max-w-[240px] sm:max-w-xs md:max-w-none`}>
+              <p className={`${logo.subtitle} truncate max-w-[200px] sm:max-w-xs md:max-w-none`}>
                 {customTitle ? currentT.tagline : (isDark ? "L'information à l'état pur" : isFun ? "BAM! TES INFOS ICI! 💥" : "L'information à l'état pur")}
               </p>
             </div>
@@ -767,34 +782,34 @@ export default function App() {
         </div>
 
         {/* Top actions */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* EASY MODE TOGGLE BUTTON */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* EASY / BIG MODE TOGGLE BUTTON */}
           <button
             onClick={() => {
               const nextEasy = !isEasyMode;
               setIsEasyMode(nextEasy);
               localStorage.setItem("infoperso_easy_mode", String(nextEasy));
-              triggerToast(`Format plus grand : ${nextEasy ? "Activé" : "Désactivé"}`);
+              triggerToast(`Mode Big : ${nextEasy ? "Activé" : "Désactivé"}`);
             }}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
               isEasyMode
                 ? "bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-250 dark:border-amber-900/30"
                 : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-850"
             }`}
-            title="Agrandir la police et optimiser le contraste"
+            title="Agrandir la police et optimiser le contraste (Mode Big)"
           >
-            <span>format plus grand</span>
-            <span className={`w-2 h-2 rounded-full ${isEasyMode ? "bg-emerald-500 animate-pulse" : "bg-zinc-400 dark:bg-zinc-600"}`}></span>
+            <span>big</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${isEasyMode ? "bg-emerald-500 animate-pulse" : "bg-zinc-400 dark:bg-zinc-600"}`}></span>
           </button>
 
           {/* FULLSCREEN TOGGLE BUTTON */}
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all border text-sm font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg cursor-pointer transition-all border text-xs font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
             title="Activer ou désactiver le mode Plein Écran (Style F11)"
           >
-            {isFullscreen ? <Minimize className="w-5 h-5 text-indigo-500 animate-pulse" /> : <Maximize className="w-5 h-5" />}
-            <span className="hidden md:inline">{isFullscreen ? "Fermer F11" : "Plein Écran"}</span>
+            {isFullscreen ? <Minimize className="w-4 h-4 text-indigo-500 animate-pulse" /> : <Maximize className="w-4 h-4" />}
+            <span className="hidden md:inline">{isFullscreen ? "Fermer" : "Plein Écran"}</span>
           </button>
 
           {/* LIGHT / DARK THEME TOGGLE BUTTON */}
@@ -805,25 +820,25 @@ export default function App() {
               localStorage.setItem("infoperso_theme_mode", nextTheme);
               triggerToast(`🌓 Mode ${nextTheme === "dark" ? "Sombre" : "Clair"} activé`);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer transition-all border text-sm font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all border text-xs font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
             title={themeMode === "dark" ? "Passer au mode clair" : "Passer au mode sombre"}
           >
             {themeMode === "dark" ? (
               <>
-                <Sun className="w-5 h-5 text-amber-500" />
-                <span className="hidden sm:inline">Mode Jour</span>
+                <Sun className="w-4 h-4 text-amber-500" />
+                <span className="hidden sm:inline">Jour</span>
               </>
             ) : (
               <>
-                <Moon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-                <span className="hidden sm:inline">Mode Nuit</span>
+                <Moon className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                <span className="hidden sm:inline">Nuit</span>
               </>
             )}
           </button>
         </div>
       </header>
 
-      {/* THIN LEVEL PROGRESS BAR - REMOVED FOR SIMPLICITY */}
+      {/* THIN LEVEL PROGRESS BAR */}
       <div className="w-full h-[1px] bg-zinc-200 dark:bg-zinc-800" />
 
       {/* WORKSPACE LAYOUT */}
@@ -832,10 +847,10 @@ export default function App() {
         {sidebarOpen && (
           <div
             className={`fixed inset-0 z-20 transition-all cursor-pointer ${
-              isSobre ? isDark ? "top-[88px] bg-black/60 backdrop-blur-xs" : "top-[88px] bg-zinc-900/40 backdrop-blur-xs" :
-              isWarm ? isDark ? "top-[88px] bg-black/60 backdrop-blur-xs" : "top-[88px] bg-amber-950/30 backdrop-blur-xs" :
-              isFun ? "top-[104px] bg-slate-900/60" :
-              isDark ? "top-[88px] bg-slate-950/75 backdrop-blur-xs" : "top-[88px] bg-slate-550/40 backdrop-blur-xs"
+              isSobre ? isDark ? "top-[53px] bg-black/60 backdrop-blur-xs" : "top-[53px] bg-zinc-900/40 backdrop-blur-xs" :
+              isWarm ? isDark ? "top-[53px] bg-black/60 backdrop-blur-xs" : "top-[53px] bg-amber-950/30 backdrop-blur-xs" :
+              isFun ? "top-[58px] bg-slate-900/60" :
+              isDark ? "top-[53px] bg-slate-950/75 backdrop-blur-xs" : "top-[53px] bg-slate-550/40 backdrop-blur-xs"
             }`}
             onClick={() => setSidebarOpen(false)}
           />
@@ -843,7 +858,7 @@ export default function App() {
 
         {/* SIDEBAR NAVIGATION */}
         <aside
-          className={`fixed top-[88px] bottom-0 left-0 z-30 w-60 p-4 space-y-6 overflow-y-auto transform transition-transform duration-200 ease-in-out ${
+          className={`fixed top-[53px] bottom-0 left-0 z-30 w-60 p-4 space-y-6 overflow-y-auto transform transition-transform duration-200 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } ${
             isSobre ? isDark ? "bg-zinc-900 border-r border-zinc-800 text-zinc-200" : "bg-zinc-100/98 backdrop-blur-md border-r border-zinc-250 text-zinc-800" :

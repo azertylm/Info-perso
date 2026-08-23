@@ -1,9 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+}
+
+html.dark {
+  color-scheme: dark;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #000000;
 }
 
 /* Overrides to increase all font sizes and force bold ONLY when Mode Facile (easy-mode) is active */

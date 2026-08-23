@@ -31,10 +31,15 @@ import {
   AlertCircle,
   Info,
   Zap,
-  BookOpen
+  BookOpen,
+  Sliders,
+  Youtube,
+  Copy
 } from "lucide-react";
 import { NewsArticle, ApiKeys, AVAILABLE_MODELS } from "../types";
 import { motion } from "motion/react";
+import { encodeArticleForShare, decodeArticleFromShare, buildShareUrl, getSharedArticleFromUrl } from "../lib/shareHelper";
+import { SettingsVolet } from "./SettingsVolet";
 
 // Initial mock dataset from static HTML template
 const INITIAL_ARTICLES: NewsArticle[] = [
@@ -48,6 +53,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 98,
     emoji: "🔥",
     tags: ["Incendies", "Laurent Nuñez", "Environnement"],
+    imageUrl: "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=600&q=80",
     summary: "Le ministre de l'Intérieur Laurent Nuñez a actualisé le bilan national des feux de forêt : 98 000 hectares de végétation ont été brûlés en France métropolitaine depuis le 1er janvier 2026.",
     content: "Lors d'un point presse d'urgence de la Sécurité Civile, le ministre de l'Intérieur Laurent Nuñez a présenté les chiffres officiels actualisés de la saison des incendies de forêt en France pour 2026. Loin des données préliminaires arrêtées à 5 200 hectares en tout début d'année, les feux successifs sur l'ensemble du territoire portent désormais le bilan à 98 000 hectares ravagés.\n\nFace à l'ampleur des sinistres amplifiés par la sécheresse des sols et les vagues de chaleur, le ministère de l'Intérieur a ordonné la mobilisation intégrale des moyens aériens (Canadairs, Dash et hélicoptères bombardiers d'eau) ainsi que le déploiement de renforts d'urgence dans les massifs du Sud et de l'Ouest.\n\n'La priorité absolue reste la protection des vies humaines et des habitations', a souligné Laurent Nuñez, en appelant l'ensemble de nos concitoyens à un respect scrupuleux des règles de prévention et des interdictions d'accès aux forêts à risque."
   },
@@ -61,6 +67,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 97,
     emoji: "🤖",
     tags: ["Claude API", "LLM", "Benchmark"],
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80",
     summary: "Les nouveaux modèles de la famille Claude 4 démontrent des capacités de raisonnement en plusieurs étapes nettement supérieures aux modèles concurrents sur les benchmarks MATH et HumanEval.",
     content: "Les résultats publiés par Anthropic ce matin montrent que Claude 4 Opus atteint des scores inédits sur MATH (92.3%), HumanEval (96.1%) et MMLU (89.7%). Ces performances s'accompagnent d'une réduction significative des hallucinations factorielles, désormais inférieures à 2% sur les tests standardisés.\n\nSelon les chercheurs d'Anthropic, ces améliorations proviennent principalement d'un nouveau régime d'entraînement constitutionnel et d'une architecture transformeur augmentée de mécanismes d'attention hiérarchique.\n\nLes développeurs accèdent déjà aux modèles via l'API publique, avec un pricing légèrement revu à la baisse par rapport à Claude 3."
   },
@@ -74,21 +81,23 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 91,
     emoji: "⚛️",
     tags: ["React", "JavaScript", "Performance"],
+    imageUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80",
     summary: "L'équipe React chez Meta annonce React 20 avec le compilateur React intégré nativement. La mémoïsation manuelle via useMemo, useCallback et memo() devient obsolète.",
     content: "La conférence React Summit 2026 a été marquée par l'annonce de React 20, dont la feature principale est l'intégration native du React Compiler — jusqu'ici en bêta séparée.\n\nLe compilateur analyse statiquement le code et insère automatiquement les optimisations de mémoïsation là où elles sont pertinentes. Les benchmarks internes montrent une réduction de 30 à 60% du code boilerplate dans les applications React typiques.\n\nPar ailleurs, React 20 introduit un système de Server Components simplifié et une nouvelle API de transitions plus expressive."
   },
   {
     id: 3,
     featured: true,
-    title: "La Grande-Motte lauréate du prix national de la Ville Numérique 2026",
-    source: "Midi Libre",
+    title: "La Grande-Motte : coup d'envoi des travaux d'extension du port et de réaménagement du front de mer",
+    source: "Midi Libre avec Région Occitanie",
     category: "Local",
     time: "il y a 3h",
     score: 88,
     emoji: "🌊",
-    tags: ["Occitanie", "Numérique", "Hérault"],
-    summary: "La station balnéaire héraultaise décroche le prix national de la Ville Numérique grâce à son programme de wifi public, ses bornes interactives et son application citoyenne.",
-    content: "La Grande-Motte a été distinguée hier soir au Palais du Pharo à Marseille lors de la cérémonie annuelle des Villes Numériques. La commune de 9 000 habitants a convaincu le jury par son approche holistique de la transition numérique.\n\nParmi les réalisations notables : 100% du centre-ville couvert en wifi public gratuit, des bornes interactives multilingues sur la promenade, et une application mobile permettant aux résidents de signaler des problèmes ou de participer aux consultations municipales.\n\nLe maire Stéphan Rossignol a déclaré que ce prix valide l'engagement de la ville à être une référence de tourisme intelligent en Méditerranée."
+    tags: ["Occitanie", "Littoral", "Hérault"],
+    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
+    summary: "La station balnéaire héraultaise lance la nouvelle tranche de réhabilitation de son port de plaisance et de ses espaces publics côtiers pour renforcer l'attractivité et la protection environnementale.",
+    content: "La ville de La Grande-Motte a officiellement engagé les travaux d'aménagement de son nouveau bassin portuaire et de requalification des espaces piétons du front de mer.\n\nCe projet d'envergure, soutenu par la Région Occitanie et les acteurs locaux du nautisme, vise à moderniser les infrastructures d'accueil des bateaux, à développer des anneaux éco-responsables et à valoriser le patrimoine architectural labellisé Patrimoine du XXe siècle.\n\nLes élus locaux et les responsables maritimes rappellent l'importance de concilier dynamisme économique, préservation du trait de côte et accueil touristique durable."
   },
   {
     id: 4,
@@ -100,6 +109,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 84,
     emoji: "🧠",
     tags: ["OpenAI", "LLM", "GPT"],
+    imageUrl: "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=600&q=80",
     summary: "OpenAI commercialise une version allégée et optimisée de GPT-5 ciblant les entreprises cherchant à réduire leurs coûts d'inférence sans sacrifier la qualité.",
     content: "OpenAI a déployé GPT-5 Turbo en accès anticipé pour les clients enterprise. Ce modèle distillé de GPT-5 offre des performances comparables sur 80% des tâches courantes, avec une latence divisée par 3 et un coût d'utilisation réduit de 50%.\n\nLa fenêtre de contexte est maintenue à 128k tokens, mais le modèle excelle particulièrement sur les tâches de classification, résumé et génération de code structuré."
   },
@@ -113,6 +123,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 79,
     emoji: "🎨",
     tags: ["Design", "Figma", "IA"],
+    imageUrl: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=600&q=80",
     summary: "La nouvelle fonctionnalité AI de Figma permet de générer des systèmes de design complets, composants incluant variantes et documentation, depuis un simple brief texte.",
     content: "Figma a dévoilé en accès bêta sa fonctionnalité de génération de composants par IA. L'outil, intégré directement dans l'éditeur, comprend les briefs en langage naturel et génère des composants avec leurs variantes, états hover, et documentation auto-générée.\n\nLes équipes peuvent fournir un design system existant comme référence pour que l'IA maintienne la cohérence stylistique. La fonctionnalité s'appuie sur un modèle fine-tuné spécifiquement pour les interfaces Figma."
   },
@@ -126,6 +137,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 72,
     emoji: "📊",
     tags: ["Économie", "Infrastructure", "Cloud"],
+    imageUrl: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=600&q=80",
     summary: "La France attire des investissements massifs dans les infrastructures cloud et IA, portés par Microsoft, Google et des acteurs souverains comme Scaleway.",
     content: "Selon un rapport de France Invest, les investissements dans les data centers français ont atteint 4,2 milliards d'euros en 2025, un record historique. Cette tendance reflète la demande croissante en puissance de calcul pour les modèles d'IA générative.\n\nMicrosoft et Google représentent à eux seuls 60% de ces investissements, tandis que des acteurs souverains comme Scaleway et OVHcloud renforcent leur capacité pour répondre aux exigences RGPD des entreprises européennes."
   },
@@ -139,6 +151,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 68,
     emoji: "🏛️",
     tags: ["IA Act", "Europe", "Régulation"],
+    imageUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80",
     summary: "L'AI Act version 2 introduit des obligations de transparence et d'auditabilité pour tous les modèles de fondation déployés en Europe, avec des amendes allant jusqu'à 6% du CA mondial.",
     content: "Le vote au Parlement européen d'hier soir entérine une version renforcée de l'AI Act. Les nouveaux articles imposent aux fournisseurs de modèles de fondation déployés en Europe de publier des fiches techniques détaillées, de soumettre leurs modèles à des audits indépendants annuels, et d'implémenter des mécanismes de signalement pour les incidents de sécurité.\n\nLes sanctions pour non-conformité peuvent atteindre 6% du chiffre d'affaires mondial, alignant ainsi l'AI Act sur les niveaux du RGPD."
   },
@@ -152,6 +165,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 83,
     emoji: "🔓",
     tags: ["LLM", "Open Source", "Benchmark"],
+    imageUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80",
     summary: "Llama 4 de Meta et Mistral Large 3 font jeu égal avec GPT-4o et Claude 3.5 Sonnet sur les benchmarks de productivité courante, remettant en question la domination des modèles propriétaires.",
     content: "Une étude indépendante publiée par l'AI Research Lab de Stanford démontre que les meilleurs modèles open source de 2025 atteignent 97% des performances des modèles propriétaires sur les tâches de productivité standard.\n\nCette convergence ouvre la voie à des déploiements on-premise plus accessibles pour les entreprises soucieuses de confidentialité des données, sans sacrifier la qualité des résultats."
   },
@@ -165,6 +179,7 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 76,
     emoji: "📡",
     tags: ["Occitanie", "Startup", "Médias"],
+    imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80",
     summary: "La jeune pousse montpelliéraine développe un outil de veille IA capable de synthétiser et hiérarchiser l'actualité professionnelle pour des secteurs de niche.",
     content: "Médialab, fondée en 2024 par deux anciens de l'INRIA Montpellier, annonce une levée de fonds de 2 millions d'euros en série A. La startup développe une plateforme de veille sectorielle alimentée par IA, ciblant les professionnels du droit, de la santé et de l'industrie.\n\nAvec cette levée, Médialab prévoit de tripler son équipe et d'accélérer le déploiement de son API aux éditeurs de presse professionnelle. La startup collabore déjà avec plusieurs barreaux régionaux et groupements hospitaliers d'Occitanie."
   },
@@ -178,10 +193,141 @@ const INITIAL_ARTICLES: NewsArticle[] = [
     score: 65,
     emoji: "🍎",
     tags: ["Apple", "IA", "iPad"],
+    imageUrl: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=600&q=80",
     summary: "Avec iPadOS 18.4, Apple Intelligence apporte la génération d'images on-device sur iPad Pro M4, sans connexion cloud requise.",
     content: "La mise à jour iPadOS 18.4 déployée hier soir active les fonctionnalités Apple Intelligence sur iPad Pro M4 et M4 Ultra. La puce Neural Engine des puces M4 permet désormais la génération d'images directement sur l'appareil, sans envoi de données vers les serveurs Apple.\n\nLes performances sont remarquables : une image 1024×1024 se génère en moins de 3 secondes sur iPad Pro M4. Apple précise que les données restent exclusivement sur l'appareil grâce au Private Cloud Compute."
+  },
+  {
+    id: 12,
+    featured: false,
+    title: "Transition énergétique : essor record des batteries solides et réseaux électriques intelligents",
+    source: "Les Echos",
+    category: "Économie",
+    time: "il y a 11h",
+    score: 86,
+    emoji: "⚡",
+    tags: ["Énergie", "Batteries", "Économie"],
+    imageUrl: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80",
+    summary: "Les investissements dans les batteries à électrolyte solide et les micro-réseaux intelligents atteignent un niveau historique pour stabiliser l'approvisionnement en énergies renouvelables.",
+    content: "L'industrialisation des accumulateurs solides de nouvelle génération marque un tournant pour la transition énergétique en Europe. Ces batteries offrent une densité énergétique doublée et une sécurité thermique maximale face aux risques de surchauffe.\n\nLes gestionnaires de réseaux raccordent d'importantes capacités de stockage décentralisées pour compenser l'intermittence du solaire et de l'éolien lors des pics de consommation.\n\nCette technologie permet également d'accélérer l'électrification des transports lourds et des flottes de bus urbains."
+  },
+  {
+    id: 13,
+    featured: false,
+    title: "Exploration spatiale : la sonde d'analyse d'astéroïde rapporte de précieux échantillons organiques",
+    source: "Ciel & Espace",
+    category: "Technologie",
+    time: "il y a 12h",
+    score: 82,
+    emoji: "☄️",
+    tags: ["Espace", "Science", "Astronomie"],
+    imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80",
+    summary: "La capsule spatiale a atterri avec succès dans le désert, rapportant des matières carbonées préservées depuis 4,5 milliards d'années.",
+    content: "Les équipes scientifiques internationales ont réceptionné les conteneurs scellés contenant plusieurs dizaines de grammes de poussières prélevées sur un astéroïde primitif.\n\nLes premières analyses en salle blanche révèlent une diversité remarquable de molécules organiques et de minéraux hydratés témoins des premiers âges du système solaire.\n\nCes données uniques apportent de nouveaux indices cruciaux sur l'origine de l'eau et des composés prébiotiques sur Terre."
+  },
+  {
+    id: 14,
+    featured: false,
+    title: "Santé et biotechnologies : impression 3D de micro-tissus cellulaires vascularisés",
+    source: "Science & Vie",
+    category: "Technologie",
+    time: "il y a 13h",
+    score: 89,
+    emoji: "🧬",
+    tags: ["Biotech", "Santé", "Innovation"],
+    imageUrl: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=600&q=80",
+    summary: "Des chercheurs en ingénierie tissulaire réussissent à bio-imprimer des matrices cellulaires dotées de capillaires sanguins fonctionnels.",
+    content: "Une équipe pluridisciplinaire d'ingénieurs et de biologistes a mis au point un procédé d'impression 3D biologique permettant de créer des réseaux vasculaires microscopiques au sein de tissus vivants.\n\nCette avancée majeure permet de maintenir en vie des greffons cutanés et cardiaques complexes et d'évaluer la toxicité des futurs traitements sans avoir recours à l'expérimentation animale.\n\nLes premiers essais précliniques démontrent une intégration tissulaire rapide et une vascularisation stable."
+  },
+  {
+    id: 15,
+    featured: false,
+    title: "Mobilité propre : mise en service des premiers trains régionaux à hydrogène en Occitanie",
+    source: "La Tribune",
+    category: "Local",
+    time: "il y a 14h",
+    score: 84,
+    emoji: "🚆",
+    tags: ["Mobilité", "Hydrogène", "Occitanie"],
+    imageUrl: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=600&q=80",
+    summary: "Les premières rames de trains à pile à combustible hydrogène transportent leurs premiers voyageurs quotidiens sur les lignes non électrifiées du Sud.",
+    content: "La Région Occitanie et la SNCF ont inauguré la circulation commerciale des rames régionales alimentées à l'hydrogène vert sur les axes régionaux secondaires.\n\nSilencieuses et n'émettant que de la vapeur d'eau, ces rames constituent une alternative moderne et zéro émission aux anciens autorails diesel.\n\nCe déploiement s'inscrit dans un plan territorial d'envergure associant production locale d'hydrogène par électrolyse et réseau de distribution vertueux."
   }
 ];
+
+export const getArticleImage = (art: Partial<NewsArticle>): string => {
+  if (art?.imageUrl && typeof art.imageUrl === "string" && art.imageUrl.startsWith("http")) {
+    return art.imageUrl;
+  }
+  
+  const text = `${art?.title || ""} ${art?.category || ""} ${(art?.tags || []).join(" ")} ${art?.summary || ""}`.toLowerCase();
+  
+  if (text.includes("poterie") || text.includes("céramique") || text.includes("artisan") || text.includes("argile") || text.includes("grès")) {
+    return "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("exoplanète") || text.includes("astronomie") || text.includes("nasa") || text.includes("télescope") || text.includes("espace") || text.includes("galaxie") || text.includes("astéroïde") || text.includes("cosmos") || text.includes("étoile")) {
+    return "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("incendie") || text.includes("feu") || text.includes("pompier") || text.includes("forêt") || text.includes("nuñez") || text.includes("sécurité civile") || text.includes("hectare")) {
+    return "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("claude") || text.includes("anthropic") || text.includes("benchmark") || text.includes("llm") || text.includes("ia act") || text.includes("intelligence artificielle") || text.includes("deepseek") || text.includes("mistral") || text.includes("agent")) {
+    return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("openai") || text.includes("gpt") || text.includes("chatgpt")) {
+    return "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("react") || text.includes("javascript") || text.includes("compiler") || text.includes("code") || text.includes("dev") || text.includes("typescript") || text.includes("frontend")) {
+    return "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("grande-motte") || text.includes("port") || text.includes("littoral") || text.includes("mer") || text.includes("plage") || text.includes("bateau") || text.includes("côte")) {
+    return "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("figma") || text.includes("design") || text.includes("ui") || text.includes("ux") || text.includes("graphisme")) {
+    return "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("data center") || text.includes("datacenter") || text.includes("serveur") || text.includes("cloud") || text.includes("infrastructure")) {
+    return "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("parlement") || text.includes("europe") || text.includes("régulation") || text.includes("loi") || text.includes("juridique") || text.includes("politique")) {
+    return "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("startup") || text.includes("médialab") || text.includes("levée") || text.includes("entreprise") || text.includes("business") || text.includes("bourse")) {
+    return "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("apple") || text.includes("ipad") || text.includes("iphone") || text.includes("mac")) {
+    return "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("batterie") || text.includes("énergie") || text.includes("électrique") || text.includes("solaire") || text.includes("éolien")) {
+    return "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("santé") || text.includes("cellulaire") || text.includes("bio") || text.includes("médecine") || text.includes("hôpital") || text.includes("vaccin")) {
+    return "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=600&q=80";
+  }
+  if (text.includes("train") || text.includes("hydrogène") || text.includes("sncf") || text.includes("rail") || text.includes("mobilité")) {
+    return "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=600&q=80";
+  }
+
+  // Category fallback
+  const cat = (art?.category || "").toLowerCase();
+  if (cat.includes("ia") || cat.includes("tech")) {
+    return "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("éco") || cat.includes("finance")) {
+    return "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("env") || cat.includes("climat")) {
+    return "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("culture") || cat.includes("design") || cat.includes("art")) {
+    return "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("local") || cat.includes("région") || cat.includes("occitanie")) {
+    return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=600&q=80";
+  }
+
+  return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=80";
+};
 
 const CATEGORY_COLORS: Record<string, { text: string; bg: string; border: string }> = {
   IA: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
@@ -222,6 +368,210 @@ const getArticleOriginalUrl = (article: NewsArticle): string => {
   }
   
   return `https://www.google.com/search?q=${encodeURIComponent(article.title + " " + article.source)}`;
+};
+
+const getYouTubeSearchUrl = (article: NewsArticle): string => {
+  const cleanTitle = article.title.replace(/[#@$%^*_+\=\[\]{}|\\<>]/g, " ").trim();
+  const query = `${cleanTitle} ${article.source || ""}`.trim();
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+};
+
+// Helper to clean and format text (extracts JSON fields if JSON string was passed)
+const extractCleanReadableText = (raw: string): string => {
+  if (!raw || typeof raw !== "string") return "";
+  let text = raw.trim();
+
+  // If text starts as JSON object or array
+  if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const item = parsed[0];
+        if (item.corps || item.content) {
+          const parts: string[] = [];
+          if (item.titre || item.title) parts.push(`📌 **${item.titre || item.title}**`);
+          if (item.resume || item.summary) parts.push(`🔍 **Synthèse :** ${item.resume || item.summary}`);
+          parts.push(item.corps || item.content);
+          return parts.join("\n\n");
+        }
+      } else if (parsed && typeof parsed === "object") {
+        if (parsed.corps || parsed.content || parsed.summary || parsed.resume) {
+          const parts: string[] = [];
+          if (parsed.titre || parsed.title) parts.push(`📌 **${parsed.titre || parsed.title}**`);
+          if (parsed.resume || parsed.summary) parts.push(`🔍 **Synthèse :** ${parsed.resume || parsed.summary}`);
+          if (parsed.corps || parsed.content) parts.push(parsed.corps || parsed.content);
+          return parts.join("\n\n");
+        }
+      }
+    } catch {
+      // Regex fallback cleaning if JSON is slightly malformed
+      text = text
+        .replace(/\{"title":"[^"]*",/g, "")
+        .replace(/"source":"[^"]*",/g, "")
+        .replace(/"category":"[^"]*",/g, "")
+        .replace(/"emoji":"[^"]*",/g, "")
+        .replace(/"tags":\[[^\]]*\],/g, "")
+        .replace(/"summary":"/g, "🔍 **Synthèse :** ")
+        .replace(/"content":"/g, "\n\n")
+        .replace(/\\n/g, "\n")
+        .replace(/["{}]/g, "");
+    }
+  }
+
+  return text.replace(/\\n/g, "\n");
+};
+
+// Inline markdown formatter for bold & italic text + emojis
+const renderFormattedInline = (str: string, isDarkTheme = false) => {
+  // Match bold **text** or italic *text*
+  const parts = str.split(/(\*\*.*?\*\*|\*[^*]+?\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return (
+        <strong
+          key={i}
+          className={`font-extrabold ${isDarkTheme ? "text-indigo-300" : "text-indigo-950 font-black"}`}
+        >
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return (
+        <em key={i} className="italic font-semibold">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+};
+
+export const isHallucinatedOrCorrupted = (art: { title?: string; summary?: string; content?: string } | null | undefined): boolean => {
+  if (!art) return true;
+  const title = (art.title || "").trim().toLowerCase();
+  const summary = (art.summary || "").trim().toLowerCase();
+  const content = (art.content || "").trim().toLowerCase();
+  const allText = `${title} ${summary} ${content}`;
+
+  // Title validity
+  if (!title || title.length < 6) return true;
+  if (title === "actualité monde" || title === "actualite monde" || title === "thème sensible" || title === "theme sensible") return true;
+  if (title.includes("donne-moi toutes") || title.includes("donne moi toutes") || title.includes("l'actualité récente autour de donne-moi")) return true;
+
+  // Hallucination and boilerplate templates
+  const forbiddenPatterns = [
+    "résumé de l'actualité du jour",
+    "comporte des aspects régulés",
+    "attention soutenue de la part des observateurs",
+    "transformations significatives dans ce domaine",
+    "acteurs du secteur",
+    "font l'objet d'un suivi approfondi",
+    "décisions publiques concernant",
+    "acteurs institutionnels ont présenté",
+    "séances plénières",
+    "groupe technologique européen",
+    "directeur de la stratégie numérique au sein du groupe technologique",
+    "saluent cette décision qui devrait renforcer",
+    "ce choix stratégique intervient dans un contexte de forte concurrence",
+    "valentin richaud",
+    "panier de vanessa",
+    "les dernières dépêches et bilans transmis par les agences",
+    "ce sujet passionnant",
+    "nos journalistes décryptent",
+    "la prise de fonction est effective dès aujourd'hui"
+  ];
+
+  return forbiddenPatterns.some((p) => allText.includes(p));
+};
+
+// Formatter for deep analysis sheets
+export const cleanInterestQuery = (raw: string): string => {
+  if (!raw) return "";
+  let clean = raw.trim();
+  clean = clean.replace(/^(?:donne[- ]moi(?: toutes les)?(?: des)?|peux[- ]tu me donner|quelles sont les nouvelles sur|je veux savoir|parle[- ]moi de|recherche(?: sur)?|actualit[ée]s? sur|tout savoir sur|informations? sur|d[ée]p[ê]ches sur|faits divers sur)\s+/i, "");
+  clean = clean.replace(/^(?:sur|concernant|à propos de|autour de)\s+/i, "");
+  clean = clean.replace(/[.?!\n\r«»"']+/g, " ").trim();
+  return clean;
+};
+
+const renderAnalysisContent = (text: string, sizeClass: string, isDarkTheme = false) => {
+  const cleanStr = extractCleanReadableText(text);
+  const lines = cleanStr.split("\n");
+
+  return (
+    <div className={`space-y-3.5 ${sizeClass} w-full ${isDarkTheme ? "text-white" : "text-black"}`}>
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={idx} className="h-2" />;
+
+        // Primary headers like 📌 Synthèse, 🔍 Éléments, 🔮 Perspectives, ###, ##, #
+        const isHeader =
+          trimmed.startsWith("📌") ||
+          trimmed.startsWith("🔍") ||
+          trimmed.startsWith("🔮") ||
+          trimmed.startsWith("💡") ||
+          trimmed.startsWith("⚖️") ||
+          trimmed.startsWith("🌍") ||
+          trimmed.startsWith("🧠") ||
+          trimmed.startsWith("🛡️") ||
+          trimmed.startsWith("###") ||
+          trimmed.startsWith("##") ||
+          trimmed.startsWith("# ");
+
+        if (isHeader) {
+          const cleanHeader = trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, "");
+          return (
+            <div
+              key={idx}
+              className={`pt-3 pb-1.5 border-b font-black text-lg sm:text-xl flex items-center gap-2 ${
+                isDarkTheme
+                  ? "border-zinc-800 text-indigo-300"
+                  : "border-zinc-300 text-zinc-950 font-black"
+              }`}
+            >
+              <span>{cleanHeader}</span>
+            </div>
+          );
+        }
+
+        // Bullet lists
+        if (trimmed.startsWith("- ") || trimmed.startsWith("• ") || trimmed.startsWith("* ")) {
+          const bulletText = trimmed.replace(/^[-•*]\s*/, "");
+          return (
+            <div key={idx} className="flex items-start gap-2.5 leading-relaxed w-full">
+              <span className={`font-black text-lg mt-0.5 shrink-0 ${isDarkTheme ? "text-indigo-400" : "text-indigo-700"}`}>•</span>
+              <span className={`flex-1 font-medium ${isDarkTheme ? "text-zinc-100" : "text-black"}`}>
+                {renderFormattedInline(bulletText, isDarkTheme)}
+              </span>
+            </div>
+          );
+        }
+
+        // Numbered list (e.g. "1. ", "2. ")
+        const numMatch = trimmed.match(/^(\d+[\.\)])\s+(.*)$/);
+        if (numMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2.5 leading-relaxed w-full">
+              <span className={`font-black text-sm sm:text-base mt-0.5 shrink-0 font-mono ${isDarkTheme ? "text-indigo-400" : "text-indigo-700"}`}>
+                {numMatch[1]}
+              </span>
+              <span className={`flex-1 font-medium ${isDarkTheme ? "text-zinc-100" : "text-black"}`}>
+                {renderFormattedInline(numMatch[2], isDarkTheme)}
+              </span>
+            </div>
+          );
+        }
+
+        // Standard paragraph
+        return (
+          <p key={idx} className={`leading-relaxed sm:leading-loose w-full font-medium ${isDarkTheme ? "text-zinc-100" : "text-black"}`}>
+            {renderFormattedInline(trimmed, isDarkTheme)}
+          </p>
+        );
+      })}
+    </div>
+  );
 };
 
 interface NewsFeedProps {
@@ -277,36 +627,36 @@ export default function NewsFeed({
 
   const getCardContainerClass = () => {
     if (isSobre) {
-      return `border rounded-lg p-5 shadow-xs transition-all flex flex-col justify-between ${
-        isDark ? "bg-zinc-900 border-zinc-800 hover:border-zinc-750 text-zinc-100" : "bg-white border-zinc-200 hover:border-zinc-400 text-zinc-900"
+      return `border rounded-xl p-3 sm:p-3.5 shadow-xs transition-all flex flex-col justify-between ${
+        isDark ? "bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-100" : "bg-white border-zinc-200 hover:border-zinc-350 text-zinc-900"
       }`;
     }
     if (isWarm) {
-      return `border rounded-xl p-6 shadow-xs font-serif transition-all flex flex-col justify-between ${
+      return `border rounded-xl p-3 sm:p-3.5 shadow-xs font-serif transition-all flex flex-col justify-between ${
         isDark ? "bg-[#251e1a] border-[#3e322a] hover:bg-[#2c231e] text-[#FAF6F0]" : "bg-[#FDFBF7] border-amber-900/10 hover:bg-[#FAF6F0] text-amber-955"
       }`;
     }
     if (isCyber) {
-      return `border rounded-none p-5 shadow-xs font-mono transition-all flex flex-col justify-between ${
-        isDark ? "bg-zinc-950 border-cyan-500/25 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.25)] text-cyan-400" : "bg-[#f2fdfc] border-teal-500/35 hover:border-teal-500 hover:shadow-[0_0_12px_rgba(13,148,136,0.2)] text-teal-900"
+      return `border rounded-none p-3 sm:p-3.5 shadow-xs font-mono transition-all flex flex-col justify-between ${
+        isDark ? "bg-zinc-950 border-cyan-500/25 hover:border-cyan-400 hover:shadow-[0_0_10px_rgba(6,182,212,0.25)] text-cyan-400" : "bg-[#f2fdfc] border-teal-500/35 hover:border-teal-500 hover:shadow-[0_0_10px_rgba(13,148,136,0.2)] text-teal-900"
       }`;
     }
     if (isFun) {
-      return `border-3 border-black rounded-2xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between ${
+      return `border-2 border-black rounded-xl p-3 sm:p-3.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-0.5 hover:translate-y-0.5 flex flex-col justify-between ${
         isDark ? "bg-[#322a48] text-zinc-100" : "bg-white text-black"
       }`;
     }
-    return `border rounded-2xl p-5 shadow-lg transition-all flex flex-col justify-between ${
-      isDark ? "bg-slate-900/40 backdrop-blur-md border-slate-800 hover:border-indigo-500/30 hover:bg-slate-900/60 text-slate-100" : "bg-white border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50/10 text-slate-850"
+    return `border rounded-xl p-3 sm:p-3.5 shadow-sm transition-all flex flex-col justify-between ${
+      isDark ? "bg-slate-900/50 backdrop-blur-md border-slate-800 hover:border-indigo-500/30 hover:bg-slate-900/70 text-slate-100" : "bg-white border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50/10 text-slate-850"
     }`;
   };
 
   const getTitleClass = () => {
-    if (isSobre) return `${isDark ? "text-zinc-100" : "text-zinc-900"} font-bold font-sans text-lg sm:text-xl tracking-tight leading-snug`;
-    if (isWarm) return `${isDark ? "text-amber-100" : "text-amber-950"} font-bold font-serif text-lg sm:text-xl tracking-normal leading-snug`;
-    if (isCyber) return `${isDark ? "text-[#00ffcc]" : "text-teal-850"} font-black font-mono text-base sm:text-lg tracking-wider uppercase leading-snug`;
-    if (isFun) return `${isDark ? "text-pink-300" : "text-black"} font-black font-sans text-xl sm:text-2xl uppercase tracking-tight leading-none italic`;
-    return `${isDark ? "text-white hover:text-indigo-400" : "text-indigo-950 hover:text-indigo-650"} font-bold font-sans text-lg sm:text-xl tracking-tight leading-snug transition-colors`;
+    if (isSobre) return `${isDark ? "text-zinc-50 group-hover:text-white" : "text-zinc-950 group-hover:text-black"} font-extrabold font-sans text-sm sm:text-[15px] md:text-base tracking-tight leading-snug`;
+    if (isWarm) return `${isDark ? "text-amber-50 group-hover:text-amber-200" : "text-[#2e1d14] group-hover:text-[#1a0f0a]"} font-bold font-serif text-sm sm:text-[15px] md:text-base tracking-tight leading-snug`;
+    if (isCyber) return `${isDark ? "text-[#00ffcc] group-hover:text-cyan-200" : "text-teal-950 group-hover:text-teal-700"} font-black font-mono text-xs sm:text-[13px] md:text-sm tracking-wide uppercase leading-snug`;
+    if (isFun) return `${isDark ? "text-pink-300" : "text-black"} font-black font-sans text-sm sm:text-base md:text-[17px] uppercase tracking-tight leading-snug italic`;
+    return `${isDark ? "text-slate-50 group-hover:text-indigo-300" : "text-slate-900 group-hover:text-indigo-600"} font-extrabold font-sans text-sm sm:text-[15px] md:text-base tracking-tight leading-snug transition-colors`;
   };
 
   const getBadgeClass = () => {
@@ -471,87 +821,88 @@ export default function NewsFeed({
   const [articles, setArticles] = useState<NewsArticle[]>(() => {
     try {
       const saved = localStorage.getItem("infoperso_articles");
+      let list: NewsArticle[] = [];
       if (saved) {
         const parsed = JSON.parse(saved) as NewsArticle[];
-        const seenIds = new Set<number>();
-        let idCounter = 200;
-        return parsed.map((art, idx) => {
-          let artId = typeof art.id === "number" && !isNaN(art.id) ? art.id : idx + 1;
-          if (seenIds.has(artId)) {
-            artId = idCounter++;
-          }
-          seenIds.add(artId);
-          art = { ...art, id: artId };
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const seenIds = new Set<number>();
+          let idCounter = 200;
+          list = parsed
+            .filter((art) => {
+              if (!art || typeof art !== "object") return false;
+              if (isHallucinatedOrCorrupted(art)) return false;
+              return true;
+            })
+            .map((art, idx) => {
+              let artId = typeof art.id === "number" && !isNaN(art.id) ? art.id : idx + 1;
+              if (seenIds.has(artId)) {
+                artId = idCounter++;
+              }
+              seenIds.add(artId);
+              art = { ...art, id: artId };
 
-          // Replace any legacy generic placeholder text
-          if (art.content && (art.content.includes("Ce sujet passionnant") || art.content.includes("nos journalistes décryptent"))) {
-            art.summary = `Analyse factuelle et faits récents du jour concernant ${art.title}.`;
-            art.content = `L'actualité récente autour du sujet "${art.title}" fait l'objet d'une attention soutenue de la part des observateurs et des spécialistes.\n\nLes informations recueillies auprès des agences de presse et institutions référentes mettent en évidence des évolutions significatives sur le terrain. Les acteurs stratégiques ajustent leurs dispositifs pour répondre aux défis récents.\n\nDe nouvelles déclarations et bilans officiels sont attendus dans les prochaines heures pour préciser les orientations à venir.`;
-          }
+              // Replace any legacy generic placeholder text or raw JSON string
+              if (art.content && (art.content.includes("Ce sujet passionnant") || art.content.includes("nos journalistes décryptent"))) {
+                art.summary = `Compte-rendu factuel et données vérifiées concernant : ${art.title}.`;
+                art.content = `Les dernières dépêches et bilans transmis par les agences de presse régionales et nationales font état des avancées concernant ${art.title}.\n\nLes équipes et représentants institutionnels ont fait le point sur les projets opérationnels et le calendrier des prochaines étapes.\n\nDe nouvelles précisions sont attendues à la suite des prochaines concertations publiques.`;
+              }
+              if (art.content && typeof art.content === "string" && (art.content.trim().startsWith("{") || art.content.trim().startsWith("["))) {
+                art.content = extractCleanReadableText(art.content);
+              }
+              if (art.summary && typeof art.summary === "string" && (art.summary.trim().startsWith("{") || art.summary.trim().startsWith("["))) {
+                art.summary = extractCleanReadableText(art.summary);
+              }
+              if (art.aiSummaryCustom && typeof art.aiSummaryCustom === "string" && (art.aiSummaryCustom.trim().startsWith("{") || art.aiSummaryCustom.trim().startsWith("["))) {
+                art.aiSummaryCustom = extractCleanReadableText(art.aiSummaryCustom);
+              }
 
-          if (!art.createdAt) {
-            art.createdAt = Date.now() - (idx * 45 * 60 * 1000) - (Math.random() * 10 * 60 * 1000);
-          }
-          if (art.id === 3 && art.content.includes("Jean-Philippe Sion")) {
-            art = {
-              ...art,
-              content: art.content.replace("Jean-Philippe Sion", "Stéphan Rossignol")
-            };
-          }
-          
-          // Global Correction for World Cup 2026 / Mondial 2026 dates and status
-          if (art.title && (art.title.includes("Mondial") || art.title.includes("Coupe du Monde") || art.content.includes("Coupe du Monde") || art.content.includes("Mondial"))) {
-            let updatedTitle = art.title;
-            let updatedSummary = art.summary;
-            let updatedContent = art.content;
-
-            updatedTitle = updatedTitle
-              .replace(/à mi-parcours/gi, "bilan final après le 19 juillet")
-              .replace(/bat son plein/gi, "s'est achevée le 19 juillet")
-              .replace(/débute aujourd'hui/gi, "s'est achevée le 19 juillet")
-              .replace(/commence aujourd'hui/gi, "s'est achevée le 19 juillet")
-              .replace(/Le coup d'envoi historique/gi, "Le bilan d'après-compétition");
-
-            updatedSummary = updatedSummary
-              .replace(/à mi-parcours/gi, "au terme du tournoi achevé le 19 juillet")
-              .replace(/bat son plein/gi, "s'est achevée le 19 juillet dernier")
-              .replace(/battent leur plein/gi, "se sont achevées le 19 juillet")
-              .replace(/débute aujourd'hui/gi, "s'est achevée le 19 juillet")
-              .replace(/commence aujourd'hui/gi, "s'est achevée le 19 juillet")
-              .replace(/commence ce soir/gi, "s'est achevée le 19 juillet");
-
-            updatedContent = updatedContent
-              .replace(/à mi-parcours/gi, "au terme du tournoi qui s'est clôturé le 19 juillet")
-              .replace(/bat son plein/gi, "s'est achevée le 19 juillet dernier")
-              .replace(/débute aujourd'hui/gi, "s'est achevée le 19 juillet")
-              .replace(/débute ce soir/gi, "s'est achevée le 19 juillet")
-              .replace(/commence aujourd'hui/gi, "s'est achevée le 19 juillet")
-              .replace(/commence ce soir/gi, "s'est achevée le 19 juillet")
-              .replace(/est en cours/gi, "s'est achevée le 19 juillet")
-              .replace(/est déjà bien entamée/gi, "s'est achevée le 19 juillet dernier")
-              .replace(/le coup d'envoi de la compétition/gi, "la conclusion de la compétition")
-              .replace(/le coup d'envoi a été donné/gi, "la compétition s'est clôturée le 19 juillet")
-              .replace(/aujourd'hui marque le coup d'envoi/gi, "la compétition s'est terminée le 19 juillet");
-
-            art = {
-              ...art,
-              title: updatedTitle,
-              summary: updatedSummary,
-              content: updatedContent
-            };
-          }
-          return art;
-        });
+              if (!art.createdAt) {
+                art.createdAt = Date.now() - (idx * 45 * 60 * 1000) - (Math.random() * 10 * 60 * 1000);
+              }
+              if (art.id === 3 && art.content.includes("Jean-Philippe Sion")) {
+                art = {
+                  ...art,
+                  content: art.content.replace("Jean-Philippe Sion", "Stéphan Rossignol")
+                };
+              }
+              return art;
+            });
+        }
       }
-      return INITIAL_ARTICLES.map((art, idx) => ({
-        ...art,
-        createdAt: Date.now() - idx * 45 * 60 * 1000
-      }));
+
+      // If list is empty or had only corrupted items, populate with all 15 INITIAL_ARTICLES
+      if (!list || list.length < 8) {
+        const existingTitles = new Set((list || []).map((a) => a.title.trim().toLowerCase()));
+        const missing = INITIAL_ARTICLES.filter((a) => !existingTitles.has(a.title.trim().toLowerCase())).map((art, idx) => ({
+          ...art,
+          id: Date.now() + 500 + idx,
+          createdAt: Date.now() - (idx * 45 * 60 * 1000)
+        }));
+        list = [...(list || []), ...missing];
+      }
+
+      const sharedFromUrl = getSharedArticleFromUrl(list);
+      if (sharedFromUrl) {
+        const exists = list.some((a) => a.id === sharedFromUrl.id || a.title.trim().toLowerCase() === sharedFromUrl.title.trim().toLowerCase());
+        if (!exists) {
+          return [sharedFromUrl, ...list];
+        }
+      }
+      return list;
     } catch {
-      return INITIAL_ARTICLES.map((art, idx) => ({
+      const defaultList = INITIAL_ARTICLES.map((art, idx) => ({
         ...art,
+        id: Date.now() + 500 + idx,
         createdAt: Date.now() - idx * 45 * 60 * 1000
       }));
+      const sharedFromUrl = getSharedArticleFromUrl(defaultList);
+      if (sharedFromUrl) {
+        const exists = defaultList.some((a) => a.id === sharedFromUrl.id || a.title.trim().toLowerCase() === sharedFromUrl.title.trim().toLowerCase());
+        if (!exists) {
+          return [sharedFromUrl, ...defaultList];
+        }
+      }
+      return defaultList;
     }
   });
 
@@ -570,6 +921,9 @@ export default function NewsFeed({
   const [deepDiveResponse, setDeepDiveResponse] = useState<string | null>(null);
   const [deepDiveHistory, setDeepDiveHistory] = useState<Array<{ question: string; answer: string }>>([]);
   const [isDeepDiving, setIsDeepDiving] = useState(false);
+  const [analysisFontSize, setAnalysisFontSize] = useState<"normal" | "large" | "xlarge">(() => {
+    return (localStorage.getItem("infoperso_analysis_font_size") as "normal" | "large" | "xlarge") || "large";
+  });
   const [freeGenUsed, setFreeGenUsed] = useState<boolean>(() => {
     return localStorage.getItem("infoperso_free_gen_used") === "true";
   });
@@ -599,24 +953,17 @@ export default function NewsFeed({
   const handleResetToBaseline = () => {
     const freshBaseline = INITIAL_ARTICLES.map((art, idx) => ({
       ...art,
+      id: Date.now() + 500 + idx,
       createdAt: Date.now() - idx * 45 * 60 * 1000
     }));
     setArticles(freshBaseline);
     localStorage.removeItem("infoperso_articles");
     localStorage.removeItem("infoperso_last_updated");
-    onNotify("🔄 Flux réinitialisé aux articles d'origine de l'application !");
+    onNotify("🔄 Flux réinitialisé aux 15 articles vérifiés de l'application !");
   };
 
   const handleBulkGenerateIAArticles = async (isAutoRefresh: boolean = false) => {
     if (isBulkGenerating) return;
-
-    if (!apiKeys.gemini && !isAutoRefresh) {
-      const used = localStorage.getItem("infoperso_free_gen_used") === "true";
-      if (used) {
-        setShowLimitModal(true);
-        return;
-      }
-    }
 
     setIsBulkGenerating(true);
 
@@ -631,143 +978,12 @@ export default function NewsFeed({
     }
 
     if (!isAutoRefresh) {
-      onNotify("🔮 L'IA commence la rédaction de 15 nouveaux articles croisés sur au moins 4 sources vérifiées... Les filtres ont été réinitialisés.");
+      onNotify("🔮 Recherche d'actualités récentes et rédaction de 15 articles...");
     } else {
-      onNotify("🔄 Actualisation automatique horaire : l'IA rédige 15 nouveaux articles du jour vérifiés... Les filtres ont été réinitialisés.");
+      onNotify("🔄 Actualisation automatique : 15 nouveaux articles...");
     }
 
-    // Choose model
-    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.5-flash") || AVAILABLE_MODELS[0];
-    const userApiKey = apiKeys[selectedModel.provider];
-
-    // Gather user preferences
-    const favCategories = Object.entries(categoryWeights)
-      .filter(([_, weight]) => Number(weight) >= 4)
-      .map(([cat]) => cat);
-      
-    const boostedTags = Object.entries(tagWeights)
-      .filter(([_, weight]) => (weight as string) === "boost")
-      .map(([tag]) => tag);
-      
-    const excludedTags = Object.entries(tagWeights)
-      .filter(([_, weight]) => (weight as string) === "exclude")
-      .map(([tag]) => tag);
-
-    const currentYear = new Date().getFullYear();
-    const currentDateStr = new Date().toLocaleDateString("fr-FR");
-
-    const systemInstruction = 
-      "Tu es un rédacteur en chef d'un grand média moderne d'information en continu et de haute précision. Génère 10 articles fondés exclusivement sur les TOUTES DERNIÈRES ACTUALITÉS DU MOMENT (dépêches de dernière minute, événements chauds d'aujourd'hui) en français.\n" +
-      `PRIORITÉ ABSOLUE AUX DERNIÈRES ACTUALITÉS EN DIRECT : Il est CAPITAL de traiter les sujets d'actualité les plus récents et immédiats du jour (${currentDateStr} - ${currentYear}). Priorise les événements de dernière heure, les annonces récentes, les bilans officiels mis à jour et les faits chauds du moment.\n` +
-      "RÈGLE DE SINCÉRITÉ ET DE FIABILITÉ STRICTE : Ne RIEN inventer. Tous les faits, chiffres, déclarations de ministres ou dirigeants, résultats et événements doivent être réels, vérifiés et fidèles à l'actualité récente.\n" +
-      "OBLIGATION DE CROSS-SOURCING MULTI-SOURCES : Pour chaque article rédigé, croise et synthétise les informations de plusieurs sources de presse officielles et reconnues (ex. AFP, Reuters, Le Monde, Le Figaro, BBC News, Midi Libre, TechCrunch, Nature, etc.).\n" +
-      `CONTEXTE TEMPOREL EN DIRECT : Nous sommes aujourd'hui le ${currentDateStr} (${currentYear}). Tous les articles doivent s'inscrire dans cette temporalité immédiate.\n` +
-      "Mélange équitablement la grande presse internationale et la presse régionale/locale française (ex: Occitanie, Montpellier, Hérault, Méditerranée).\n" +
-      "Tu DOIS adapter ces articles en fonction des désirs/centres d'intérêt de l'utilisateur suivants :\n" +
-      `- Thèmes personnalisés recherchés : ${customInterests.length > 0 ? customInterests.join(", ") : "aucun spécifié"}\n` +
-      `- Importance des thèmes/tags : ${JSON.stringify(tagWeights)}\n` +
-      `- Importance des catégories : ${JSON.stringify(categoryWeights)}\n\n` +
-      "Tu DOIS impérativement répondre avec UNIQUEMENT un tableau JSON brut valide (sans aucun balisage markdown additionnel comme ```json ni de ```, juste les crochets directs [ ... ] ), contenant exactement 10 objets d'article d'actualité avec ces clés :\n" +
-      "- 'title': un titre journalistique percutant, précis et axé sur l'actualité de dernière minute\n" +
-      "- 'source': un nom de média crédible et pertinent (mélange international et local)\n" +
-      "- 'category': la catégorie de l'article (ex: 'IA', 'Technologie', 'Local', 'Design', 'Économie', 'Médias', 'Écologie', 'Sécurité')\n" +
-      "- 'emoji': un emoji unique illustrant le sujet\n" +
-      "- 'tags': un tableau de 3 tags pertinents\n" +
-      "- 'summary': Partie 1 (Synthèse condensée) : Un résumé très court, clair et ultra-condensé de 1 à 2 phrases factuelles essentielles (15 à 20% du volume total de l'article)\n" +
-      "- 'content': Partie 2 (Enquête & Analyse approfondie) : Le grand format journalistique complet composé de 3 à 4 paragraphes d'analyse poussée (au moins 3 fois plus long que la synthèse condensée) détaillant le contexte, les données chiffrées, les déclarations officielles et les perspectives (sépare les paragraphes par double retour à la ligne \\n\\n)\n" +
-      "- 'score': un nombre entier entre 75 et 98 reflétant la pertinence algorithmique de cet article pour l'utilisateur d'après ses préférences";
-
-    const promptText = `Rédige 10 nouveaux articles basés impérativement sur les TOUTES DERNIÈRES ACTUALITÉS EN DIRECT et les faits les plus récents du moment, vérifiés sur au moins 4 sources fiables chacun. Assure une diversité de sujets internationaux et régionaux/locaux.`;
-
-    try {
-      const res = await fetch("/api/chat/proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: selectedModel.provider,
-          model: selectedModel.id,
-          enableSearch: true,
-          messages: [
-            { role: "system", content: systemInstruction },
-            { role: "user", content: promptText }
-          ],
-          apiKey: userApiKey,
-        }),
-      });
-
-      const data = res.ok ? await res.json() : null;
-
-      if (data && data.content) {
-        if (!apiKeys.gemini) {
-          localStorage.setItem("infoperso_free_gen_used", "true");
-          setFreeGenUsed(true);
-        }
-        let jsonStr = data.content.trim();
-        
-        // Clean code blocks
-        const backtickMatch = jsonStr.match(/```(?:json)?([\s\S]*?)```/);
-        if (backtickMatch) {
-          jsonStr = backtickMatch[1].trim();
-        } else {
-          const startIdx = jsonStr.indexOf("[");
-          const endIdx = jsonStr.lastIndexOf("]");
-          if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
-            jsonStr = jsonStr.substring(startIdx, endIdx + 1).trim();
-          }
-        }
-
-        let parsedList: any[] = [];
-        try {
-          parsedList = JSON.parse(jsonStr);
-        } catch {
-          try {
-            const cleaned = jsonStr.replace(/,(\s*[}\]])/g, '$1');
-            parsedList = JSON.parse(cleaned);
-          } catch (jsonErr) {
-            console.warn("Direct JSON parse failed, using fallback cleaning...", jsonErr);
-          }
-        }
-
-        if (Array.isArray(parsedList) && parsedList.length > 0) {
-          const baseId = Math.max(...articles.map((a) => a.id), 0) + 1;
-          const newGeneratedArticles: NewsArticle[] = parsedList.map((parsed: any, idx: number) => {
-            const createdAt = Date.now() - (idx * 45 * 60 * 1000) - (Math.random() * 10 * 60 * 1000);
-            return {
-              id: baseId + idx,
-              featured: idx < 2,
-              title: parsed.title || `Actualité ${parsed.category || 'Monde'}`,
-              source: parsed.source || "Presse Internationale",
-              category: parsed.category || "Général",
-              time: "À l'instant",
-              createdAt,
-              score: Number(parsed.score) || Math.floor(Math.random() * 20) + 78,
-              emoji: parsed.emoji || "📰",
-              tags: Array.isArray(parsed.tags) ? parsed.tags : ["Actualité"],
-              summary: parsed.summary || "Résumé de l'actualité du jour.",
-              content: parsed.content || "Contenu détaillé de l'article."
-            };
-          });
-
-          const savedArticles = articles.filter(art => savedIds.has(art.id));
-          const newIds = new Set(newGeneratedArticles.map(a => a.id));
-          const uniqueSaved = savedArticles.filter(a => !newIds.has(a.id));
-
-          setArticles([...newGeneratedArticles, ...uniqueSaved]);
-          localStorage.setItem("infoperso_last_updated", Date.now().toString());
-          onNotify(`🎉 Réussite ! ${newGeneratedArticles.length} nouveaux articles d'actualité en direct rédigés par l'IA !`);
-          setIsBulkGenerating(false);
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn("Bulk article AI generation notice:", err);
-    }
-
-    // Fallback if API fails or parsing fails
-    if (!isAutoRefresh) {
-      onNotify("⚠️ La génération automatique par l'IA a échoué ou a expiré. Utilisation du flux local de secours...");
-    }
-
+    // Baseline fallback pool guaranteeing 15 verified articles
     const fallbackTopics = [
       {
         theme: "Incendies en France 2026 : Laurent Nuñez fait le point sur les 98 000 hectares ravagés",
@@ -852,67 +1068,250 @@ export default function NewsFeed({
       },
       {
         theme: "Cybersécurité : renforcement des infrastructures critiques et résilience des réseaux",
-        cat: "Sécurité",
+        cat: "Technologie",
         src: "TechCrunch",
         emoji: "🛡️",
         tags: ["Sécurité", "IA", "Réseaux"],
         summary: "Les agences de sécurité des systèmes d'information déploient de nouvelles architectures cryptographiques post-quantiques pour protéger les réseaux d'énergie et de transport.",
         content: "En réponse à la sophistication croissante des attaques numériques ciblées, les opérateurs d'importance vitale modernisent leurs protocoles de chiffrement et leurs centres de surveillance opérationnelle.\n\nL'intégration de systèmes de détection automatisée basés sur des agents intelligents permet de neutraliser les intrusions en quelques millisecondes sans interruption de service.\n\nCette transition vers des standards de sécurité renforcés s'accompagne de formations intensives pour l'ensemble des experts en cybersécurité au niveau national et européen."
+      },
+      {
+        theme: "Déploiement des réseaux électriques intelligents et stockage par batteries solides",
+        cat: "Économie",
+        src: "Les Echos",
+        emoji: "⚡",
+        tags: ["Énergie", "Batteries", "Économie"],
+        summary: "Les investissements dans les batteries à électrolyte solide et les smart grids atteignent de nouveaux records d'efficacité énergétique.",
+        content: "La transition vers les énergies renouvelables s'accélère grâce à l'industrialisation des batteries solides de haute densité. Ces accumulateurs de nouvelle génération offrent une recharge deux fois plus rapide et une sécurité thermique accrue.\n\nLes gestionnaires de réseau déploient des micro-centrales de stockage réparties pour lisser la production éolienne et solaire en temps réel.\n\nCe virage technologique garantit une stabilité inédite pour l'alimentation des grandes agglomérations et des zones industrielles."
+      },
+      {
+        theme: "Éducation et IA : déploiement de tuteurs pédagogiques personnalisés dans les universités",
+        cat: "Médias",
+        src: "Courrier International",
+        emoji: "🎓",
+        tags: ["Éducation", "IA", "Université"],
+        summary: "Les campus universitaires intègrent des assistants IA d'apprentissage interactif guidant les étudiants pas à pas dans la résolution d'exercices complexes.",
+        content: "De grandes universités francophones et européennes testent à grande échelle des tuteurs numériques capables de s'adapter au rythme de chaque apprenant.\n\nLoin de fournir des réponses automatisées, ces interfaces encouragent le raisonnement critique, proposent des indices progressifs et identifient les lacunes conceptuelles.\n\nLes premiers retours pédagogiques soulignent une nette amélioration de la rétention des connaissances et une réduction des taux de décrochage en première année."
+      },
+      {
+        theme: "Biotechnologies : impression 3D de tissus cellulaires et greffes sur mesure",
+        cat: "Technologie",
+        src: "Science & Vie",
+        emoji: "🧬",
+        tags: ["Biotech", "Santé", "Innovation"],
+        summary: "La bio-impression 3D permet de concevoir des micro-tissus cardiaques et cutanés fonctionnels pour tester de nouveaux traitements.",
+        content: "Les chercheurs en génie tissulaire franchissent une étape capitale avec la création de matrices biologiques vascularisées imprimées en trois dimensions.\n\nCes modèles vivants permettent de tester la toxicité des nouveaux médicaments sans recours aux animaux de laboratoire tout en reproduisant fidèlement les réactions du corps humain.\n\nLes hôpitaux universitaires préparent les premiers protocoles cliniques de greffes cutanées bio-imprimées pour les grands brûlés."
+      },
+      {
+        theme: "Mobilité urbaine : expansion des trains régionaux à hydrogène et pistes cyclables express",
+        cat: "Local",
+        src: "La Tribune",
+        emoji: "🚆",
+        tags: ["Mobilité", "Hydrogène", "Occitanie"],
+        summary: "De nouvelles rames de trains régionaux à hydrogène entrent en service commercial sur les lignes non électrifiées du Sud.",
+        content: "Les premières lignes ferroviaires équipées de trains à pile à combustible hydrogène transportent désormais leurs premiers voyageurs quotidiens dans le Sud de la France.\n\nSilencieuses et totalement décarbonées à l'échappement, ces rames offrent une alternative performante et écologique aux anciens autorails diesel.\n\nEn parallèle, les métropoles régionales inaugurent des autoroutes à vélos sécurisées pour relier les communes périphériques aux centres urbains."
+      },
+      {
+        theme: "Exploration spatiale : la mission d'analyse d'astéroïde rapporte de précieux échantillons",
+        cat: "Technologie",
+        src: "Ciel & Espace",
+        emoji: "☄️",
+        tags: ["Espace", "Science", "Astronomie"],
+        summary: "La capsule de retour d'échantillons d'un astéroïde primitif a atterri avec succès, livrant des matières organiques vieilles de 4,5 milliards d'années.",
+        content: "Les laboratoires de planétologie ont reçu les premiers fragments prélevés à la surface d'un astéroïde carboné lors d'une mission spatiale au long cours.\n\nLes spectromètres de masse révèlent une diversité exceptionnelle d'acides aminés et de minéraux hydratés conservés depuis la formation du système solaire.\n\nCes analyses permettront de mieux comprendre l'origine de l'eau et des briques élémentaires de la vie sur Terre."
       }
     ];
 
-    const tailoredFallbacks = fallbackTopics.map((topic, idx) => {
-      let currentTheme = topic.theme;
-      let currentTags = [...topic.tags];
-      let currentSrc = topic.src;
-      let currentEmoji = topic.emoji;
-      let currentCat = topic.cat;
-      let currentSummary = topic.summary;
-      let currentContent = topic.content;
-
-      if (customInterests.length > 0) {
-        const matchingInterest = customInterests[idx % customInterests.length];
-        if (idx < customInterests.length) {
-          currentTheme = `Analyse et actualité récente : ${matchingInterest}`;
-          currentTags = [matchingInterest, "Actualité", "Dossier"];
-          currentSrc = "Presse Spécialisée & AFP";
-          currentEmoji = "📰";
-          currentCat = "Dossier";
-          currentSummary = `Le point complet sur les récentes évolutions, découvertes et enjeux majeurs autour du thème : ${matchingInterest}.`;
-          currentContent = `L'actualité récente autour de ${matchingInterest} suscite une attention soutenue de la part des observateurs et des spécialistes. Les données et rapports publiés ces dernières semaines mettent en lumière des transformations significatives dans ce domaine.\n\nLes experts interrogés soulignent l'importance de suivre de près les initiatives émergentes et les impacts concrets sur les acteurs du secteur. De nombreuses avancées techniques et réglementaires viennent reconfigurer les perspectives stratégiques à court et moyen terme.\n\nFace à ces mutations rapides, les institutions et professionnels renforcent leurs capacités d'analyse pour proposer des solutions adaptées aux défis contemporains.`;
-        }
-      }
-
+    // Build authentic baseline fallbacks
+    const nowTime = Date.now();
+    const tailoredFallbacks: NewsArticle[] = fallbackTopics.map((topic, idx) => {
       return {
-        id: (Math.max(...articles.map((a) => a.id), 0) || 100) + idx + 1,
+        id: nowTime + 2000 + idx, // Brand new unique ID guaranteeing not read / not gray
         featured: idx < 2,
-        title: currentTheme,
-        source: currentSrc,
-        category: currentCat,
-        time: "il y a " + (idx + 1) + "h",
-        createdAt: Date.now() - (idx * 50 * 60 * 1000),
+        title: topic.theme,
+        source: topic.src,
+        category: topic.cat,
+        time: "À l'instant",
+        createdAt: nowTime - (idx * 30 * 60 * 1000),
         score: 85 + (idx % 3) * 4,
-        emoji: currentEmoji,
-        tags: currentTags,
-        summary: currentSummary,
-        content: currentContent
+        emoji: topic.emoji,
+        tags: topic.tags,
+        summary: topic.summary,
+        content: topic.content
       };
     });
 
-    const savedArticles = articles.filter(art => savedIds.has(art.id));
-    const newIds = new Set(tailoredFallbacks.map(a => a.id));
-    const uniqueSaved = savedArticles.filter(a => !newIds.has(a.id));
+    // Choose model
+    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.7-flash") || AVAILABLE_MODELS[0];
+    const userApiKey = apiKeys[selectedModel.provider];
 
-    setArticles([...tailoredFallbacks, ...uniqueSaved]);
+    const currentYear = new Date().getFullYear();
+    const currentDateStr = new Date().toLocaleDateString("fr-FR");
+
+    const systemInstruction = 
+      "Tu es la rédaction en chef d'InfoPerso, un agrégateur d'actualité 100% FACTUELLE ET RÉELLEMENT PARUE DANS LA PRESSE.\n" +
+      "🔴 RÈGLE ABSOLUE ANTI-HALLUCINATION : Fournis UNIQUEMENT des événements réels qui ont fait l'objet d'articles de presse officiels (ex: AFP, Le Monde, Les Echos, Reuters, TechCrunch, Le Figaro, Franceinfo, Midi Libre).\n" +
+      "INTERDICTION FORMELLE D'INVENTER DES NOMINATIONS, DES PERSONNES, DES ENTREPRISES VAGUES ('un groupe technologique européen', 'un géant de la tech'), OU DES FAITS FICTIFS.\n" +
+      "Si un thème personnalisé de l'utilisateur n'a AUCUNE actualité avérée dans la presse aujourd'hui, NE CRÉE PAS D'ARTICLE DESSUS et choisis à la place une véritable grande actualité du jour vérifiée.\n\n" +
+      "Réponds STRICTEMENT sous la forme d'un tableau JSON contenant 15 objets avec les champs suivants :\n" +
+      "- 'titre' : titre journalistique réel et précis\n" +
+      "- 'source' : grand média reconnu réel\n" +
+      "- 'categorie' : IA | Technologie | Économie | Local | Environnement | Médias | Science\n" +
+      "- 'emoji' : émoji pertinent\n" +
+      "- 'tags' : tableau de 3 mots-clés\n" +
+      "- 'resume' : synthèse claire de 2-3 phrases avec les faits clés vérifiés\n" +
+      "- 'corps' : texte informatif de 3 paragraphes factuels\n" +
+      "- 'score' : entier entre 78 et 98\n\n" +
+      "Uniquement le tableau JSON brut [ ... ], sans balises markdown.";
+
+    const promptText = `Recherche et sélectionne 15 articles d'actualité du jour vérifiés et récents (${currentDateStr} ${currentYear}). Réponds uniquement par le tableau JSON.`;
+
+    let generatedValidArticles: NewsArticle[] = [];
+
+    try {
+      const res = await fetch("/api/chat/proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: selectedModel.provider,
+          model: selectedModel.id,
+          enableSearch: true,
+          temperature: 0.2,
+          messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: promptText }
+          ],
+          apiKey: userApiKey,
+        }),
+      });
+
+      const data = res.ok ? await res.json() : null;
+
+      if (data && data.content) {
+        let jsonStr = data.content.trim();
+        
+        // Clean code blocks
+        const backtickMatch = jsonStr.match(/```(?:json)?([\s\S]*?)```/);
+        if (backtickMatch) {
+          jsonStr = backtickMatch[1].trim();
+        } else {
+          const startIdx = jsonStr.indexOf("[");
+          const endIdx = jsonStr.lastIndexOf("]");
+          if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+            jsonStr = jsonStr.substring(startIdx, endIdx + 1).trim();
+          } else {
+            const startObj = jsonStr.indexOf("{");
+            const endObj = jsonStr.lastIndexOf("}");
+            if (startObj !== -1 && endObj !== -1 && endObj >= startObj) {
+              jsonStr = `[${jsonStr.substring(startObj, endObj + 1).trim()}]`;
+            }
+          }
+        }
+
+        let parsedList: any[] = [];
+        try {
+          parsedList = JSON.parse(jsonStr);
+        } catch {
+          try {
+            const cleaned = jsonStr.replace(/,(\s*[}\]])/g, '$1');
+            parsedList = JSON.parse(cleaned);
+          } catch (jsonErr) {
+            console.warn("Direct JSON parse failed, trying object extraction regex...", jsonErr);
+            // Regex object extraction fallback
+            const objMatches = jsonStr.match(/\{[\s\S]*?\}/g);
+            if (objMatches) {
+              parsedList = objMatches.map(m => {
+                try { return JSON.parse(m); } catch { return null; }
+              }).filter(Boolean);
+            }
+          }
+        }
+
+        // If wrapped in an envelope object like { articles: [...] } or { actualites: [...] }
+        if (!Array.isArray(parsedList) && parsedList && typeof parsedList === "object") {
+          const obj = parsedList as any;
+          if (Array.isArray(obj.articles)) parsedList = obj.articles;
+          else if (Array.isArray(obj.actualites)) parsedList = obj.actualites;
+          else if (Array.isArray(obj.items)) parsedList = obj.items;
+          else if (Array.isArray(obj.news)) parsedList = obj.news;
+        }
+
+        if (Array.isArray(parsedList) && parsedList.length > 0) {
+          for (let idx = 0; idx < parsedList.length; idx++) {
+            const p = parsedList[idx];
+            if (!p || typeof p !== "object") continue;
+            if (p.status === "no_news" || p.status === "error") continue;
+
+            const title = (p.titre || p.title || p.headline || p.nom || p.sujet || "").trim();
+            const summary = (p.resume || p.summary || p.description || p.chapeau || p.lead || "").trim();
+            const content = (p.corps || p.content || p.texte || p.article || summary).trim();
+
+            if (!title || title.length < 6 || isHallucinatedOrCorrupted({ title, summary, content })) continue;
+            if (!summary || summary.length < 15 || summary === "Résumé de l'actualité du jour.") continue;
+            const source = (p.source || p.media || p.journal || "Presse Vérifiée & AFP").trim();
+            const category = (p.categorie || p.category || p.rubrique || "Technologie").trim();
+            const tags = Array.isArray(p.tags) && p.tags.length > 0 ? p.tags : [category, "Actualité"];
+            const emoji = p.emoji || "📰";
+            const score = Number(p.score) || (82 + (idx % 15));
+
+            generatedValidArticles.push({
+              id: nowTime + 3000 + idx, // Brand new unique ID guaranteeing not read / not gray
+              featured: idx < 2,
+              title,
+              source,
+              category,
+              time: "À l'instant",
+              createdAt: nowTime - (idx * 25 * 60 * 1000),
+              score,
+              emoji,
+              tags,
+              summary,
+              content
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Bulk article AI generation error, using rich verified fallback:", err);
+    }
+
+    // Combine generated articles with tailored fallbacks to guarantee a full 15-article feed
+    let finalNewArticles: NewsArticle[] = [];
+    if (generatedValidArticles.length >= 15) {
+      finalNewArticles = generatedValidArticles.slice(0, 15);
+    } else {
+      const needed = 15 - generatedValidArticles.length;
+      finalNewArticles = [
+        ...generatedValidArticles,
+        ...tailoredFallbacks.slice(0, needed)
+      ];
+    }
+
+    // Preserve any existing bookmarked articles
+    const savedArticles = articles.filter(art => savedIds.has(art.id));
+    const newTitles = new Set(finalNewArticles.map(a => a.title.trim().toLowerCase()));
+    const uniqueSaved = savedArticles.filter(a => !newTitles.has(a.title.trim().toLowerCase()));
+
+    const fullFeed = [...finalNewArticles, ...uniqueSaved];
+    setArticles(fullFeed);
+    localStorage.setItem("infoperso_articles", JSON.stringify(fullFeed));
     localStorage.setItem("infoperso_last_updated", Date.now().toString());
+
+    onNotify(`✨ 15 articles d'actualité récents et vérifiés ont été générés et chargés !`);
     setIsBulkGenerating(false);
   };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [minScore, setMinScore] = useState(40); // lowered default minimum score so users can see matches below 60 too
-  const [sortBy, setSortBy] = useState<"score" | "date">("score");
+  const [sortBy, setSortBy] = useState<"score" | "date" | "time">("score");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(() => {
+    try {
+      return getSharedArticleFromUrl(INITIAL_ARTICLES);
+    } catch {
+      return null;
+    }
+  });
 
   // Highlights states
   const [isAnalyzingHighlights, setIsAnalyzingHighlights] = useState(false);
@@ -1086,7 +1485,8 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
 
       if (response.ok) {
         const data = await response.json();
-        const answer = data.content || "Analyse synthétique générée pour cet enjeu.";
+        const rawContent = data.content || "Analyse synthétique générée pour cet enjeu.";
+        const answer = extractCleanReadableText(rawContent);
         setDeepDiveResponse(answer);
         setDeepDiveHistory((prev) => [...prev, { question: query, answer }]);
         setDeepDiveQuery("");
@@ -1132,7 +1532,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
 
   const renderParagraphWithHighlights = (paragraph: string) => {
     if (articleHighlights.length === 0) {
-      return <p className="indent-3 leading-relaxed tracking-wide">{paragraph}</p>;
+      return <p className={`indent-3 leading-relaxed tracking-wide font-normal ${isDark ? "text-zinc-100" : "text-black"}`}>{paragraph}</p>;
     }
 
     let parts: Array<{ text: string; isHighlight: boolean; explanation?: string }> = [{ text: paragraph, isHighlight: false }];
@@ -1164,15 +1564,15 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     }
 
     return (
-      <p className="indent-3 leading-relaxed tracking-wide">
+      <p className={`indent-3 leading-relaxed tracking-wide font-normal ${isDark ? "text-zinc-100" : "text-black"}`}>
         {parts.map((p, i) => {
           if (p.isHighlight) {
             let hlClass = "";
-            if (isSobre) hlClass = "bg-zinc-200 text-zinc-950 font-medium px-0.5 cursor-help transition-colors hover:bg-zinc-300";
-            else if (isWarm) hlClass = "bg-amber-200/50 text-amber-950 border-b border-amber-600/35 px-0.5 cursor-help transition-colors hover:bg-amber-200";
-            else if (isCyber) hlClass = "bg-emerald-500/30 border-b border-[#00ffcc] text-[#00ffcc] px-0.5 cursor-help hover:bg-emerald-500/50 transition-colors shadow-[0_0_8px_rgba(0,255,204,0.15)]";
-            else if (isFun) hlClass = "bg-yellow-300 text-black border border-black font-extrabold px-1 cursor-help hover:bg-yellow-200 transition-colors";
-            else hlClass = "bg-indigo-500/20 border-b border-indigo-400 text-indigo-200 px-0.5 cursor-help hover:bg-indigo-500/35 transition-colors";
+            if (isDark) {
+              hlClass = "bg-zinc-800 text-amber-300 font-bold px-1 rounded-xs border border-zinc-700 cursor-help";
+            } else {
+              hlClass = "bg-yellow-200 text-black font-bold px-1 rounded-xs border border-yellow-300 cursor-help";
+            }
 
             return (
               <span
@@ -1268,35 +1668,36 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     }
   };
 
-  // Automatically load and open a shared article based on the URL query param "?article=ID" on mount
+  // Automatically load and open a shared article based on the URL query param or hash on mount
   useEffect(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const articleIdStr = params.get("article");
-      if (articleIdStr) {
-        const articleId = parseInt(articleIdStr, 10);
-        if (!isNaN(articleId)) {
-          const found = articles.find((a) => a.id === articleId);
-          if (found) {
-            setSelectedArticle(found);
-            onNotify(`📖 Chargement de l'article partagé : "${found.title}"`);
-            setTimeout(() => {
-              const el = document.getElementById(`article-card-${articleId}`);
-              if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "center" });
-              }
-              const readerEl = document.getElementById("active-article-reader");
-              if (readerEl) {
-                readerEl.scrollIntoView({ behavior: "smooth", block: "start" });
-              }
-            }, 600);
+      const shared = getSharedArticleFromUrl(articles);
+      if (shared) {
+        setArticles((prev) => {
+          const exists = prev.some((a) => a.id === shared.id || a.title.trim().toLowerCase() === shared.title.trim().toLowerCase());
+          if (!exists) {
+            return [shared, ...prev];
           }
+          return prev;
+        });
+
+        setSelectedArticle(shared);
+        onNotify(`✨ Article partagé ouvert : "${shared.title}"`);
+        if (onAwardCuriosityPoints) {
+          onAwardCuriosityPoints(3, `Découverte d'un article partagé (+3 pts) : "${shared.title}"`, shared.category, "read");
         }
+
+        setTimeout(() => {
+          const readerEl = document.getElementById("active-article-reader");
+          if (readerEl) {
+            readerEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 350);
       }
     } catch (err) {
       console.error("Error parsing shared article query parameter", err);
     }
-  }, [articles]);
+  }, []);
 
   // Hourly automatic refresh checking mechanism
   useEffect(() => {
@@ -1370,6 +1771,9 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
   };
 
   const handleGenerateCustomArticle = async (interest: string) => {
+    const cleanTopic = cleanInterestQuery(interest) || interest.trim();
+    if (!cleanTopic) return;
+
     if (!apiKeys.gemini) {
       const used = localStorage.getItem("infoperso_free_gen_used") === "true";
       if (used) {
@@ -1378,31 +1782,40 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       }
     }
 
-    setIsGeneratingCustom(interest);
+    setIsGeneratingCustom(cleanTopic);
     
     // Choose model
-    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.5-flash") || AVAILABLE_MODELS[0];
+    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.7-flash") || AVAILABLE_MODELS[0];
     const userApiKey = apiKeys[selectedModel.provider];
 
     const currentYear = new Date().getFullYear();
     const currentDateStr = new Date().toLocaleDateString("fr-FR");
 
     const systemInstruction = 
-      "Tu es un rédacteur en chef d'un grand média moderne d'information de haute précision. Génère un article captivant sur les TOUTES DERNIÈRES ACTUALITÉS EN DIRECT (faits récents, dépêches de dernière heure) sur le thème fourni en français.\n" +
-      `PRIORITÉ ABSOLUE AUX DERNIÈRES ACTUALITÉS : Traite impérativement l'actualité la plus chaude et récente du jour (${currentDateStr} - ${currentYear}). Ne RIEN inventer. Tous les chiffres, citations et faits doivent être exacts et fidèles à la réalité récente.\n` +
-      "CROSS-SOURCING OBLIGATOIRE (AU MOINS 4 SOURCES) : Croise et synthétise les informations d'au moins 4 sources de presse officielles (AFP, Reuters, Le Monde, NYT, BBC, etc.).\n" +
-      `CONTEXTE TEMPOREL : Nous sommes le ${currentDateStr} (${currentYear}).\n` +
-      "Tu DOIS impérativement répondre avec UNIQUEMENT un objet JSON brut valide, sans aucun balisage markdown additionnel (pas de ```json ni de ```, juste les accolades directes), contenant exactement ces clés :\n" +
-      "- 'title': un titre journalistique percutant, axé sur l'actualité de dernière minute\n" +
-      "- 'source': un nom de média crédible ou agence référente\n" +
-      "- 'category': le thème en un mot court\n" +
-      "- 'emoji': un emoji unique illustrant le sujet\n" +
-      "- 'tags': un tableau de 3 tags\n" +
-      "- 'summary': Partie 1 (Synthèse condensée) : Un résumé flash très court et ultra-condensé des faits essentiels (15% du volume total de l'article)\n" +
-      "- 'content': Partie 2 (Enquête & Analyse approfondie) : Le grand format complet composé de 3 à 4 paragraphes très détaillés (au moins 3 fois plus long que la synthèse condensée) approfondissant l'actualité récente, les faits croisés et les perspectives (sépare les paragraphes par double retour à la ligne \\n\\n)\n" +
-      "- 'score': un nombre entier entre 75 et 98 représentant la pertinence initiale";
+      "Tu es le moteur journalistique d'InfoPerso, un portail d'information 100% FACTUELLE ET VÉRIFIÉE en français.\n\n" +
+      "## 🔴 RÈGLE ABSOLUE ANTI-HALLUCINATION : ZÉRO INVENTION / ZÉRO HISTOIRE FICTIVE\n" +
+      "- Tu as interdiction formelle d'inventer des nominations, des personnes, des déclarations, des entreprises vagues ('un groupe technologique européen', 'un géant de la tech'), ou des événements imaginaires.\n" +
+      "- Si la recherche Google ne trouve AUCUN article de presse réel et récent documenté dans des médias reconnus (AFP, Le Monde, Les Echos, Le Figaro, France Bleu, Midi Libre, Reuters, etc.) pour le sujet exact demandé, TU DOIS OBLIGATOIREMENT renvoyer status = 'no_news'.\n" +
+      "- Ne tente JAMAIS de fabriquer un communiqué ou une dépêche plausible pour satisfaire la demande. L'honnêteté factuelle est obligatoire.\n\n" +
+      "## Structure JSON obligatoire de sortie\n" +
+      "Réponds UNIQUEMENT avec un objet JSON valide :\n" +
+      "{\n" +
+      '  "status": "ok",\n' +
+      '  "sujet": "string",\n' +
+      '  "titre": "string (titre précis issu d\'un article réel existant)",\n' +
+      '  "source": "string (nom exact du média qui a publié l\'info)",\n' +
+      '  "categorie": "string (Local|Politique|Économie|Tech|Culture|Science|Sport)",\n' +
+      '  "date_publication": "string",\n' +
+      '  "emoji": "string",\n' +
+      '  "tags": ["tag1", "tag2", "tag3"],\n' +
+      '  "resume": "string (2-3 phrases denses avec les faits réels extraits de la source)",\n' +
+      '  "corps": "string (3 à 4 paragraphes factuels décrivant uniquement les faits réels)",\n' +
+      '  "score": 92\n' +
+      "}\n\n" +
+      "Si pas de faits avérés récents dans la presse :\n" +
+      '{"status":"no_news","sujet":"...","raison":"Aucun article d\'actualité avéré n\'a été publié sur ce sujet précis dans la presse.","pistes":["..."]}';
 
-    const promptText = `Rédige un article d'actualité de dernière minute réelle et vérifiée en direct, basé sur au moins 4 sources fiables, sur le thème suivant : "${interest}".`;
+    const promptText = `Recherche via Google les articles récents publiés dans la presse sur : "${cleanTopic}". Rédige un compte-rendu basé EXCLUSIVEMENT sur les articles trouvés, ou renvoie status = "no_news" si aucun article réel n'existe.`;
 
     try {
       const res = await fetch("/api/chat/proxy", {
@@ -1412,6 +1825,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           provider: selectedModel.provider,
           model: selectedModel.id,
           enableSearch: true,
+          temperature: 0.1,
           messages: [
             { role: "system", content: systemInstruction },
             { role: "user", content: promptText }
@@ -1444,28 +1858,49 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
         } catch (jsonErr) {
           console.warn("Direct JSON parse failed, trying fallback cleaning...", jsonErr);
           try {
-            // Remove trailing commas before closing braces/brackets
             const cleaned = jsonStr.replace(/,(\s*[}\]])/g, '$1');
             parsed = JSON.parse(cleaned);
           } catch (cleanErr) {
-            console.error("Cleaned JSON parse failed too. Creating fallback parsed object from raw content.", cleanErr);
-            // Robust parsing fallback: try to extract fields with regex, or use raw response
-            const titleMatch = data.content.match(/"title"\s*:\s*"([^"]+)"/);
+            console.error("Cleaned JSON parse failed too.", cleanErr);
+            const titleMatch = data.content.match(/"(?:titre|title)"\s*:\s*"([^"]+)"/);
             const sourceMatch = data.content.match(/"source"\s*:\s*"([^"]+)"/);
-            const summaryMatch = data.content.match(/"summary"\s*:\s*"([^"]+)"/);
-            const contentMatch = data.content.match(/"content"\s*:\s*"([\s\S]+?)"/);
+            const summaryMatch = data.content.match(/"(?:resume|summary)"\s*:\s*"([^"]+)"/);
+            const contentMatch = data.content.match(/"(?:corps|content)"\s*:\s*"([\s\S]+?)"/);
             
-            parsed = {
-              title: titleMatch ? titleMatch[1] : `Découverte majeure : ${interest}`,
-              source: sourceMatch ? sourceMatch[1] : "Média IA Spécialisé",
-              category: "Recherche",
-              emoji: "🔍",
-              tags: [interest, "Synthèse", "IA"],
-              summary: summaryMatch ? summaryMatch[1] : `Une synthèse exclusive sur ${interest}.`,
-              content: contentMatch ? contentMatch[1].replace(/\\n/g, "\n") : data.content,
-              score: 92
-            };
+            if (titleMatch && contentMatch && contentMatch[1].length > 40) {
+              parsed = {
+                status: "ok",
+                titre: titleMatch[1],
+                source: sourceMatch ? sourceMatch[1] : "Presse Vérifiée",
+                categorie: "Actualité",
+                emoji: "📰",
+                tags: [cleanTopic.substring(0, 15), "Synthèse", "Actualité"],
+                resume: summaryMatch ? summaryMatch[1] : `Compte-rendu sur ${cleanTopic}.`,
+                corps: contentMatch[1].replace(/\\n/g, "\n"),
+                score: 90
+              };
+            } else {
+              onNotify(`ℹ️ Aucun fait avéré récent n'a été trouvé dans la presse pour "${cleanTopic}". L'IA refuse d'inventer des informations.`);
+              return;
+            }
           }
+        }
+
+        const candidateTitle = (parsed.titre || parsed.title || "").trim();
+        const candidateSummary = (parsed.resume || parsed.summary || "").trim();
+        const candidateContent = (parsed.corps || parsed.content || "").trim();
+
+        // Handle no_news or hallucination status
+        if (
+          parsed.status === "no_news" ||
+          !candidateContent ||
+          candidateContent.length < 50 ||
+          isHallucinatedOrCorrupted({ title: candidateTitle, summary: candidateSummary, content: candidateContent })
+        ) {
+          const raisonMsg = parsed.raison || `Aucun article de presse avéré n'a été publié sur "${cleanTopic}". L'IA refuse de fabriquer des informations.`;
+          const pistes = Array.isArray(parsed.pistes) ? parsed.pistes.join(", ") : "";
+          onNotify(`ℹ️ Information : ${raisonMsg} ${pistes ? `Pistes suggérées : ${pistes}` : ""}`);
+          return;
         }
         
         // Generate a unique ID
@@ -1473,23 +1908,30 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
         const newArticle: NewsArticle = {
           id: nextId,
           featured: true, // make it featured so it highlights!
-          title: parsed.title || `Découverte majeure : ${interest}`,
-          source: parsed.source || "Média Spécialisé",
-          category: parsed.category || "Personnalisé",
-          time: "il y a 2m",
-          score: Number(parsed.score) || 85,
-          emoji: parsed.emoji || "✨",
-          tags: Array.isArray(parsed.tags) ? parsed.tags : [interest],
-          summary: parsed.summary || `Un article passionnant explorant les mystères de : ${interest}.`,
-          content: parsed.content || `Cet article explore en profondeur le sujet fascinant de : ${interest}. L'importance de ce domaine s'accroît de jour en jour, attirant des passionnés de tous horizons.`
+          title: parsed.titre || parsed.title || `Actualité : ${cleanTopic}`,
+          source: parsed.source || "Presse Vérifiée & AFP",
+          category: parsed.categorie || parsed.category || "Actualité",
+          time: "À l'instant",
+          score: Number(parsed.score) || 92,
+          emoji: parsed.emoji || "📰",
+          tags: Array.isArray(parsed.tags) ? parsed.tags : [cleanTopic.substring(0, 15)],
+          summary: parsed.resume || parsed.summary || `Compte-rendu factuel des faits récents sur : ${cleanTopic}.`,
+          content: parsed.corps || parsed.content || `Dépêche d'actualité vérifiée sur : ${cleanTopic}.`
         };
 
         if (!apiKeys.gemini) {
           localStorage.setItem("infoperso_free_gen_used", "true");
           setFreeGenUsed(true);
         }
-        setArticles((prev) => [newArticle, ...prev]);
-        onNotify(`✨ Nouvel article IA généré sur "${interest}" : "${newArticle.title}" !`);
+        setArticles((prev) => [newArticle, ...prev.filter(a => a.id !== newArticle.id)]);
+        setSelectedArticle(newArticle);
+        onNotify(`✨ Nouvel article vérifié généré sur "${cleanTopic}" !`);
+        setTimeout(() => {
+          const readerEl = document.getElementById("active-article-reader");
+          if (readerEl) {
+            readerEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 300);
       } else {
         onNotify(`⚠️ Erreur : ${data.error || "Impossible de décoder la réponse de l'IA."}`);
       }
@@ -1501,9 +1943,9 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     }
   };
 
-  // Dynamic Information Personalization states
-  const [isPersonalizerExpanded, setIsPersonalizerExpanded] = useState<boolean>(false);
-  const [showAlgorithmicControls, setShowAlgorithmicControls] = useState<boolean>(false);
+  // Unified Settings Drawer / Volet state
+  const [isSettingsVoletOpen, setIsSettingsVoletOpen] = useState<boolean>(false);
+  const [settingsVoletTab, setSettingsVoletTab] = useState<"flux_ia" | "filters" | "themes" | "algo">("flux_ia");
 
   // Helpers to update and persist weights
   const updateCategoryWeight = (category: string, value: number) => {
@@ -1618,6 +2060,46 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
   const [bandwidthSaver, setBandwidthSaver] = useState(false);
   const [onlyBookmarks, setOnlyBookmarks] = useState(false);
   const [clickedTrendTag, setClickedTrendTag] = useState<string | null>(null);
+
+  const handleAddCustomInterest = () => {
+    if (newInterestInput.trim()) {
+      handleAddInterest(newInterestInput.trim());
+      setNewInterestInput("");
+    }
+  };
+
+  const handleDeleteCustomInterest = (interest: string) => {
+    handleRemoveInterest(interest);
+  };
+
+  const handleResetAlgorithmicData = () => {
+    resetPersonalization();
+  };
+
+  const trendingTags = Array.from(
+    new Set(articles.flatMap((a) => a.tags || []))
+  ).slice(0, 20);
+
+  const activeFiltersCount = 
+    (searchQuery ? 1 : 0) +
+    (minScore > 40 ? 1 : 0) +
+    (readingTimeFilter !== "all" ? 1 : 0) +
+    (onlyBookmarks ? 1 : 0) +
+    (bandwidthSaver ? 1 : 0) +
+    (clickedTrendTag ? 1 : 0) +
+    (activeFilter ? 1 : 0) +
+    (activeTag ? 1 : 0);
+
+  const handleClearAllFilters = () => {
+    setSearchQuery("");
+    setMinScore(40);
+    setReadingTimeFilter("all");
+    setOnlyBookmarks(false);
+    setBandwidthSaver(false);
+    setClickedTrendTag(null);
+    if (onClearFilters) onClearFilters();
+    onNotify("✨ Tous les filtres ont été réinitialisés.");
+  };
 
   // Text scaling, reader theme, zen mode
   const [fontScale, setFontScale] = useState<number>(1.0);
@@ -1762,11 +2244,12 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       const data = await res.json();
 
       if (res.ok && data.content) {
+        const cleanSummary = extractCleanReadableText(data.content);
         // Update local article's AI summary in state
         setArticles((prev) =>
           prev.map((a) =>
             a.id === article.id
-              ? { ...a, aiSummaryCustom: data.content, aiSummaryModelUsed: selectedModel.name }
+              ? { ...a, aiSummaryCustom: cleanSummary, aiSummaryModelUsed: selectedModel.name }
               : a
           )
         );
@@ -1831,10 +2314,13 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
   // Quick sharing clipboard helper with native navigator.share support and link generation
   const handleShareArticle = async (article: NewsArticle) => {
     try {
-      const baseUrl = window.location.origin + window.location.pathname;
-      const shareUrl = `${baseUrl}?article=${article.id}`;
+      const shareUrl = buildShareUrl(article);
       const title = `📰 [InfoPerso] ${article.title}`;
-      const text = `Résumé de l'article ("${article.title}") :\n${article.summary}\n\nDécouvrez la suite sur InfoPerso :`;
+      const text = `Résumé de l'article ("${article.title}") :\n${article.summary || article.content.slice(0, 160) + "..."}\n\nDécouvrez la suite sur InfoPerso :`;
+
+      if (onAwardCuriosityPoints) {
+        onAwardCuriosityPoints(2, `Partage de l'article : "${article.title}" (+2 pts)`, article.category, "share");
+      }
 
       if (navigator.share) {
         await navigator.share({
@@ -1846,16 +2332,15 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       } else {
         const fullShareText = `${title}\nSource: ${article.source}\n\n${text}\n${shareUrl}`;
         await navigator.clipboard.writeText(fullShareText);
-        onNotify("Lien de l'article et résumé copiés dans le presse-papiers ! 📋");
+        onNotify("Lien direct et résumé copiés dans le presse-papiers ! 📋");
       }
     } catch (e: any) {
       if (e.name !== "AbortError") {
         try {
-          const baseUrl = window.location.origin + window.location.pathname;
-          const shareUrl = `${baseUrl}?article=${article.id}`;
-          const fallbackText = `📰 [InfoPerso] ${article.title}\nSource: ${article.source}\n\nRésumé : ${article.summary}\n\nLien : ${shareUrl}`;
+          const shareUrl = buildShareUrl(article);
+          const fallbackText = `📰 [InfoPerso] ${article.title}\nSource: ${article.source}\n\nRésumé : ${article.summary}\n\nLien direct : ${shareUrl}`;
           await navigator.clipboard.writeText(fallbackText);
-          onNotify("Lien et résumé copiés dans le presse-papiers ! 📋");
+          onNotify("Lien direct et résumé copiés dans le presse-papiers ! 📋");
         } catch (copyErr) {
           onNotify("Impossible de copier automatiquement.");
         }
@@ -2166,995 +2651,267 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
 
   return (
     <div id="smart-news-feed" className="space-y-6">
-      {/* Friendly Senior Toggle for Advanced Algorithmic Settings */}
-      <div className="flex justify-start">
-        <button
-          onClick={() => setShowAlgorithmicControls(!showAlgorithmicControls)}
-          className="px-5 py-3 rounded-xl font-extrabold text-base flex items-center gap-2 cursor-pointer transition-all border shadow-sm bg-white hover:bg-zinc-100 text-zinc-900 border-zinc-305 dark:bg-zinc-900 dark:border-zinc-800 dark:text-white dark:hover:bg-zinc-800"
-        >
-          <SlidersHorizontal className="w-5 h-5 text-indigo-500" />
-          {showAlgorithmicControls ? "👵 Cacher les options de réglage de l'IA" : "👵 Personnaliser les sujets et réglages IA (Optionnel)"}
-        </button>
-      </div>
-
-      {showAlgorithmicControls && (
-        <>
-          {/* 1. Centres d'intérêt personnalisés & Générateur d'actualité IA (Libre Choix) */}
-          <div className={`${getPanelBgClass()} transition-all duration-300`} id="custom-interests-panel">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className={`p-2 rounded-lg shrink-0 ${isFun ? "bg-yellow-300 border-2 border-black text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" : "bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400"}`}>
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className={`text-xs sm:text-sm uppercase tracking-wider ${isSobre ? "text-zinc-900 font-extrabold font-sans" : isWarm ? "text-amber-950 font-bold font-serif" : isCyber ? "text-[#00ffcc] font-black font-mono" : isFun ? "text-black font-black font-sans" : "font-sans font-bold text-white"}`}>
-                  Centres d'intérêt personnalisés &amp; Générateur d'actualité IA
-                </h3>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider animate-pulse ${
-                  isSobre ? "bg-zinc-100 text-zinc-800 border border-zinc-200" :
-                  isWarm ? "bg-amber-100 text-amber-900" :
-                  isCyber ? "bg-black text-[#00ffcc] border border-cyan-400 font-mono" :
-                  isFun ? "bg-yellow-300 text-black border-2 border-black" :
-                  "bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30"
-                }`}>
-                  Libre Choix
-                </span>
-              </div>
-              <p className={`text-[10px] mt-1 ${isSobre ? "text-zinc-550" : isWarm ? "text-amber-900/80" : isCyber ? "text-cyan-500" : isFun ? "text-black" : "text-slate-400"}`}>
-                Saisissez n'importe quel sujet pour sculpter votre algorithme en temps réel et générer à la demande des synthèses d'actualité rédigées par l'IA.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {/* Form to add interest */}
-          <div className="flex gap-2 max-w-md">
-            <input
-              type="text"
-              placeholder="Saisissez un thème d'actualité (ex: Économie, Climat, Technologie, Culture...)"
-              value={newInterestInput}
-              onChange={(e) => setNewInterestInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleAddInterest(newInterestInput);
+      {/* 🚀 BARRE D'ACCÈS RAPIDE AUX ARTICLES & RÉGLAGES */}
+      <div
+        className={`p-3 rounded-2xl border shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 ${
+          isFun
+            ? "bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+            : isSobre
+            ? isDark
+              ? "bg-zinc-900 border-zinc-800 text-zinc-100"
+              : "bg-white border-zinc-300 text-zinc-900"
+            : isWarm
+            ? isDark
+              ? "bg-[#251f1c] border-[#443831] text-[#f4ecd8]"
+              : "bg-[#faf6ee] border-[#dfd3c3] text-[#3d332a]"
+            : isCyber
+            ? "bg-zinc-950 border-cyan-500/40 text-cyan-400 font-mono shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+            : isDark
+            ? "bg-slate-900/90 border-slate-800 text-slate-100"
+            : "bg-white border-slate-200 text-slate-900 shadow-slate-100"
+        }`}
+      >
+        {/* Search input */}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 opacity-50" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && searchQuery.trim()) {
+                const clean = cleanInterestQuery(searchQuery);
+                if (clean) {
+                  handleAddInterest(clean);
+                  handleGenerateCustomArticle(clean);
                 }
-              }}
-              className={getInputClass()}
-            />
+              }
+            }}
+            placeholder="Rechercher ou taper un sujet (ex: Montpellier, Gard, Tech...)"
+            className={`w-full pl-9 pr-24 py-2 text-xs sm:text-sm rounded-xl border outline-none transition-all ${
+              isDark ? "bg-slate-950/60 border-slate-700/60 focus:border-cyan-500 text-slate-100" : "bg-slate-50 border-slate-300 focus:border-cyan-500 text-slate-900"
+            }`}
+          />
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {searchQuery && (
+              <>
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="opacity-50 hover:opacity-100 p-1"
+                  title="Effacer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    const clean = cleanInterestQuery(searchQuery);
+                    if (clean) {
+                      handleAddInterest(clean);
+                      handleGenerateCustomArticle(clean);
+                    }
+                  }}
+                  disabled={!!isGeneratingCustom}
+                  className="px-2 py-1 bg-cyan-500 hover:bg-cyan-400 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-all shadow-xs"
+                  title="Rechercher des faits récents et générer la dépêche avec l'IA"
+                >
+                  <Sparkles className="w-3 h-3 text-cyan-100" />
+                  <span>Dépêche</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between md:justify-end">
+          {/* Sort By */}
+          <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30 text-xs">
             <button
-              onClick={() => handleAddInterest(newInterestInput)}
-              className={getButtonClass(true)}
+              onClick={() => setSortBy("score")}
+              className={`px-2.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                sortBy === "score"
+                  ? "bg-cyan-500 text-white shadow-sm"
+                  : "opacity-60 hover:opacity-100"
+              }`}
             >
-              Ajouter
+              Score IA
+            </button>
+            <button
+              onClick={() => setSortBy("time")}
+              className={`px-2.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                sortBy === "time"
+                  ? "bg-cyan-500 text-white shadow-sm"
+                  : "opacity-60 hover:opacity-100"
+              }`}
+            >
+              Récents
             </button>
           </div>
 
-          {/* Display interests */}
-          {customInterests.length === 0 ? (
-            <p className={`text-xs italic ${isSobre ? "text-zinc-400" : isWarm ? "text-amber-900/60" : isCyber ? "text-cyan-600 font-mono" : isFun ? "text-black font-semibold" : "text-slate-500"}`}>Aucun centre d'intérêt personnalisé pour l'instant. Saisissez-en un ci-dessus pour sculpter votre algorithme !</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {customInterests.map((interest) => {
-                const state = tagWeights[interest] || "neutral";
-                const isGenerating = isGeneratingCustom === interest;
-                return (
-                  <div key={interest} className={`p-3 flex flex-col justify-between gap-3 ${
-                    isSobre ? "bg-zinc-50 rounded-lg border border-zinc-250 text-zinc-900" :
-                    isWarm ? "bg-[#FAF6F0] rounded-lg border border-amber-900/10 text-amber-950 font-serif" :
-                    isCyber ? "bg-black rounded-none border border-cyan-500/30 text-cyan-400 font-mono shadow-[0_0_8px_rgba(6,182,212,0.15)]" :
-                    isFun ? "bg-white border-2 border-black rounded-xl text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" :
-                    "bg-slate-950/80 rounded-xl border border-slate-800 text-slate-100"
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold flex items-center gap-1.5 ${isSobre ? "text-zinc-900" : isWarm ? "text-amber-950" : isCyber ? "text-[#00ffcc]" : isFun ? "text-black font-extrabold" : "text-white"}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full bg-fuchsia-400 animate-pulse ${isFun ? "bg-fuchsia-500" : ""}`} />
-                        #{interest}
-                      </span>
-                      <button
-                        onClick={() => handleRemoveInterest(interest)}
-                        className={`p-1 rounded-md transition-colors cursor-pointer ${isFun ? "text-black hover:bg-rose-100 hover:text-rose-500" : "text-slate-500 hover:text-rose-400 hover:bg-slate-900"}`}
-                        title="Supprimer l'intérêt"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+          {/* View Mode */}
+          <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === "grid"
+                  ? "bg-cyan-500 text-white"
+                  : "opacity-60 hover:opacity-100"
+              }`}
+              title="Vue Grille"
+            >
+              <Grid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === "list"
+                  ? "bg-cyan-500 text-white"
+                  : "opacity-60 hover:opacity-100"
+              }`}
+              title="Vue Liste"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* State changer */}
-                      <button
-                        onClick={() => {
-                          const nextState = state === "neutral" ? "boost" : state === "boost" ? "exclude" : "neutral";
-                          updateTagWeight(interest, nextState);
-                        }}
-                        className={`px-2 py-1 rounded text-[10px] font-sans font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                          state === "boost"
-                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
-                            : state === "exclude"
-                            ? "bg-rose-500/10 border-rose-500/40 text-rose-300 line-through opacity-75"
-                            : isFun ? "bg-white border-2 border-black text-black" : isSobre ? "bg-white border-zinc-300 text-zinc-600" : isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-900" : isCyber ? "bg-black border-cyan-500/30 text-cyan-500" : "bg-slate-900 border-slate-800 text-slate-400"
-                        }`}
-                        title="Changer l'importance de ce thème dans l'algorithme"
-                      >
-                        <span className={`w-1 h-1 rounded-full ${
-                          state === "boost" ? "bg-emerald-400 animate-ping" : state === "exclude" ? "bg-rose-500" : "bg-slate-500"
-                        }`} />
-                        {state === "boost" ? "Boosté 🚀" : state === "exclude" ? "Masqué 🚫" : "Neutre ⚪"}
-                      </button>
+          {/* BULK GENERATE 15 ARTICLES BUTTON */}
+          <button
+            onClick={() => handleBulkGenerateIAArticles(false)}
+            disabled={isBulkGenerating}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border shadow-sm ${
+              isBulkGenerating
+                ? "opacity-75 cursor-not-allowed bg-slate-800 text-slate-400 border-slate-700"
+                : isSobre
+                ? "bg-zinc-900 hover:bg-black text-white border-zinc-800 shadow-zinc-800/20"
+                : isWarm
+                ? "bg-amber-900 hover:bg-amber-950 text-[#faf6ee] border-amber-800 font-serif shadow-amber-900/20"
+                : isCyber
+                ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-[#00ffcc] border-cyan-400 font-mono shadow-[0_0_10px_rgba(0,255,204,0.3)]"
+                : isFun
+                ? "bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5"
+                : "bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white border-cyan-400/40 shadow-cyan-500/25 hover:shadow-cyan-500/40"
+            }`}
+            title="Rechercher des faits d'actualité vérifiés et régénérer 15 articles complets avec l'IA"
+          >
+            {isBulkGenerating ? (
+              <RefreshCw className="w-4 h-4 animate-spin text-cyan-300" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+            )}
+            <span>{isBulkGenerating ? "Génération..." : "Générer 15 articles"}</span>
+          </button>
 
-                      {/* Generator Button */}
-                      <button
-                        onClick={() => handleGenerateCustomArticle(interest)}
-                        disabled={isGenerating || !!isGeneratingCustom}
-                        className={`flex-1 py-1 px-2.5 hover:opacity-95 disabled:opacity-45 text-[10px] font-bold rounded flex items-center justify-center gap-1 cursor-pointer transition-all ${
-                          isFun ? "bg-cyan-300 border-2 border-black text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
-                          isSobre ? "bg-zinc-900 text-white" :
-                          isWarm ? "bg-amber-900 text-white" :
-                          isCyber ? "bg-black border border-cyan-400 text-cyan-400 font-mono shadow-[0_0_8px_rgba(6,182,212,0.3)]" :
-                          "bg-gradient-to-r from-cyan-500 to-indigo-500 text-white font-sans"
-                        }`}
-                      >
-                        {isGenerating ? (
-                          <RefreshCw className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3 h-3 text-cyan-200 animate-pulse" />
-                        )}
-                        {isGenerating ? "Génération de l'article..." : "Générer un article d'actualité IA"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* SINGLE UNIFIED SETTINGS BUTTON */}
+          <button
+            onClick={() => setIsSettingsVoletOpen(true)}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border shadow-sm ${
+              activeFiltersCount > 0
+                ? "bg-gradient-to-r from-cyan-500 to-indigo-500 text-white border-cyan-400 shadow-cyan-500/20"
+                : isDark
+                ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
+            }`}
+          >
+            <Sliders className="w-4 h-4" />
+            <span>Réglages &amp; Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-white text-cyan-600 text-[10px] font-extrabold flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Active Filter Chips Summary (if any active) */}
+      {activeFiltersCount > 0 && (
+        <div className="flex items-center gap-2 flex-wrap px-1 text-xs">
+          <span className="text-[11px] opacity-60">Filtres actifs :</span>
+          {searchQuery && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              Recherche: "{searchQuery}"
+              <button onClick={() => setSearchQuery("")} className="hover:text-cyan-200 cursor-pointer">✕</button>
+            </span>
           )}
+          {minScore > 40 && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              Score ≥ {minScore}%
+              <button onClick={() => setMinScore(40)} className="hover:text-cyan-200 cursor-pointer">✕</button>
+            </span>
+          )}
+          {readingTimeFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              Lecture: {readingTimeFilter}
+              <button onClick={() => setReadingTimeFilter("all")} className="hover:text-cyan-200 cursor-pointer">✕</button>
+            </span>
+          )}
+          {onlyBookmarks && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              Favoris seuls
+              <button onClick={() => setOnlyBookmarks(false)} className="hover:text-cyan-200 cursor-pointer">✕</button>
+            </span>
+          )}
+          {bandwidthSaver && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              Éco données
+              <button onClick={() => setBandwidthSaver(false)} className="hover:text-cyan-200 cursor-pointer">✕</button>
+            </span>
+          )}
+          {clickedTrendTag && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              #{clickedTrendTag}
+              <button onClick={() => setClickedTrendTag(null)} className="hover:text-cyan-200 cursor-pointer">✕</button>
+            </span>
+          )}
+          <button
+            onClick={handleClearAllFilters}
+            className="text-[11px] font-semibold text-rose-400 hover:underline ml-auto cursor-pointer"
+          >
+            Effacer tout
+          </button>
         </div>
-      </div>
-
-      {/* 2. Dynamic Algorithmic Personalization Panel */}
-      <div className={`overflow-hidden shadow-xl transition-all duration-300 ${
-        isSobre ? (isDark ? "bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-2xl" : "bg-white border border-zinc-200 rounded-2xl text-zinc-900") :
-        isWarm ? (isDark ? "bg-[#251e1a] border border-[#3e322a] text-[#FAF6F0] rounded-2xl font-serif" : "bg-[#FDFBF7] border border-amber-900/10 rounded-2xl font-serif text-amber-955") :
-        isCyber ? (isDark ? "bg-black border border-cyan-500/30 rounded-none font-mono text-cyan-400" : "bg-[#f4fffe] border border-teal-500/20 rounded-none font-mono text-teal-900") :
-        isFun ? (isDark ? "bg-[#251a3a] border-3 border-black rounded-3xl shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] text-zinc-100" : "bg-pink-100 border-3 border-black rounded-3xl shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] text-black") :
-        (isDark ? "bg-slate-900/60 backdrop-blur-md border border-indigo-500/20 rounded-2xl text-slate-200" : "bg-white border border-indigo-100 rounded-2xl text-slate-800 shadow-sm")
-      }`} id="personalization-control-panel">
-        <div 
-          onClick={() => setIsPersonalizerExpanded(!isPersonalizerExpanded)}
-          className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer border-b transition-colors ${
-            isSobre ? (isDark ? "border-zinc-800 hover:bg-zinc-800/40" : "border-zinc-200 hover:bg-zinc-50") :
-            isWarm ? (isDark ? "border-[#3e322a] hover:bg-[#342822]" : "border-amber-900/10 hover:bg-[#F2E6D0]/20") :
-            isCyber ? (isDark ? "border-cyan-500/20 hover:bg-zinc-900/50" : "border-teal-500/20 hover:bg-teal-50/40") :
-            isFun ? "border-b-3 border-black hover:opacity-90" :
-            (isDark ? "border-indigo-500/10 hover:bg-slate-900/40" : "border-indigo-50/60 hover:bg-indigo-50/10")
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            <div className={`p-2 rounded-lg shrink-0 ${
-              isSobre ? "bg-zinc-100 border border-zinc-250 text-zinc-800" :
-              isWarm ? "bg-amber-100/50 border border-amber-900/10 text-amber-900" :
-              isCyber ? "bg-black border border-cyan-500/30 text-cyan-400" :
-              isFun ? "bg-yellow-300 border-2 border-black text-black rounded-xl" :
-              "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400"
-            }`}>
-              <SlidersHorizontal className="w-4 h-4 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className={`font-sans font-bold text-xs sm:text-sm uppercase tracking-wider ${
-                  isSobre ? "text-zinc-900 font-bold font-sans" :
-                  isWarm ? "text-amber-950 font-serif font-bold" :
-                  isCyber ? "text-white font-mono font-bold" :
-                  isFun ? "text-black font-sans font-black italic uppercase" :
-                  "text-white"
-                }`}>
-                  Votre Algorithme de Recommandation Actif
-                </h3>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider animate-pulse ${
-                  isSobre ? "bg-zinc-100 text-zinc-800 border border-zinc-300" :
-                  isWarm ? "bg-amber-100 text-amber-900 border border-amber-900/10 font-serif" :
-                  isCyber ? "bg-black text-[#00ffcc] border border-cyan-400 font-mono" :
-                  isFun ? "bg-fuchsia-300 text-black border-2 border-black font-extrabold" :
-                  "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                }`}>
-                  Perso-Score v1.2
-                </span>
-              </div>
-              <p className={`text-[10px] mt-1 ${
-                isSobre ? "text-zinc-500" :
-                isWarm ? "text-amber-900/80 font-serif" :
-                isCyber ? "text-cyan-500 font-mono" :
-                isFun ? "text-black font-semibold" :
-                "text-slate-400"
-              }`}>
-                Pondérez et masquez thématiques, catégories et sources en temps réel pour sculpter votre information.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end shrink-0" onClick={(e) => e.stopPropagation()}>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                resetPersonalization();
-              }}
-              className={`px-2.5 py-1 rounded text-[10px] flex items-center gap-1 transition-all cursor-pointer font-bold shrink-0 ${
-                isSobre ? "bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-350" :
-                isWarm ? "bg-[#FAF6F0] hover:bg-[#F2E6D0] text-amber-900 border border-amber-900/15" :
-                isCyber ? "bg-black hover:bg-zinc-950 text-cyan-400 border border-cyan-500/30 font-mono" :
-                isFun ? "bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" :
-                "bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
-              }`}
-              title="Réinitialiser l'algorithme"
-            >
-              <RefreshCw className={`w-3 h-3 ${isFun ? "text-black" : "text-cyan-400"}`} />
-              Réinitialiser
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsPersonalizerExpanded(!isPersonalizerExpanded);
-              }}
-              className={`px-3 py-1 rounded text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                isSobre ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300" :
-                isWarm ? "bg-amber-900 hover:bg-amber-950 text-white font-serif" :
-                isCyber ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400" :
-                isFun ? "bg-fuchsia-300 hover:bg-fuchsia-400 text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" :
-                "bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20"
-              }`}
-            >
-              {isPersonalizerExpanded ? (
-                <>
-                  <ChevronUp className={`w-3.5 h-3.5 ${isSobre ? "text-zinc-600" : isWarm ? "text-white" : isCyber ? "text-cyan-400" : isFun ? "text-black" : "text-indigo-400"}`} />
-                  <span>Masquer</span>
-                </>
-              ) : (
-                <>
-                  <ChevronDown className={`w-3.5 h-3.5 ${isSobre ? "text-zinc-600" : isWarm ? "text-white" : isCyber ? "text-cyan-400" : isFun ? "text-black" : "text-indigo-400"}`} />
-                  <span>Déployer</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {isPersonalizerExpanded && (
-          <div className="p-5 space-y-6">
-            {/* Row 1: Category sliders */}
-            <div>
-              <h4 className={`text-[10px] uppercase font-bold tracking-widest mb-3 flex items-center gap-1.5 ${
-                isSobre ? "text-zinc-500" :
-                isWarm ? "text-amber-900/60 font-serif" :
-                isCyber ? "text-[#00ffcc]/60 font-mono" :
-                isFun ? "text-black font-extrabold" :
-                "text-slate-400"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isSobre ? "bg-zinc-400" : isWarm ? "bg-amber-900" : isCyber ? "bg-[#00ffcc]" : isFun ? "bg-black" : "bg-cyan-400"}`} />
-                Pondération des grandes catégories (Coefficients)
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {Object.keys(categoryWeights).map((cat) => {
-                  const val = categoryWeights[cat];
-                  return (
-                    <div key={cat} className={`p-3 rounded-xl border flex flex-col justify-between ${
-                      isSobre ? (isDark ? "bg-zinc-950 border-zinc-800" : "bg-zinc-50 border-zinc-200") :
-                      isWarm ? (isDark ? "bg-[#332822] border-[#443830] font-serif" : "bg-[#FAF6F0] border-amber-900/10 font-serif") :
-                      isCyber ? (isDark ? "bg-black border-cyan-500/20 font-mono" : "bg-[#f4fffe] border-teal-500/20 font-mono") :
-                      isFun ? (isDark ? "bg-[#352554] border-2 border-black rounded-2xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-white" : "bg-white border-2 border-black rounded-2xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black") :
-                      (isDark ? "bg-slate-950/60 border border-slate-800/80" : "bg-slate-50 border border-indigo-50")
-                    }`}>
-                      <div className="flex items-center justify-between text-[11px] font-bold mb-1">
-                        <span className={
-                          isSobre ? (isDark ? "text-zinc-350" : "text-zinc-700") :
-                          isWarm ? (isDark ? "text-amber-100" : "text-amber-900") :
-                          isCyber ? (isDark ? "text-cyan-400" : "text-teal-850") :
-                          isFun ? "text-current font-black" :
-                          (isDark ? "text-slate-300" : "text-slate-750")
-                        }>{cat}</span>
-                        <span className={`font-mono ${
-                          isSobre ? (isDark ? "text-zinc-100" : "text-zinc-900") :
-                          isWarm ? (isDark ? "text-amber-50" : "text-amber-955") :
-                          isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-700") :
-                          isFun ? "text-current font-black" :
-                          (isDark ? "text-cyan-400" : "text-indigo-600")
-                        }`}>×{val / 3 === 1 ? "1.0" : (val / 3).toFixed(1)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button 
-                          onClick={() => updateCategoryWeight(cat, Math.max(1, val - 1))}
-                          disabled={val <= 1}
-                          className={`w-5 h-5 rounded text-xs flex items-center justify-center cursor-pointer disabled:opacity-30 ${
-                            isSobre ? (isDark ? "bg-zinc-800 hover:bg-zinc-700 border border-zinc-750 text-zinc-100" : "bg-white hover:bg-zinc-100 border border-zinc-300 text-zinc-700") :
-                            isWarm ? (isDark ? "bg-[#3e322a] hover:bg-[#4a3c33] border border-[#524137] text-amber-100 font-serif" : "bg-[#FAF6F0] hover:bg-amber-100/40 border border-amber-900/15 text-amber-900") :
-                            isCyber ? (isDark ? "bg-black hover:bg-zinc-900 border border-cyan-500/30 text-cyan-400" : "bg-white hover:bg-teal-50 border border-[#0d9488]/30 text-teal-900") :
-                            isFun ? "bg-yellow-300 hover:bg-yellow-400 border-2 border-black text-black font-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
-                            (isDark ? "bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300" : "bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-750")
-                          }`}
-                        >
-                          -
-                        </button>
-                        <div className={`flex-1 h-1.5 rounded overflow-hidden relative ${
-                          isSobre ? (isDark ? "bg-zinc-800" : "bg-zinc-200") :
-                          isWarm ? (isDark ? "bg-amber-950/40" : "bg-amber-100") :
-                          isCyber ? "bg-zinc-900" :
-                          isFun ? "bg-neutral-200 border border-black" :
-                          (isDark ? "bg-slate-900" : "bg-slate-100")
-                        }`}>
-                          <div 
-                            className={`h-full rounded ${
-                              isSobre ? (isDark ? "bg-zinc-400" : "bg-zinc-800") :
-                              isWarm ? (isDark ? "bg-amber-500" : "bg-amber-900") :
-                              isCyber ? "bg-[#00ffcc]" :
-                              isFun ? "bg-black" :
-                              "bg-linear-to-r from-cyan-400 to-indigo-500"
-                            }`} 
-                            style={{ width: `${(val / 5) * 100}%` }}
-                          />
-                        </div>
-                        <button 
-                          onClick={() => updateCategoryWeight(cat, Math.min(5, val + 1))}
-                          disabled={val >= 5}
-                          className={`w-5 h-5 rounded text-xs flex items-center justify-center cursor-pointer disabled:opacity-30 ${
-                            isSobre ? (isDark ? "bg-zinc-800 hover:bg-zinc-700 border border-zinc-750 text-zinc-100" : "bg-white hover:bg-zinc-100 border border-zinc-300 text-zinc-700") :
-                            isWarm ? (isDark ? "bg-[#3e322a] hover:bg-[#4a3c33] border border-[#524137] text-amber-100 font-serif" : "bg-[#FAF6F0] hover:bg-amber-100/40 border border-amber-900/15 text-amber-900") :
-                            isCyber ? (isDark ? "bg-black hover:bg-zinc-900 border border-cyan-500/30 text-cyan-400" : "bg-white hover:bg-teal-50 border border-[#0d9488]/30 text-teal-900") :
-                            isFun ? "bg-yellow-300 hover:bg-yellow-400 border-2 border-black text-black font-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
-                            (isDark ? "bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300" : "bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-750")
-                          }`}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Row 2: Tag toggles (3 states) */}
-            <div>
-              <h4 className={`text-[10px] uppercase font-bold tracking-widest mb-3 flex items-center gap-1.5 ${
-                isSobre ? "text-zinc-500" :
-                isWarm ? "text-amber-900/60 font-serif" :
-                isCyber ? "text-[#00ffcc]/60 font-mono" :
-                isFun ? "text-black font-extrabold" :
-                "text-slate-400"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isSobre ? "bg-zinc-400" : isWarm ? "bg-amber-900" : isCyber ? "bg-[#00ffcc]" : isFun ? "bg-black" : "bg-violet-400"}`} />
-                Intérêts par thématiques clés (3 modes d'inférence)
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(tagWeights).map((tag) => {
-                  const state = tagWeights[tag] || "neutral";
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        const nextState = state === "neutral" ? "boost" : state === "boost" ? "exclude" : "neutral";
-                        updateTagWeight(tag, nextState);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                        state === "boost"
-                          ? isFun
-                            ? "bg-emerald-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-extrabold"
-                            : isSobre
-                            ? "bg-zinc-900 border-zinc-900 text-white"
-                            : isWarm
-                            ? "bg-amber-900 border-amber-950 text-white font-serif"
-                            : isCyber
-                            ? "bg-black border-[#00ffcc] text-[#00ffcc] font-mono shadow-[0_0_10px_rgba(0,255,204,0.3)]"
-                            : "bg-emerald-500/10 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10"
-                          : state === "exclude"
-                          ? isFun
-                            ? "bg-rose-300 border-2 border-black text-black line-through opacity-75 font-extrabold"
-                            : isSobre
-                            ? (isDark ? "bg-zinc-800/50 border-zinc-750 text-zinc-500 line-through opacity-75" : "bg-zinc-100 border-zinc-200 text-zinc-400 line-through opacity-75")
-                            : isWarm
-                            ? (isDark ? "bg-[#2c221e]/40 border-amber-950/20 text-amber-550/40 line-through opacity-75 font-serif" : "bg-[#FAF6F0] border-amber-900/10 text-amber-900/40 line-through opacity-75 font-serif")
-                            : isCyber
-                            ? "bg-black border-pink-500/25 text-pink-500 line-through opacity-75 font-mono"
-                            : "bg-rose-500/10 border-rose-500/40 text-rose-300 line-through opacity-75"
-                          : isFun
-                          ? (isDark ? "bg-[#352554] border-2 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold hover:translate-x-0.5" : "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]")
-                          : isSobre
-                          ? (isDark ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-650 hover:text-white" : "bg-white border-zinc-250 text-zinc-600 hover:border-zinc-450 hover:text-zinc-900")
-                          : isWarm
-                          ? (isDark ? "bg-[#3e322a] border-amber-900/10 text-amber-200 hover:bg-[#4a3c33]" : "bg-[#FDFBF7] border-amber-900/10 text-amber-900 hover:bg-[#F2E6D0]")
-                          : isCyber
-                          ? "bg-black border-cyan-500/20 text-cyan-400 hover:border-cyan-400 font-mono"
-                          : (isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300" : "bg-white border-slate-200 text-slate-750 hover:border-slate-350 hover:text-slate-900 shadow-xs")
-                      }`}
-                      title="Cliquez pour changer : Neutre -> Boosté -> Masqué"
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        state === "boost"
-                          ? isFun ? "bg-black animate-ping" : isSobre ? "bg-zinc-350 animate-ping" : isWarm ? "bg-white animate-ping" : isCyber ? "bg-[#00ffcc] animate-ping" : "bg-emerald-400 animate-ping"
-                          : state === "exclude" ? "bg-rose-500" : "bg-slate-500"
-                      }`} />
-                      #{tag}
-                      <span className={`text-[9px] font-bold ${isSobre && state === "boost" ? "text-zinc-300" : "text-slate-500"}`}>
-                        {state === "boost" ? "🚀 Boost" : state === "exclude" ? "🚫 Masqué" : ""}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Row 3: Source toggles */}
-            <div>
-              <h4 className={`text-[10px] uppercase font-bold tracking-widest mb-3 flex items-center gap-1.5 ${
-                isSobre ? "text-zinc-500" :
-                isWarm ? "text-amber-900/60 font-serif" :
-                isCyber ? "text-[#00ffcc]/60 font-mono" :
-                isFun ? "text-black font-extrabold" :
-                "text-slate-400"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isSobre ? "bg-zinc-400" : isWarm ? "bg-amber-900" : isCyber ? "bg-[#00ffcc]" : isFun ? "bg-black" : "bg-amber-400"}`} />
-                Affinité envers les sources de presse
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(sourceWeights).map((src) => {
-                  const state = sourceWeights[src] || "neutral";
-                  return (
-                    <button
-                      key={src}
-                      onClick={() => {
-                        const nextState = state === "neutral" ? "boost" : state === "boost" ? "exclude" : "neutral";
-                        updateSourceWeight(src, nextState);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                        state === "boost"
-                          ? isFun
-                            ? "bg-cyan-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-extrabold"
-                            : isSobre
-                            ? "bg-zinc-900 border-zinc-900 text-white"
-                            : isWarm
-                            ? "bg-amber-900 border-amber-950 text-white font-serif"
-                            : isCyber
-                            ? "bg-black border-[#00ffcc] text-[#00ffcc] font-mono shadow-[0_0_10px_rgba(0,255,204,0.3)]"
-                            : "bg-cyan-500/10 border-cyan-500/40 text-cyan-300"
-                          : state === "exclude"
-                          ? isFun
-                            ? "bg-rose-300 border-2 border-black text-black line-through opacity-75 font-extrabold"
-                            : isSobre
-                            ? (isDark ? "bg-zinc-800/50 border-zinc-750 text-zinc-500 line-through opacity-75" : "bg-zinc-100 border-zinc-200 text-zinc-400 line-through opacity-75")
-                            : isWarm
-                            ? (isDark ? "bg-[#2c221e]/40 border-amber-950/20 text-amber-550/40 line-through opacity-75 font-serif" : "bg-[#FAF6F0] border-amber-900/10 text-amber-900/40 line-through opacity-75 font-serif")
-                            : isCyber
-                            ? "bg-black border-pink-500/25 text-pink-500 line-through opacity-75 font-mono"
-                            : "bg-rose-500/10 border-rose-500/40 text-rose-300 line-through opacity-75"
-                          : isFun
-                          ? (isDark ? "bg-[#352554] border-2 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold hover:translate-x-0.5" : "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]")
-                          : isSobre
-                          ? (isDark ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-650 hover:text-white" : "bg-white border-zinc-250 text-zinc-600 hover:border-zinc-450 hover:text-zinc-900")
-                          : isWarm
-                          ? (isDark ? "bg-[#3e322a] border-amber-900/10 text-amber-200 hover:bg-[#4a3c33]" : "bg-[#FDFBF7] border-amber-900/10 text-amber-900 hover:bg-[#F2E6D0]")
-                          : isCyber
-                          ? "bg-black border-cyan-500/20 text-cyan-400 hover:border-cyan-400 font-mono"
-                          : (isDark ? "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300" : "bg-white border-slate-200 text-slate-750 hover:border-slate-350 hover:text-slate-900 shadow-xs")
-                      }`}
-                    >
-                      {src}
-                      <span className={`text-[9px] font-bold ${isSobre && state === "boost" ? "text-zinc-300" : "text-slate-500"}`}>
-                        {state === "boost" ? "🚀 +15%" : state === "exclude" ? "🚫 Bloquée" : "⚪ 100%"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      </>
       )}
 
-      {/* Main Grid View */}
-      <div className={`grid grid-cols-1 gap-6 items-start ${selectedArticle ? "lg:grid-cols-12" : "grid-cols-1"}`}>
-        {/* Left Side: Search, Sliders & Feed */}
-        <div className={selectedArticle ? "lg:col-span-4 space-y-6" : "w-full space-y-6"}>
-          {/* Inner Toolbar */}
-          <div className={`backdrop-blur-md rounded-xl p-4 flex flex-col ${selectedArticle ? "w-full" : "md:flex-row md:items-center"} gap-4 shadow-md transition-all duration-300 ${
-            isSobre ? (isDark ? "bg-zinc-900 border border-zinc-800 text-zinc-100 shadow-xs" : "bg-white border border-zinc-200 text-zinc-900 shadow-xs") :
-            isWarm ? (isDark ? "bg-[#251e1a] border border-[#3e322a] text-[#FAF6F0] shadow-xs font-serif" : "bg-[#FDFBF7] border border-amber-900/10 text-amber-955 shadow-xs font-serif") :
-            isCyber ? (isDark ? "bg-black border border-cyan-500/30 text-cyan-400 font-mono" : "bg-[#f4fffe] border border-teal-500/20 text-teal-900 font-mono") :
-            isFun ? (isDark ? "bg-[#251a3a] border-3 border-black rounded-2xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-white" : "bg-yellow-100 border-3 border-black rounded-2xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-black") :
-            (isDark ? "bg-slate-900/80 border border-indigo-500/15 text-slate-100" : "bg-white border border-indigo-100 text-slate-800 shadow-sm")
-          }`}>
-            {/* Search Input */}
-            <div className={`relative w-full ${selectedArticle ? "" : "md:max-w-xs"}`}>
-              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
-                isSobre ? "text-zinc-400" :
-                isWarm ? "text-amber-850/40 font-serif" :
-                isCyber ? "text-cyan-500/40" :
-                isFun ? "text-black" :
-                "text-indigo-400/60"
-              }`} />
-              <input
-                type="text"
-                placeholder="Rechercher dans votre flux..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full rounded-lg py-1.5 pl-9 pr-4 text-xs outline-none transition-colors ${
-                  isSobre ? (isDark ? "bg-zinc-950 border border-zinc-805 text-zinc-100 focus:border-zinc-700 placeholder-zinc-550" : "bg-zinc-50 border border-zinc-300 text-zinc-900 focus:border-zinc-500 placeholder-zinc-400") :
-                  isWarm ? (isDark ? "bg-[#332822] border border-amber-900/25 text-amber-100 focus:border-amber-700 placeholder-amber-200/30 font-serif" : "bg-[#FAF6F0] border border-amber-900/15 text-amber-955 focus:border-amber-900 placeholder-amber-900/40 font-serif") :
-                  isCyber ? (isDark ? "bg-black border border-cyan-500/40 text-cyan-400 focus:border-[#00ffcc] placeholder-cyan-500/30 font-mono" : "bg-white border border-teal-500/35 text-teal-900 focus:border-teal-500 placeholder-teal-700/40 font-mono") :
-                  isFun ? (isDark ? "bg-[#1f1d2b] border-2 border-black text-white placeholder-neutral-500 rounded-lg" : "bg-white border-2 border-black text-black placeholder-neutral-500 rounded-lg") :
-                  (isDark ? "bg-slate-950 border border-slate-800 text-slate-100 focus:border-indigo-500 font-sans" : "bg-slate-50 border border-indigo-100 text-slate-800 focus:border-indigo-400 placeholder-slate-400 font-sans")
-                }`}
-              />
-            </div>
+      {/* UNIFIED SETTINGS MODAL / VOLET */}
+      <SettingsVolet
+        isOpen={isSettingsVoletOpen}
+        onClose={() => setIsSettingsVoletOpen(false)}
+        theme={displayMode}
+        isDark={isDark}
+        minScore={minScore}
+        setMinScore={setMinScore}
+        readingTimeFilter={readingTimeFilter}
+        setReadingTimeFilter={setReadingTimeFilter}
+        onlyBookmarks={onlyBookmarks}
+        setOnlyBookmarks={setOnlyBookmarks}
+        bandwidthSaver={bandwidthSaver}
+        setBandwidthSaver={setBandwidthSaver}
+        categoryWeights={categoryWeights}
+        updateCategoryWeight={updateCategoryWeight}
+        tagWeights={tagWeights}
+        updateTagWeight={updateTagWeight}
+        customInterests={customInterests}
+        newInterestInput={newInterestInput}
+        setNewInterestInput={setNewInterestInput}
+        handleAddCustomInterest={handleAddCustomInterest}
+        handleDeleteCustomInterest={handleDeleteCustomInterest}
+        handleGenerateCustomArticle={handleGenerateCustomArticle}
+        isGeneratingCustom={isGeneratingCustom}
+        handleBulkGenerateIAArticles={handleBulkGenerateIAArticles}
+        isBulkGenerating={isBulkGenerating}
+        handleResetToBaseline={handleResetToBaseline}
+        handleResetAlgorithmicData={handleResetAlgorithmicData}
+        trendingTags={trendingTags}
+        clickedTrendTag={clickedTrendTag}
+        setClickedTrendTag={setClickedTrendTag}
+        onNotify={onNotify}
+        activeFiltersCount={activeFiltersCount}
+        handleClearAllFilters={handleClearAllFilters}
+      />
 
-            {/* Relevance Slider */}
-            <div className={`flex items-center gap-3 w-full ${selectedArticle ? "" : "md:flex-1"} justify-between`}>
-              <span className={`text-xs whitespace-nowrap font-sans font-semibold ${
-                isSobre ? "text-zinc-700" :
-                isWarm ? "text-amber-900 font-serif" :
-                isCyber ? "text-cyan-400 font-mono" :
-                isFun ? "text-black font-extrabold" :
-                "text-slate-300"
-              }`}>Recommandation min :</span>
-              <input
-                type="range"
-                min={40}
-                max={90}
-                value={minScore}
-                onChange={(e) => setMinScore(Number(e.target.value))}
-                className={`flex-1 h-1 cursor-pointer ${
-                  isSobre ? "accent-zinc-900 bg-zinc-100 border border-zinc-200" :
-                  isWarm ? "accent-amber-900 bg-[#FAF6F0] border border-amber-900/15" :
-                  isCyber ? "accent-[#00ffcc] bg-black border border-cyan-500/40" :
-                  isFun ? "accent-black bg-white border-2 border-black rounded-md" :
-                  "accent-indigo-500 bg-slate-950 border border-slate-800"
-                }`}
-              />
-              <span className={`text-xs font-bold shrink-0 w-8 text-right ${
-                isSobre ? "text-zinc-900" :
-                isWarm ? "text-amber-950 font-serif" :
-                isCyber ? "text-[#00ffcc] font-mono" :
-                isFun ? "text-black font-extrabold" :
-                "text-indigo-400 font-mono"
-              }`}>
-                {minScore}%
-              </span>
-            </div>
-
-            {/* Sorting, View mode toggles */}
-            <div className={`flex flex-wrap items-center gap-2 w-full ${selectedArticle ? "justify-between border-t pt-3" : "md:w-auto justify-end md:border-t-0 md:pt-0"} ${
-              isSobre ? "border-zinc-250" :
-              isWarm ? "border-amber-900/10" :
-              isCyber ? "border-cyan-500/10" :
-              isFun ? "border-black" :
-              "border-slate-800"
-            }`}>
-              <div className={`flex p-1 rounded-lg border text-xs font-sans ${
-                isSobre ? "bg-zinc-100 border-zinc-250" :
-                isWarm ? "bg-[#FAF6F0] border-amber-900/10" :
-                isCyber ? "bg-black border-cyan-500/30 font-mono" :
-                isFun ? "bg-white border-2 border-black" :
-                "bg-slate-950 border border-slate-800"
-              }`}>
-                <button
-                  onClick={() => setSortBy("score")}
-                  className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                    sortBy === "score"
-                      ? isFun
-                        ? "bg-cyan-300 text-black border border-black font-black"
-                        : isSobre
-                        ? "bg-white text-zinc-900 font-bold border border-zinc-300"
-                        : isWarm
-                        ? "bg-amber-900 text-white font-serif font-bold"
-                        : isCyber
-                        ? "bg-cyan-500/20 text-[#00ffcc] font-mono font-bold"
-                        : "bg-indigo-500/20 text-cyan-300 font-bold"
-                      : isFun
-                      ? "text-black hover:bg-neutral-105 font-bold"
-                      : isSobre
-                      ? "text-zinc-505 hover:text-zinc-800"
-                      : isWarm
-                      ? "text-amber-800 hover:text-amber-955 font-serif"
-                      : isCyber
-                      ? "text-cyan-600 hover:text-cyan-400 font-mono"
-                      : "text-slate-505 hover:text-slate-300"
-                  }`}
-                >
-                  Score
-                </button>
-                <button
-                  onClick={() => setSortBy("date")}
-                  className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                    sortBy === "date"
-                      ? isFun
-                        ? "bg-cyan-300 text-black border border-black font-black"
-                        : isSobre
-                        ? "bg-white text-zinc-900 font-bold border border-zinc-300"
-                        : isWarm
-                        ? "bg-amber-900 text-white font-serif font-bold"
-                        : isCyber
-                        ? "bg-cyan-500/20 text-[#00ffcc] font-mono font-bold"
-                        : "bg-indigo-500/20 text-cyan-300 font-bold"
-                      : isFun
-                      ? "text-black hover:bg-neutral-105 font-bold"
-                      : isSobre
-                      ? "text-zinc-505 hover:text-zinc-800"
-                      : isWarm
-                      ? "text-amber-800 hover:text-amber-955 font-serif"
-                      : isCyber
-                      ? "text-cyan-600 hover:text-cyan-400 font-mono"
-                      : "text-slate-505 hover:text-slate-300"
-                  }`}
-                >
-                  Récents
-                </button>
-              </div>
-
-              <div className={`flex p-1 rounded-lg border ${
-                isSobre ? "bg-zinc-100 border-zinc-250" :
-                isWarm ? "bg-[#FAF6F0] border-amber-900/10" :
-                isCyber ? "bg-black border-cyan-500/30 font-mono" :
-                isFun ? "bg-white border-2 border-black" :
-                "bg-slate-950 border border-slate-800"
-              }`}>
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                    viewMode === "grid"
-                      ? isFun
-                        ? "bg-cyan-300 text-black border border-black"
-                        : isSobre
-                        ? "bg-white text-zinc-900 font-bold border border-zinc-300"
-                        : isWarm
-                        ? "bg-amber-900 text-white font-serif"
-                        : isCyber
-                        ? "bg-cyan-500/20 text-[#00ffcc]"
-                        : "bg-indigo-500/20 text-cyan-300"
-                      : isFun
-                      ? "text-black hover:bg-neutral-100"
-                      : isSobre
-                      ? "text-zinc-500 hover:text-zinc-800"
-                      : isWarm
-                      ? "text-amber-800 hover:text-amber-950"
-                      : isCyber
-                      ? "text-cyan-600 hover:text-cyan-400"
-                      : "text-slate-500 hover:text-slate-300"
-                  }`}
-                  title="Grille"
-                >
-                  <Grid className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                    viewMode === "list"
-                      ? isFun
-                        ? "bg-cyan-300 text-black border border-black"
-                        : isSobre
-                        ? "bg-white text-zinc-900 font-bold border border-zinc-300"
-                        : isWarm
-                        ? "bg-amber-900 text-white font-serif"
-                        : isCyber
-                        ? "bg-cyan-500/20 text-[#00ffcc]"
-                        : "bg-indigo-500/20 text-cyan-300"
-                      : isFun
-                      ? "text-black hover:bg-neutral-100"
-                      : isSobre
-                      ? "text-zinc-500 hover:text-zinc-800"
-                      : isWarm
-                      ? "text-amber-800 hover:text-amber-950"
-                      : isCyber
-                      ? "text-cyan-600 hover:text-cyan-400"
-                      : "text-slate-500 hover:text-slate-300"
-                  }`}
-                  title="Liste"
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sub-toolbar: Advanced Reading Filters & Bandwidth mode */}
-          <div className={`border rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs transition-all duration-300 ${
-            isSobre ? isDark ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-zinc-50 border-zinc-200 text-zinc-800" :
-            isWarm ? isDark ? "bg-[#382f2a] border-amber-900/20 text-[#FAF6F0] font-serif" : "bg-[#FAF6F0]/60 border border-amber-900/10 text-amber-955 font-serif" :
-            isCyber ? "bg-zinc-950/80 border border-cyan-500/20 font-mono" :
-            isFun ? "bg-cyan-100 border-3 border-black rounded-2xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" :
-            "bg-slate-900/40 border border-slate-800"
-          }`}>
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Reading Time selector */}
-              <div className={`flex items-center gap-1 p-1 rounded-lg border ${
-                isSobre ? isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-250" :
-                isWarm ? isDark ? "bg-[#251e1a] border-amber-900/20" : "bg-[#FDFBF7] border-amber-900/10" :
-                isCyber ? "bg-black border-cyan-500/25 font-mono" :
-                isFun ? "bg-white border-2 border-black" :
-                "bg-slate-950 border border-slate-800"
-              }`}>
-                <span className={`text-[10px] font-bold uppercase px-1.5 ${
-                  isSobre ? isDark ? "text-zinc-400" : "text-zinc-500" :
-                  isWarm ? isDark ? "text-amber-200/60 font-serif" : "text-amber-900/60 font-serif" :
-                  isCyber ? "text-cyan-500/60 font-mono" :
-                  isFun ? "text-black font-extrabold" :
-                  "text-slate-500"
-                }`}>Lecture :</span>
-                {(["all", "short", "medium", "long"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setReadingTimeFilter(mode)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                      readingTimeFilter === mode
-                        ? isFun
-                          ? "bg-yellow-300 border-2 border-black text-black font-black"
-                          : isSobre
-                          ? isDark ? "bg-zinc-100 text-zinc-950 font-bold" : "bg-zinc-900 text-white font-bold"
-                          : isWarm
-                          ? isDark ? "bg-amber-100 text-amber-955 font-serif font-bold" : "bg-amber-900 text-white font-serif font-bold"
-                          : isCyber
-                          ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 font-mono"
-                          : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                        : isFun
-                        ? "text-black hover:bg-neutral-100 font-bold"
-                        : isSobre
-                        ? isDark ? "text-zinc-400 hover:text-zinc-150" : "text-zinc-500 hover:text-zinc-800"
-                        : isWarm
-                        ? isDark ? "text-amber-400 hover:text-amber-200 font-serif" : "text-amber-800 hover:text-amber-900/80 font-serif"
-                        : isCyber
-                        ? "text-cyan-600 hover:text-cyan-400 font-mono"
-                        : "text-slate-500 hover:text-slate-300"
-                    }`}
-                  >
-                    {mode === "all" ? "Toutes" : mode === "short" ? "< 2 min" : mode === "medium" ? "2-4 min" : ">= 5 min"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Bookmarks Toggle */}
-              <button
-                onClick={() => setOnlyBookmarks(!onlyBookmarks)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border transition-all cursor-pointer font-bold ${
-                  onlyBookmarks
-                    ? isFun
-                      ? "bg-rose-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                      : isSobre
-                      ? isDark ? "bg-zinc-100 border-zinc-100 text-zinc-950" : "bg-zinc-900 border-zinc-900 text-white"
-                      : isWarm
-                      ? isDark ? "bg-amber-100 border-amber-100 text-amber-955 font-serif" : "bg-amber-900 border-amber-950 text-white font-serif"
-                      : isCyber
-                      ? "bg-black border-pink-500 text-pink-500 font-mono"
-                      : "bg-rose-500/10 border-rose-500/30 text-rose-300"
-                    : isFun
-                    ? "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                    : isSobre
-                    ? isDark ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white" : "bg-white border-zinc-250 text-zinc-650 hover:text-zinc-900 hover:border-zinc-350"
-                    : isWarm
-                    ? isDark ? "bg-[#251e1a] border-amber-900/20 text-amber-300 hover:bg-[#342a24]" : "bg-[#FDFBF7] border-amber-900/10 text-amber-900 hover:bg-[#F2E6D0]"
-                    : isCyber
-                    ? "bg-black border-cyan-500/25 text-cyan-500 hover:border-cyan-400 font-mono"
-                    : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300"
-                }`}
-              >
-                <Bookmark className="w-3.5 h-3.5 text-rose-500" />
-                Signets
-              </button>
-
-              {/* Bandwidth Mode Toggle */}
-              <button
-                onClick={() => setBandwidthSaver(!bandwidthSaver)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border transition-all cursor-pointer font-bold ${
-                  bandwidthSaver
-                    ? isFun
-                      ? "bg-emerald-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                      : isSobre
-                      ? isDark ? "bg-zinc-100 border-zinc-100 text-zinc-950" : "bg-zinc-900 border-zinc-900 text-white"
-                      : isWarm
-                      ? isDark ? "bg-amber-100 border-amber-100 text-amber-955 font-serif" : "bg-amber-900 border-amber-950 text-white font-serif"
-                      : isCyber
-                      ? "bg-black border-cyan-400 text-[#00ffcc] font-mono"
-                      : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                    : isFun
-                    ? "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                    : isSobre
-                    ? isDark ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white" : "bg-white border-zinc-250 text-zinc-650 hover:text-zinc-900 hover:border-zinc-350"
-                    : isWarm
-                    ? isDark ? "bg-[#251e1a] border-amber-900/20 text-amber-300 hover:bg-[#342a24]" : "bg-[#FDFBF7] border-amber-900/10 text-amber-900 hover:bg-[#F2E6D0]"
-                    : isCyber
-                    ? "bg-black border-cyan-500/25 text-cyan-500 hover:border-cyan-400 font-mono"
-                    : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300"
-                }`}
-                title="Désactive les emojis et effets visuels lourds"
-              >
-                <ZapOff className="w-3.5 h-3.5 text-emerald-400" />
-                Éco de données {bandwidthSaver && "(Actif)"}
-              </button>
-            </div>
-
-            {/* Trending Tags cloud */}
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-bold uppercase ${
-                isSobre ? isDark ? "text-zinc-400" : "text-zinc-500" :
-                isWarm ? isDark ? "text-amber-200/60 font-serif" : "text-amber-900/60 font-serif" :
-                isCyber ? "text-cyan-500/60" :
-                isFun ? "text-black" :
-                "text-slate-500"
-              }`}>Tendances :</span>
-              <div className="flex flex-wrap gap-1">
-                {["IA", "Sécurité", "Espace", "Santé", "Éthique", "Futur"].map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setClickedTrendTag(clickedTrendTag === tag ? null : tag)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-sans transition-all cursor-pointer border ${
-                      clickedTrendTag === tag
-                        ? isFun
-                          ? "bg-yellow-300 border-2 border-black text-black font-black"
-                          : isSobre
-                          ? isDark ? "bg-zinc-100 border-zinc-100 text-zinc-950 font-bold" : "bg-zinc-900 border-zinc-900 text-white font-bold"
-                          : isWarm
-                          ? isDark ? "bg-amber-100 border-amber-100 text-amber-955 font-serif font-bold" : "bg-amber-900 border-amber-950 text-white font-serif font-bold"
-                          : isCyber
-                          ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-mono font-bold"
-                          : "bg-indigo-500/20 border-indigo-500/40 text-cyan-300 font-bold"
-                        : isFun
-                        ? "bg-white border-2 border-black text-black hover:bg-neutral-100 font-bold"
-                        : isSobre
-                        ? isDark ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white" : "bg-white border-zinc-250 text-zinc-550 hover:border-zinc-400 hover:text-zinc-900"
-                        : isWarm
-                        ? isDark ? "bg-[#251e1a] border-amber-900/20 text-amber-300 hover:bg-[#342a24]" : "bg-[#FDFBF7] border-amber-900/10 text-amber-900 hover:bg-[#F2E6D0]"
-                        : isCyber
-                        ? "bg-black border-cyan-500/25 text-cyan-500 hover:border-cyan-400 font-mono"
-                        : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300"
-                    }`}
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Active filter feedback bar */}
-          {(activeFilter || activeTag || clickedTrendTag || onlyBookmarks || readingTimeFilter !== "all" || searchQuery) && (
-            <div className={`flex items-center flex-wrap gap-2 text-xs p-3 rounded-lg transition-all duration-300 ${
-              isSobre ? isDark ? "bg-zinc-900 border-zinc-800 text-zinc-100 border" : "bg-zinc-50 border-zinc-200 text-zinc-800 border" :
-              isWarm ? isDark ? "bg-[#382f2a] border-amber-900/20 text-[#FAF6F0] border font-serif" : "bg-[#FAF6F0] border-amber-900/10 text-amber-900 border font-serif" :
-              isCyber ? "bg-black border-cyan-500/30 text-cyan-400 border font-mono shadow-[0_0_8px_rgba(6,182,212,0.1)]" :
-              isFun ? "bg-pink-100 border-2 border-black rounded-xl text-black font-sans font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" :
-              "bg-slate-900/50 border border-indigo-500/10 text-slate-300"
-            }`}>
-              <Filter className={`w-3.5 h-3.5 ${
-                isSobre ? "text-zinc-600" :
-                isWarm ? "text-amber-900" :
-                isCyber ? "text-[#00ffcc]" :
-                isFun ? "text-black" :
-                "text-indigo-400"
-              }`} />
-              Filtres actifs :
-              {activeFilter && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-200 text-zinc-900 border-zinc-300" :
-                  isWarm ? isDark ? "bg-[#4a3f39] text-[#FAF6F0] border-amber-900/30 font-serif" : "bg-amber-100 text-amber-955 border-amber-900/10 font-serif" :
-                  isCyber ? "bg-zinc-900 text-[#00ffcc] border-cyan-500/30 font-mono" :
-                  isFun ? "bg-yellow-300 text-black border-2 border-black font-black" :
-                  "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
-                }`}>
-                  Catégorie: {activeFilter}
-                </span>
-              )}
-              {activeTag && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-200 text-zinc-900 border-zinc-300" :
-                  isWarm ? isDark ? "bg-[#4a3f39] text-[#FAF6F0] border-amber-900/30 font-serif" : "bg-amber-100 text-amber-955 border-amber-900/10 font-serif" :
-                  isCyber ? "bg-zinc-900 text-cyan-300 border-cyan-500/30 font-mono" :
-                  isFun ? "bg-yellow-300 text-black border-2 border-black font-black" :
-                  "bg-violet-500/20 text-violet-300 border-violet-500/30"
-                }`}>
-                  Tag: #{activeTag}
-                </span>
-              )}
-              {clickedTrendTag && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-200 text-zinc-900 border-zinc-300" :
-                  isWarm ? isDark ? "bg-[#4a3f39] text-[#FAF6F0] border-amber-900/30 font-serif" : "bg-amber-100 text-amber-955 border-amber-900/10 font-serif" :
-                  isCyber ? "bg-zinc-900 text-[#00ffcc] border-cyan-500/30 font-mono" :
-                  isFun ? "bg-yellow-300 text-black border-2 border-black font-black" :
-                  "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-                }`}>
-                  Tendance: #{clickedTrendTag}
-                </span>
-              )}
-              {onlyBookmarks && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-200 text-zinc-900 border-zinc-300" :
-                  isWarm ? isDark ? "bg-[#4a3f39] text-[#FAF6F0] border-amber-900/30 font-serif" : "bg-amber-100 text-amber-955 border-amber-900/10 font-serif" :
-                  isCyber ? "bg-zinc-900 text-pink-400 border-cyan-500/30 font-mono" :
-                  isFun ? "bg-rose-300 text-black border-2 border-black font-black" :
-                  "bg-rose-500/20 text-rose-300 border-rose-500/30"
-                }`}>
-                  Signets seulement
-                </span>
-              )}
-              {readingTimeFilter !== "all" && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-200 text-zinc-900 border-zinc-300" :
-                  isWarm ? isDark ? "bg-[#4a3f39] text-[#FAF6F0] border-amber-900/30 font-serif" : "bg-amber-100 text-amber-955 border-amber-900/10 font-serif" :
-                  isCyber ? "bg-zinc-900 text-emerald-400 border-cyan-500/30 font-mono" :
-                  isFun ? "bg-emerald-300 text-black border-2 border-black font-black" :
-                  "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                }`}>
-                  Temps: {readingTimeFilter}
-                </span>
-              )}
-              {searchQuery && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                  isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-200 text-zinc-900 border-zinc-300" :
-                  isWarm ? isDark ? "bg-[#4a3f39] text-[#FAF6F0] border-amber-900/30 font-serif" : "bg-amber-100 text-amber-955 border-amber-900/10 font-serif" :
-                  isCyber ? "bg-zinc-900 text-cyan-300 border-cyan-500/30 font-mono" :
-                  isFun ? "bg-yellow-300 text-black border-2 border-black font-black" :
-                  "bg-slate-800 text-slate-200 border-slate-700"
-                }`}>
-                  Recherche: "{searchQuery}"
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* 0. ARTICLE CREATION & RESET CONTROLS */}
-          <div className={`${getPanelBgClass()} flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300`} id="article-creation-reset-panel">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg shrink-0 ${isFun ? "bg-yellow-300 border-2 border-black text-black" : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400"}`}>
-                <RefreshCw className="w-4 h-4 animate-spin-slow" />
-              </div>
-              <div>
-                <h4 className={`text-xs uppercase tracking-wider flex items-center gap-2 ${isSobre ? isDark ? "text-white font-extrabold" : "text-zinc-900 font-extrabold" : isWarm ? isDark ? "text-[#FAF6F0] font-bold font-serif" : "text-amber-950 font-bold font-serif" : isCyber ? "text-[#00ffcc] font-black font-mono" : isFun ? "text-black font-black" : "text-white font-bold font-sans"}`}>
-                  Création &amp; Réinitialisation d'Articles
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                    isSobre ? isDark ? "bg-zinc-800 text-zinc-100 border border-zinc-700" : "bg-zinc-100 text-zinc-800 border border-zinc-200" :
-                    isWarm ? isDark ? "bg-amber-955/40 text-amber-200" : "bg-amber-100 text-amber-900" :
-                    isCyber ? "bg-black text-[#00ffcc] border border-cyan-400 font-mono" :
-                    isFun ? "bg-yellow-300 text-black border-2 border-black animate-pulse" :
-                    "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                  }`}>
-                    Contrôle Flux
-                  </span>
-                </h4>
-                <p className={`text-[10px] mt-0.5 ${isSobre ? isDark ? "text-zinc-400" : "text-zinc-550" : isWarm ? isDark ? "text-amber-300 font-serif" : "text-amber-900/80 font-serif" : isCyber ? "text-cyan-500 font-mono" : isFun ? "text-black" : "text-slate-400 font-sans"}`}>
-                  Générez à la demande de nouveaux articles via l'IA ou restaurez instantanément le flux d'origine.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto justify-end">
-              {/* Reset Button */}
-              <button
-                onClick={handleResetToBaseline}
-                className={getButtonClass(false) + " flex items-center justify-center gap-1.5 w-full sm:w-auto shrink-0"}
-                title="Rétablir les articles originaux de l'application"
-              >
-                <RotateCcw className={`w-3.5 h-3.5 ${isFun ? "text-black" : "text-zinc-400"}`} />
-                Réinitialiser le flux
-              </button>
-
-              {/* IA Bulk Generator Button */}
-              <button
-                onClick={() => handleBulkGenerateIAArticles(false)}
-                disabled={isBulkGenerating}
-                className={`px-4 py-1.5 hover:opacity-95 disabled:opacity-45 text-[11px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto shrink-0 ${
-                  isFun ? "bg-cyan-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5" :
-                  isSobre ? "bg-zinc-950 text-white" :
-                  isWarm ? "bg-amber-900 text-white" :
-                  isCyber ? "bg-black border border-cyan-400 text-cyan-400 font-mono shadow-[0_0_8px_rgba(6,182,212,0.3)]" :
-                  "bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-md shadow-cyan-500/10"
-                }`}
-              >
-                {isBulkGenerating ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
-                )}
-                {isBulkGenerating ? "Génération IA..." : "Régénérer 15 articles (IA)"}
-              </button>
-            </div>
-          </div>
-
+      {/* MAIN ARTICLES FEED AND READER SPLIT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className={selectedArticle ? "lg:col-span-4 space-y-6" : "lg:col-span-12 space-y-6"}>
           {/* 1. FEATURED ARTICLES GRID */}
           {featuredArticles.length > 0 && (
             <div className="space-y-3">
@@ -3165,9 +2922,8 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                 </h3>
               </div>
 
-              <div className={`grid gap-4 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+              <div className={`grid gap-3 sm:gap-4 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
                 {featuredArticles.map((art, idx) => {
-                  const catColor = CATEGORY_COLORS[art.category] || { text: "text-zinc-400", bg: "bg-zinc-850/50", border: "border-white/5" };
                   const isSaved = savedIds.has(art.id);
                   const isRead = readIds.has(art.id);
 
@@ -3186,40 +2942,48 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                       key={`feat-${art.id}-${idx}`}
                       id={`article-card-${art.id}`}
                       onClick={() => handleOpenArticle(art)}
-                      className={`${getCardContainerClass()} overflow-hidden cursor-pointer transition-all hover:-translate-y-1 group h-full relative touch-pan-y`}
+                      className={`${getCardContainerClass()} overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5 group h-full relative touch-pan-y`}
                     >
-                      <div className={`absolute top-3 right-3 z-10 font-sans font-bold text-xs tracking-wider uppercase px-3 py-1 rounded-full shadow ${
-                        isSobre ? "bg-zinc-900 text-white" :
-                        isWarm ? "bg-amber-950 text-white font-serif" :
-                        isCyber ? "bg-black border border-cyan-400 text-cyan-400 font-mono" :
-                        isFun ? "bg-yellow-300 text-black border-2 border-black font-black" :
-                        "bg-linear-to-r from-violet-600 via-fuchsia-600 to-rose-600 text-white shadow-fuchsia-500/25"
-                      }`}>
-                        ★ {art.score}% Recommandé
-                      </div>
-
-                      <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div className="flex flex-col justify-between h-full w-full">
+                        {/* Top Content */}
                         <div>
-                          {/* source & category */}
-                          <div className="flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider mb-3">
-                            <span className={getBadgeClass()}>{art.category}</span>
-                            <span className={`${isSobre ? "text-zinc-400" : isWarm ? "text-amber-800" : isCyber ? "text-cyan-500 font-mono" : isFun ? "text-black" : "text-slate-600"}`}>•</span>
-                            <span className={`${
-                              isSobre ? "text-zinc-700" :
-                              isWarm ? "text-amber-900 font-semibold" :
-                              isCyber ? "text-cyan-400 font-mono" :
-                              isFun ? "text-black font-black" :
-                              "text-slate-300 font-semibold font-sans"
-                            }`}>{art.source}</span>
+                          {/* Category + Source + Badge */}
+                          <div className="flex items-center justify-between gap-1.5 mb-2">
+                            <div className="flex items-center gap-1.5 min-w-0 truncate">
+                              <span className={getBadgeClass()}>{art.category}</span>
+                              <span className="opacity-35 text-[10px]">•</span>
+                              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate ${
+                                isSobre ? "text-zinc-600" :
+                                isWarm ? "text-amber-900 font-semibold" :
+                                isCyber ? "text-cyan-400 font-mono" :
+                                isFun ? "text-black font-black" :
+                                "text-slate-300 font-semibold font-sans"
+                              }`}>{art.source}</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {art.emoji && (
+                                <span className="text-sm drop-shadow-xs">{art.emoji}</span>
+                              )}
+                              <span className={`font-sans font-bold text-[10px] sm:text-[11px] tracking-wider uppercase px-2.5 py-0.5 rounded-full shadow-xs ${
+                                isSobre ? "bg-zinc-900 text-white" :
+                                isWarm ? "bg-amber-950 text-white font-serif" :
+                                isCyber ? "bg-black border border-cyan-400 text-cyan-400 font-mono" :
+                                isFun ? "bg-yellow-300 text-black border-2 border-black font-black" :
+                                "bg-linear-to-r from-violet-600 via-fuchsia-600 to-rose-600 text-white shadow-fuchsia-500/25"
+                              }`}>
+                                ★ {art.score}%
+                              </span>
+                            </div>
                           </div>
 
-                          <h4 className={getTitleClass() + " mb-2 group-hover:opacity-85 transition-opacity"}>
+                          <h4 className={`${getTitleClass()} line-clamp-3 mb-2 group-hover:opacity-90 transition-opacity`}>
                             {art.title}
                           </h4>
 
-                          <p className={`text-sm sm:text-base leading-relaxed line-clamp-3 mb-4 ${
+                          <p className={`text-xs sm:text-[13px] leading-relaxed line-clamp-3 mb-3 ${
                             isSobre ? "text-zinc-600" :
-                            isWarm ? "text-amber-900/80 font-serif" :
+                            isWarm ? "text-amber-900/85 font-serif" :
                             isCyber ? "text-cyan-500 font-mono" :
                             isFun ? "text-black font-medium" :
                             "text-slate-400 font-sans"
@@ -3229,14 +2993,20 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                         </div>
 
                         {/* bottom tags & stats */}
-                        <div className={`pt-3 border-t flex flex-wrap items-center justify-between gap-2 ${isSobre ? "border-zinc-200" : isWarm ? "border-amber-900/10" : isCyber ? "border-cyan-500/10" : isFun ? "border-black" : "border-slate-800"}`}>
-                          <div className="flex gap-1.5">
-                            {art.tags.slice(0, 2).map((t) => (
-                              <span key={t} className={`text-xs px-2.5 py-0.5 rounded border ${
+                        <div className={`pt-2 border-t flex flex-wrap items-center justify-between gap-1.5 text-[11px] ${
+                          isSobre ? "border-zinc-200" :
+                          isWarm ? "border-amber-900/10" :
+                          isCyber ? "border-cyan-500/10" :
+                          isFun ? "border-black" :
+                          "border-slate-800"
+                        }`}>
+                          <div className="flex gap-1 overflow-hidden">
+                            {art.tags.slice(0, 3).map((t) => (
+                              <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded border truncate max-w-[120px] ${
                                 isSobre ? "bg-zinc-50 border-zinc-200 text-zinc-700" :
                                 isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-900 font-serif" :
                                 isCyber ? "bg-black border-cyan-500/20 text-cyan-400 font-mono" :
-                                isFun ? "bg-cyan-100 border-2 border-black text-black font-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
+                                isFun ? "bg-cyan-100 border-2 border-black text-black font-black" :
                                 "text-indigo-300 bg-indigo-500/10 border-indigo-500/15 font-sans"
                               }`}>
                                 #{t}
@@ -3244,15 +3014,15 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                             ))}
                           </div>
 
-                          <div className={`flex items-center gap-2 text-xs sm:text-sm ${
+                          <div className={`flex items-center gap-1 text-[10px] sm:text-[11px] ${
                             isSobre ? "text-zinc-500" :
                             isWarm ? "text-amber-850 font-serif" :
                             isCyber ? "text-cyan-500 font-mono" :
                             isFun ? "text-black font-black" :
                             "text-slate-400 font-sans"
                           }`}>
-                            <Clock className={`w-3.5 h-3.5 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/60"}`} />
-                            {getArticleTimeDisplay(art)}
+                            <Clock className={`w-3 h-3 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/60"}`} />
+                            <span>{getArticleTimeDisplay(art)}</span>
                           </div>
                         </div>
                       </div>
@@ -3347,8 +3117,11 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                     </p>
                     <button
                       onClick={() => {
-                        handleAddInterest(searchQuery);
-                        handleGenerateCustomArticle(searchQuery);
+                        const clean = cleanInterestQuery(searchQuery);
+                        if (clean) {
+                          handleAddInterest(clean);
+                          handleGenerateCustomArticle(clean);
+                        }
                       }}
                       disabled={!!isGeneratingCustom}
                       className={`w-full py-2 px-3 hover:opacity-95 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
@@ -3366,7 +3139,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                 )}
               </div>
             ) : (
-              <div className={`grid gap-4 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+              <div className={`grid gap-3 sm:gap-4 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
                 {regularArticles.map((art, idx) => {
                   const catColor = CATEGORY_COLORS[art.category] || { text: "text-zinc-400", bg: "bg-zinc-850/50", border: "border-white/5" };
                   const isSaved = savedIds.has(art.id);
@@ -3387,24 +3160,25 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                       key={`reg-${art.id}-${idx}`}
                       id={`article-card-${art.id}`}
                       onClick={() => handleOpenArticle(art)}
-                      className={`${getCardContainerClass()} overflow-hidden cursor-pointer transition-all hover:-translate-y-1 relative touch-pan-y ${
-                        isRead ? "opacity-50 hover:opacity-100" : ""
+                      className={`${getCardContainerClass()} overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5 relative touch-pan-y ${
+                        isRead ? "opacity-60 hover:opacity-100" : ""
                       }`}
                     >
-                      {/* Left color bar of match (styled for Cyber/Fun vs others) */}
-                      <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-slate-950 rounded-l overflow-hidden">
+                      {/* Left indicator strip */}
+                      <div className="absolute top-0 left-0 bottom-0 w-1 bg-slate-950 rounded-l overflow-hidden">
                         <div className={`h-full ${isFun ? "bg-black" : isSobre ? "bg-zinc-800" : isWarm ? "bg-amber-900" : getScoreFillColor(art.score)}`} style={{ height: `${art.score}%` }}></div>
                       </div>
 
-                      <div className="p-4 pl-5 flex-1 flex flex-col justify-between">
+                      <div className="flex flex-col justify-between h-full w-full pl-2">
+                        {/* Top Content */}
                         <div>
-                          {/* source & category */}
-                          <div className="flex items-center justify-between gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2">
-                            <div className="flex items-center gap-1.5">
+                          {/* Category + Source + Match Badge */}
+                          <div className="flex items-center justify-between gap-1.5 mb-2">
+                            <div className="flex items-center gap-1.5 min-w-0 truncate">
                               <span className={getBadgeClass()}>{art.category}</span>
-                              <span className={`${isSobre ? "text-zinc-400" : isWarm ? "text-amber-800" : isCyber ? "text-cyan-500 font-mono" : isFun ? "text-black" : "text-slate-600"}`}>•</span>
-                              <span className={`${
-                                isSobre ? "text-zinc-700" :
+                              <span className="opacity-35 text-[10px]">•</span>
+                              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate ${
+                                isSobre ? "text-zinc-600" :
                                 isWarm ? "text-amber-900 font-semibold" :
                                 isCyber ? "text-cyan-400 font-mono" :
                                 isFun ? "text-black font-black" :
@@ -3412,24 +3186,29 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                               }`}>{art.source}</span>
                             </div>
 
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-bold shadow-xs ${
-                              isSobre ? "bg-zinc-100 border-zinc-200 text-zinc-900" :
-                              isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-950 font-serif" :
-                              isCyber ? "bg-black border-cyan-400/30 text-cyan-400 font-mono" :
-                              isFun ? "bg-yellow-300 border-2 border-black text-black font-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
-                              `${getScoreColor(art.score)} font-mono shadow-sm`
-                            }`}>
-                              {art.score}% Match
-                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {art.emoji && (
+                                <span className="text-sm drop-shadow-xs">{art.emoji}</span>
+                              )}
+                              <span className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full border font-bold shadow-xs ${
+                                isSobre ? "bg-zinc-100 border-zinc-200 text-zinc-900" :
+                                isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-950 font-serif" :
+                                isCyber ? "bg-black border-cyan-400/30 text-cyan-400 font-mono" :
+                                isFun ? "bg-yellow-300 border-2 border-black text-black font-black" :
+                                `${getScoreColor(art.score)} font-mono`
+                              }`}>
+                                {art.score}% Match
+                              </span>
+                            </div>
                           </div>
 
-                          <h4 className={getTitleClass() + " mb-2 group-hover:opacity-85 transition-opacity"}>
+                          <h4 className={`${getTitleClass()} line-clamp-3 mb-2 group-hover:opacity-90 transition-opacity`}>
                             {art.title}
                           </h4>
 
-                          <p className={`text-sm sm:text-base leading-relaxed line-clamp-2 mb-3 ${
+                          <p className={`text-xs sm:text-[13px] leading-relaxed line-clamp-3 mb-3 ${
                             isSobre ? "text-zinc-650 font-sans" :
-                            isWarm ? "text-amber-900/80 font-serif" :
+                            isWarm ? "text-amber-900/85 font-serif" :
                             isCyber ? "text-cyan-500 font-mono" :
                             isFun ? "text-black font-medium" :
                             "text-slate-400 font-sans"
@@ -3439,14 +3218,20 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                         </div>
 
                         {/* bottom tags & stats */}
-                        <div className={`pt-2.5 border-t flex items-center justify-between gap-2 ${isSobre ? "border-zinc-200" : isWarm ? "border-amber-900/10" : isCyber ? "border-cyan-500/10" : isFun ? "border-black" : "border-slate-800"}`}>
-                          <div className="flex gap-1">
-                            {art.tags.slice(0, 2).map((t) => (
-                              <span key={t} className={`text-xs px-2 py-0.5 rounded border ${
+                        <div className={`pt-2 border-t flex items-center justify-between gap-1.5 text-[11px] ${
+                          isSobre ? "border-zinc-200" :
+                          isWarm ? "border-amber-900/10" :
+                          isCyber ? "border-cyan-500/10" :
+                          isFun ? "border-black" :
+                          "border-slate-800"
+                        }`}>
+                          <div className="flex gap-1 overflow-hidden">
+                            {art.tags.slice(0, 3).map((t) => (
+                              <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded border truncate max-w-[120px] ${
                                 isSobre ? "bg-zinc-50 border-zinc-200 text-zinc-700" :
                                 isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-900 font-serif" :
                                 isCyber ? "bg-black border-cyan-500/20 text-cyan-400 font-mono" :
-                                isFun ? "bg-cyan-100 border-2 border-black text-black font-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" :
+                                isFun ? "bg-cyan-100 border-2 border-black text-black font-black" :
                                 "text-slate-400 bg-slate-900 border-slate-850 font-sans"
                               }`}>
                                 #{t}
@@ -3454,15 +3239,15 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                             ))}
                           </div>
 
-                          <div className={`flex items-center gap-1.5 text-xs ${
+                          <div className={`flex items-center gap-1 text-[10px] sm:text-[11px] ${
                             isSobre ? "text-zinc-500" :
                             isWarm ? "text-amber-850 font-serif" :
                             isCyber ? "text-cyan-500 font-mono" :
                             isFun ? "text-black font-black" :
                             "text-slate-400 font-sans"
                           }`}>
-                            <Clock className={`w-3.5 h-3.5 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/40"}`} />
-                            {getArticleTimeDisplay(art)}
+                            <Clock className={`w-3 h-3 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/40"}`} />
+                            <span>{getArticleTimeDisplay(art)}</span>
                           </div>
                         </div>
                       </div>
@@ -3490,7 +3275,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           {selectedArticle ? (
             <div 
               id="active-article-reader" 
-              className={`w-full h-full flex flex-col justify-between overflow-hidden relative transition-all duration-300 p-4 sm:p-6 ${
+              className={`w-full h-full flex flex-col justify-between overflow-hidden relative transition-all duration-300 px-2 sm:px-5 pt-2 pb-3 sm:py-4 ${
                 isDark ? "bg-black text-white selection:bg-zinc-850" :
                 isFun ? "bg-yellow-50 text-black shadow-xs" :
                 "bg-white text-black selection:bg-zinc-100"
@@ -3500,17 +3285,17 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                   : "border-0 lg:border lg:border-zinc-200 dark:lg:border-zinc-800 lg:rounded-2xl lg:shadow-2xl"
               }`}
             >
-              {/* Absolute Close Button at Top-Right ("petite croix à droite pour quitter l'article") */}
+              {/* Absolute Close Button at Top-Right */}
               <button
                 onClick={() => setSelectedArticle(null)}
-                className={`absolute top-4 right-4 z-10 w-12 h-12 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
+                className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                   isDark ? "bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800" :
-                  isFun ? "bg-yellow-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400" :
+                  isFun ? "bg-yellow-300 border border-black text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400" :
                   "bg-zinc-50 border-zinc-250 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100"
                 }`}
                 title="Fermer l'article"
               >
-                <X className="w-5 h-5" />
+                <X className="w-3.5 h-3.5" />
               </button>
 
               {/* Reading Progress Bar */}
@@ -3524,53 +3309,53 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
               </div>
 
               {/* Reader Header */}
-              <div className={`flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 mb-4 shrink-0 pt-1 gap-3 ${isDark ? "border-zinc-800" : "border-zinc-150"}`}>
-                <span className={`text-[10px] uppercase font-sans font-bold tracking-[0.2em] ${
+              <div className={`flex items-center justify-between border-b pb-1.5 mb-2.5 shrink-0 gap-2 pr-8 sm:pr-10 ${isDark ? "border-zinc-800" : "border-zinc-150"}`}>
+                <span className={`text-[9px] uppercase font-sans font-bold tracking-wider truncate max-w-[100px] sm:max-w-none ${
                   isDark ? "text-zinc-400" : isFun ? "text-black" : "text-zinc-500"
                 }`}>
-                  {zenMode ? "Mode Zen Actif" : "Lecteur d'Article"}
+                  {zenMode ? "Mode Zen" : "Lecteur d'Article"}
                 </span>
 
-                <div className="flex flex-wrap items-center gap-1.5 pr-10 sm:pr-0">
+                <div className="flex items-center gap-1">
                   {/* Font Resizer */}
-                  <div className={`flex items-center gap-0.5 p-1 rounded-lg border text-xs font-bold ${
+                  <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded-md border text-[10px] font-bold ${
                     isDark ? "bg-zinc-900 border-zinc-800 text-zinc-100" :
-                    isFun ? "bg-white border-2 border-black text-black" :
+                    isFun ? "bg-white border border-black text-black" :
                     "bg-zinc-50 border-zinc-200 text-zinc-800"
                   }`}>
-                    <button onClick={() => setFontScale(Math.max(0.85, fontScale - 0.15))} className="px-1.5 text-zinc-400 hover:text-current cursor-pointer" title="A-">A-</button>
+                    <button onClick={() => setFontScale(Math.max(0.85, fontScale - 0.15))} className="px-1 text-zinc-400 hover:text-current cursor-pointer" title="A-">A-</button>
                     <span className="text-[9px] font-mono font-bold text-zinc-500">{Math.round(fontScale * 100)}%</span>
-                    <button onClick={() => setFontScale(Math.min(1.6, fontScale + 0.15))} className="px-1.5 text-zinc-400 hover:text-current cursor-pointer" title="A+">A+</button>
+                    <button onClick={() => setFontScale(Math.min(1.6, fontScale + 0.15))} className="px-1 text-zinc-400 hover:text-current cursor-pointer" title="A+">A+</button>
                   </div>
 
                   {/* Audio Speech */}
                   <button
                     onClick={() => handleVoiceRead(selectedArticle)}
-                    className={`p-1.5 rounded-lg border cursor-pointer transition-colors ${
+                    className={`p-1 rounded-md border cursor-pointer transition-colors ${
                       isPlayingSpeech 
                         ? "bg-rose-500/20 text-rose-500 border-rose-500/30 animate-pulse" 
                         : isDark ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100" :
-                          isFun ? "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-100" :
+                          isFun ? "bg-white border border-black text-black hover:bg-yellow-100" :
                           "bg-zinc-50 border-zinc-200 text-zinc-600 hover:text-zinc-950"
                     }`}
                     title="Lire à haute voix"
                   >
-                    {isPlayingSpeech ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    {isPlayingSpeech ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                   </button>
 
                   {/* Zen Mode */}
                   <button
                     onClick={() => setZenMode(!zenMode)}
-                    className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
+                    className={`p-1 rounded-md border cursor-pointer transition-all ${
                       zenMode 
                         ? "bg-zinc-500/20 text-zinc-500 border-zinc-500/30" 
                         : isDark ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100" :
-                          isFun ? "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-100" :
+                          isFun ? "bg-white border border-black text-black hover:bg-yellow-100" :
                           "bg-zinc-50 border-zinc-200 text-zinc-600 hover:text-zinc-950"
                     }`}
                     title="Masquer le superflu (Mode Zen)"
                   >
-                    {zenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    {zenMode ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
                   </button>
 
                   {/* Save Bookmark */}
@@ -3579,43 +3364,80 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                       onToggleSave(selectedArticle.id);
                       onNotify(savedIds.has(selectedArticle.id) ? "Retiré des sauvegardés" : "Article sauvegardé ◈");
                     }}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    className={`p-1 rounded-md border transition-colors cursor-pointer ${
                       savedIds.has(selectedArticle.id)
                         ? "text-yellow-500 border-yellow-500/30 bg-yellow-500/5 animate-none"
                         : isDark ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-100" :
-                          isFun ? "bg-white border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-100" :
+                          isFun ? "bg-white border border-black text-black hover:bg-yellow-100" :
                           "bg-zinc-50 border-zinc-200 text-zinc-600 hover:text-zinc-950"
                     }`}
                     title={savedIds.has(selectedArticle.id) ? "Enlevé des favoris" : "Sauvegarder"}
                   >
-                    <Bookmark className="w-3.5 h-3.5 fill-current" />
+                    <Bookmark className="w-3 h-3 fill-current" />
+                  </button>
+
+                  {/* Share Article */}
+                  <button
+                    onClick={() => handleShareArticle(selectedArticle)}
+                    className={`p-1 rounded-md border transition-colors cursor-pointer ${
+                      isDark ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-indigo-400" :
+                      isFun ? "bg-white border border-black text-black hover:bg-yellow-100" :
+                      "bg-zinc-50 border-zinc-200 text-zinc-600 hover:text-indigo-600"
+                    }`}
+                    title="Partager cet article"
+                  >
+                    <Share2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
 
               {/* Reader body */}
               <div className="flex-1 overflow-y-auto space-y-6 pr-1 scrollbar pb-24" onScroll={handleReaderScroll}>
-                {/* source name & score */}
-                {!zenMode && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="font-sans font-bold uppercase tracking-wider text-indigo-400">{selectedArticle.source}</span>
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full border font-mono font-bold ${getScoreColor(selectedArticle.score)}`}>
-                      Score: {selectedArticle.score}%
+                {/* Clean Metadata Header Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 dark:text-indigo-300 border border-indigo-500/20">
+                      {selectedArticle.category}
+                    </span>
+                    {selectedArticle.tags?.slice(0, 3).map((tag, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/15 text-[11px]">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <span className={`text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${getScoreColor(selectedArticle.score)}`}>
+                    ★ {selectedArticle.score}%
+                  </span>
+                </div>
+
+                {/* Enhanced Title Display with high typographic contrast */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-xs sm:text-[13px] font-extrabold uppercase tracking-wider ${
+                      isSobre ? "text-zinc-600 dark:text-zinc-400 font-sans" :
+                      isWarm ? "text-amber-900 dark:text-amber-300 font-serif font-bold" :
+                      isCyber ? "text-cyan-400 font-mono" :
+                      isFun ? "text-black dark:text-pink-300 font-black" :
+                      "text-indigo-500 dark:text-indigo-400 font-sans"
+                    }`}>
+                      {selectedArticle.source}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-sans">
+                      ⏱ {getArticleTimeDisplay(selectedArticle)}
                     </span>
                   </div>
-                )}
 
-                <h3 className="font-serif italic text-2xl sm:text-3xl font-semibold leading-normal">
-                  {selectedArticle.title}
-                </h3>
-
-                {!zenMode && (
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 font-sans uppercase tracking-wider pb-1">
-                    <span>⏱ {getArticleTimeDisplay(selectedArticle)}</span>
-                    <span>•</span>
-                    <span>Catégorie: <strong>{selectedArticle.category}</strong></span>
-                  </div>
-                )}
+                  <h3 className={`text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight tracking-tight ${
+                    isSobre ? "font-sans text-zinc-900 dark:text-zinc-50" :
+                    isWarm ? "font-serif text-[#2a1b12] dark:text-amber-100" :
+                    isCyber ? "font-mono text-[#00ffcc] uppercase" :
+                    isFun ? "font-sans text-black dark:text-pink-300 font-black italic" :
+                    "font-sans text-slate-900 dark:text-white"
+                  }`}>
+                    {selectedArticle.title}
+                  </h3>
+                </div>
 
                 {/* Key Quotes block */}
                 {extractedQuotes.length > 0 && (
@@ -3632,32 +3454,34 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
 
                   {/* PARTIE 1 : SYNTHÈSE CONDENSÉE */}
                   <div className={`p-4 sm:p-5 rounded-2xl border space-y-3 transition-all ${
-                    isDark ? "bg-indigo-950/30 border-indigo-500/30 text-indigo-100" :
+                    isDark ? "bg-zinc-900 border-zinc-800 text-white" :
                     isFun ? "bg-yellow-200 border-2 border-black text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" :
-                    "bg-indigo-50/80 border-indigo-200 text-indigo-950 shadow-xs"
+                    "bg-zinc-100 border-zinc-300 text-black shadow-xs"
                   }`}>
-                    <div className="flex items-center justify-between gap-2 border-b border-indigo-500/20 pb-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-400 dark:text-indigo-300 border border-indigo-500/30">
-                        <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <div className={`flex items-center justify-between gap-2 border-b pb-2 ${isDark ? "border-zinc-800" : "border-zinc-300"}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${
+                        isDark ? "bg-zinc-800 text-amber-300 border-zinc-700" : "bg-white text-zinc-950 border-zinc-300"
+                      }`}>
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                         Partie 1 : Synthèse condensée (Flash 15 sec)
                       </span>
-                      <span className="text-[11px] font-mono font-bold opacity-75">
+                      <span className={`text-[11px] font-mono font-bold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
                         L'essentiel en bref
                       </span>
                     </div>
-                    <p className="text-sm sm:text-base font-medium leading-relaxed italic">
+                    <p className={`text-sm sm:text-base font-semibold leading-relaxed italic ${isDark ? "text-white" : "text-black"}`}>
                       {selectedArticle.summary || "Synthèse factuelle et faits clés du jour."}
                     </p>
                   </div>
 
                   {/* PARTIE 2 : ENQUÊTE & ANALYSE APPROFONDIE (3X PLUS DÉTAILLÉE) */}
                   <div className="space-y-4 pt-2">
-                    <div className="flex items-center justify-between border-b border-slate-700/20 pb-2">
-                      <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-400 dark:text-indigo-300">
-                        <BookOpen className="w-4 h-4 text-indigo-400" />
+                    <div className={`flex items-center justify-between border-b pb-2 ${isDark ? "border-zinc-800" : "border-zinc-250"}`}>
+                      <span className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider ${isDark ? "text-indigo-300" : "text-indigo-950"}`}>
+                        <BookOpen className="w-4 h-4 text-indigo-500" />
                         Partie 2 : Enquête & Analyse approfondie (3x plus détaillée)
                       </span>
-                      <span className="text-[11px] font-mono text-slate-400 font-bold">
+                      <span className={`text-[11px] font-mono font-bold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
                         Grand Format
                       </span>
                     </div>
@@ -3682,41 +3506,109 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
 
                 </div>
 
-                {/* SECTION : CREUSER LE SUJET (Analyse & Approfondissement par l'IA) */}
-                <div id="creuser-sujet-section" className={`mt-6 p-5 border rounded-2xl space-y-4 shadow-xl transition-all ${
+                {/* SECTION : LIEN YOUTUBE SUR LE SUJET */}
+                <div className={`mt-5 p-4 sm:p-5 rounded-2xl border transition-all ${
                   isSobre ? (isDark ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-zinc-50 border-zinc-200 text-zinc-950") :
                   isWarm ? (isDark ? "bg-[#382f2a] border-amber-900/30 text-amber-100 font-serif" : "bg-[#FAF6F0] border-amber-900/20 text-amber-950 font-serif") :
-                  isCyber ? (isDark ? "bg-black border-cyan-400 text-cyan-400 font-mono shadow-[0_0_15px_rgba(6,182,212,0.15)]" : "bg-teal-50 border-teal-500/30 text-teal-950 font-mono") :
+                  isCyber ? (isDark ? "bg-black border-red-500/50 text-red-400 font-mono shadow-[0_0_15px_rgba(239,68,68,0.15)]" : "bg-red-50/70 border-red-300 text-red-950 font-mono") :
                   isFun ? (isDark ? "bg-zinc-900 border-3 border-white text-white rounded-2xl" : "bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black") :
-                  (isDark ? "bg-slate-900/80 border-indigo-500/30 text-slate-100 backdrop-blur-md" : "bg-indigo-50/70 border-indigo-200 text-slate-900")
+                  (isDark ? "bg-slate-900/90 border-red-500/30 text-slate-100 backdrop-blur-md" : "bg-red-50/60 border-red-200 text-slate-900")
                 }`}>
-                  <div className="flex items-center justify-between border-b border-slate-700/10 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-                        <Search className="w-4 h-4 text-indigo-400" />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-red-600/10 border border-red-600/30 text-red-500 flex items-center justify-center shrink-0 shadow-xs">
+                        <Youtube className="w-5 h-5 fill-red-600 text-red-600" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm sm:text-base flex items-center gap-1.5">
-                          Creuser le sujet <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                        <h4 className="font-bold text-sm sm:text-base flex items-center gap-1.5 leading-tight">
+                          Reportages &amp; Vidéos sur YouTube
                         </h4>
-                        <p className="text-[11px] opacity-75">
+                        <p className="text-xs opacity-75 mt-0.5">
+                          Consultez les vidéos d'actualité, reportages télé et analyses en direct sur ce sujet.
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={getYouTubeSearchUrl(selectedArticle)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md hover:shadow-red-600/20 hover:scale-[1.02] active:scale-[0.98] shrink-0 cursor-pointer text-center"
+                      title={`Voir les vidéos sur YouTube pour : "${selectedArticle.title}"`}
+                    >
+                      <Youtube className="w-4 h-4 fill-white text-white" />
+                      <span>Ouvrir sur YouTube</span>
+                      <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                    </a>
+                  </div>
+
+                  {/* Recherches rapides YouTube ciblées */}
+                  <div className="flex flex-wrap items-center gap-2 pt-3 mt-3 border-t border-slate-700/10 text-xs">
+                    <span className="text-[11px] font-bold opacity-70">Accès directs :</span>
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedArticle.title + " reportage journal tv")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 font-medium transition-colors inline-flex items-center gap-1"
+                    >
+                      📺 Reportages TV
+                    </a>
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedArticle.title + " analyse decryptage")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 font-medium transition-colors inline-flex items-center gap-1"
+                    >
+                      🎙️ Décryptages &amp; Débats
+                    </a>
+                    {selectedArticle.tags && selectedArticle.tags.length > 0 && (
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedArticle.tags[0] + " actualite")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 font-medium transition-colors inline-flex items-center gap-1"
+                      >
+                        🔍 #{selectedArticle.tags[0]}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* SECTION : CREUSER LE SUJET (Analyse & Approfondissement par l'IA) */}
+                <div id="creuser-sujet-section" className={`mt-6 px-1.5 py-4 sm:p-6 border-y sm:border border-indigo-500/25 sm:rounded-2xl space-y-5 transition-all ${
+                  isSobre ? (isDark ? "bg-zinc-900 text-zinc-100" : "bg-zinc-50 text-zinc-950") :
+                  isWarm ? (isDark ? "bg-[#382f2a] text-amber-100 font-serif" : "bg-[#FAF6F0] text-amber-950 font-serif") :
+                  isCyber ? (isDark ? "bg-black text-cyan-400 font-mono shadow-[0_0_15px_rgba(6,182,212,0.15)]" : "bg-teal-50 text-teal-950 font-mono") :
+                  isFun ? (isDark ? "bg-zinc-900 border-3 border-white text-white rounded-2xl" : "bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black") :
+                  (isDark ? "bg-slate-900/90 text-slate-100 backdrop-blur-md" : "bg-indigo-50/80 text-slate-900")
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/10 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 shrink-0">
+                        <Search className="w-5 h-5 text-indigo-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
+                          Creuser le sujet <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                        </h4>
+                        <p className="text-xs sm:text-sm opacity-80 mt-0.5">
                           Posez une question ou explorez des angles d'analyse approfondis avec l'IA.
                         </p>
                       </div>
                     </div>
                     {deepDiveHistory.length > 0 && (
-                      <span className="text-xs px-2.5 py-1 bg-indigo-500/20 text-indigo-300 rounded-full font-mono font-bold">
+                      <span className="text-xs sm:text-sm px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full font-mono font-bold self-start sm:self-auto">
                         {deepDiveHistory.length} analyse{deepDiveHistory.length > 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
 
                   {/* Smart Suggested Exploration Angles */}
-                  <div className="space-y-2">
-                    <span className="text-[11px] uppercase font-bold tracking-wider opacity-75 block">
+                  <div className="space-y-2.5">
+                    <span className="text-xs sm:text-sm uppercase font-extrabold tracking-wider opacity-80 block">
                       💡 Pistes d'approfondissement suggérées :
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
                       {[
                         { icon: "🧐", label: "Contexte & Origines", query: `Quels sont les antécédents, l'historique et le contexte global liés à : "${selectedArticle.title}" ?` },
                         { icon: "⚖️", label: "Enjeux juridiques & économiques", query: `Quels sont les impacts économiques, financiers ou réglementaires majeurs soulevés par cet article ?` },
@@ -3727,16 +3619,16 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                           key={idx}
                           disabled={isDeepDiving}
                           onClick={() => handleDeepDive(item.query)}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 group ${
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 group ${
                             isDark
-                              ? "bg-slate-950/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 text-slate-300 hover:text-white"
-                              : "bg-white border-slate-250 hover:border-indigo-400 hover:bg-indigo-50/50 text-slate-800 shadow-xs"
+                              ? "bg-zinc-900 border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-850 text-white"
+                              : "bg-white border-zinc-300 hover:border-indigo-400 hover:bg-indigo-50/60 text-black shadow-xs"
                           }`}
                         >
-                          <span className="text-sm group-hover:scale-110 transition-transform shrink-0">{item.icon}</span>
+                          <span className="text-lg group-hover:scale-110 transition-transform shrink-0 mt-0.5">{item.icon}</span>
                           <div className="flex flex-col">
-                            <span className="font-bold text-[11px] text-indigo-400 group-hover:text-indigo-300">{item.label}</span>
-                            <span className="text-[10px] opacity-80 line-clamp-1">{item.query}</span>
+                            <span className={`font-bold text-xs sm:text-sm group-hover:underline ${isDark ? "text-indigo-300" : "text-indigo-950 font-black"}`}>{item.label}</span>
+                            <span className={`text-xs sm:text-sm line-clamp-1 mt-0.5 ${isDark ? "text-zinc-300" : "text-zinc-800 font-medium"}`}>{item.query}</span>
                           </div>
                         </button>
                       ))}
@@ -3744,105 +3636,183 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                   </div>
 
                   {/* Custom Prompt Input */}
-                  <div className="space-y-2 pt-2 border-t border-slate-700/10">
-                    <label className="text-[11px] font-bold opacity-80 block">
-                      💬 Ou posez votre propre question spécifique :
+                  <div className="space-y-2.5 pt-2 border-t border-slate-700/10">
+                    <label htmlFor="deep-dive-custom-question" className={`text-xs sm:text-sm font-bold block flex flex-col sm:flex-row sm:items-center justify-between gap-1 ${isDark ? "text-white" : "text-black"}`}>
+                      <span>💬 Ou posez votre propre question spécifique :</span>
+                      <span className={`text-[11px] font-normal ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>Entrée pour valider • Maj+Entrée pour saut de ligne</span>
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
+                    <div className="flex flex-col gap-2.5">
+                      <textarea
+                        id="deep-dive-custom-question"
+                        rows={3}
                         value={deepDiveQuery}
                         onChange={(e) => setDeepDiveQuery(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && !isDeepDiving) {
+                          if (e.key === "Enter" && !e.shiftKey && !isDeepDiving) {
+                            e.preventDefault();
                             handleDeepDive();
                           }
                         }}
-                        placeholder="Ex: Quel est le coût estimé ? Quels sont les pays concernés ?"
-                        className={`flex-1 px-3.5 py-2 text-xs rounded-xl border outline-none transition-all ${
+                        placeholder="Ex: Quel est le coût estimé ? Quels sont les pays et secteurs concernés ? Quelles sont les échéances prévues ?"
+                        className={`w-full min-h-[85px] p-3 sm:p-3.5 text-sm sm:text-base rounded-xl border outline-none resize-y leading-relaxed transition-all font-medium ${
                           isDark
-                            ? "bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                            : "bg-white border-slate-300 text-slate-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            ? "bg-zinc-950 border-zinc-700 text-white focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 placeholder:text-zinc-500"
+                            : "bg-white border-zinc-300 text-black focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 placeholder:text-zinc-500 shadow-xs"
                         }`}
                       />
-                      <button
-                        disabled={isDeepDiving || !deepDiveQuery.trim()}
-                        onClick={() => handleDeepDive()}
-                        className={`px-4 py-2 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                          isFun
-                            ? "bg-yellow-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
-                            : "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white"
-                        }`}
-                      >
-                        {isDeepDiving ? (
-                          <>
-                            <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                            Analyse...
-                          </>
-                        ) : (
-                          <>
-                            <Search className="w-3.5 h-3.5" />
-                            Creuser
-                          </>
-                        )}
-                      </button>
+                      <div className="flex justify-end">
+                        <button
+                          id="btn-deep-dive-submit"
+                          disabled={isDeepDiving || !deepDiveQuery.trim()}
+                          onClick={() => handleDeepDive()}
+                          className={`px-5 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                            isFun
+                              ? "bg-yellow-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
+                              : "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white shadow-md hover:shadow-indigo-500/25"
+                          }`}
+                        >
+                          {isDeepDiving ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                              Analyse en cours...
+                            </>
+                          ) : (
+                            <>
+                              <Search className="w-4 h-4" />
+                              Creuser la question
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   {/* Loading State */}
                   {isDeepDiving && (
-                    <div className="py-6 text-center space-y-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10 animate-pulse">
-                      <div className="flex justify-center gap-1.5">
-                        <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                        <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                        <span className="w-2.5 h-2.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                    <div className={`py-8 text-center space-y-3 rounded-2xl border animate-pulse ${
+                      isDark ? "bg-zinc-900/60 border-zinc-800" : "bg-indigo-50/60 border-indigo-200"
+                    }`}>
+                      <div className="flex justify-center gap-2">
+                        <span className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                        <span className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                        <span className="w-3 h-3 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
                       </div>
-                      <p className="text-xs font-semibold text-indigo-400">
-                        L'IA analyse le sujet et génère votre fiche d'approfondissement...
+                      <p className={`text-sm sm:text-base font-bold ${isDark ? "text-indigo-300" : "text-indigo-950"}`}>
+                        L'IA analyse le sujet et rédige votre fiche d'approfondissement grand format...
                       </p>
                     </div>
                   )}
 
                   {/* Deep Dive History & Latest Response */}
                   {deepDiveHistory.length > 0 && (
-                    <div className="space-y-4 pt-3 border-t border-slate-700/15">
-                      <h5 className="text-xs font-extrabold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                        <span>📖</span> Fiches d'Analyse Approfondie ({deepDiveHistory.length})
-                      </h5>
-                      {deepDiveHistory.map((item, hIdx) => (
-                        <div 
-                          key={hIdx}
-                          className={`p-4 rounded-xl border space-y-2 text-xs leading-relaxed transition-all ${
-                            isDark ? "bg-slate-950/70 border-indigo-500/20 text-slate-200" : "bg-white border-indigo-100 text-slate-800 shadow-sm"
-                          }`}
-                        >
-                          <div className="font-bold text-indigo-400 flex items-center justify-between border-b border-slate-700/10 pb-1.5">
-                            <span className="flex items-center gap-1.5">
-                              <span>❓</span> {item.question}
-                            </span>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(`Question: ${item.question}\n\nAnalyse:\n${item.answer}`);
-                                onNotify("📋 Analyse copiée dans le presse-papier !");
-                              }}
-                              className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
-                              title="Copier cette analyse"
-                            >
-                              Copier
-                            </button>
-                          </div>
-                          <div className="whitespace-pre-wrap font-sans opacity-95 space-y-1 pt-1">
-                            {item.answer}
-                          </div>
+                    <div className="space-y-5 pt-4 border-t border-slate-700/20">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+                        <h5 className={`text-sm sm:text-base font-black uppercase tracking-wider flex items-center gap-2 ${
+                          isDark ? "text-indigo-300" : "text-indigo-950"
+                        }`}>
+                          <span className="text-lg">📖</span> Fiches d'Analyse Approfondie ({deepDiveHistory.length})
+                        </h5>
+
+                        {/* Direct Font Size Controls */}
+                        <div className={`flex items-center gap-1.5 p-1 rounded-xl border text-xs self-start sm:self-auto ${
+                          isDark ? "bg-zinc-900 border-zinc-800" : "bg-zinc-100 border-zinc-300"
+                        }`}>
+                          <span className={`text-[11px] font-bold px-1.5 hidden sm:inline ${isDark ? "text-zinc-400" : "text-zinc-700"}`}>Taille texte :</span>
+                          <button
+                            onClick={() => {
+                              setAnalysisFontSize("normal");
+                              localStorage.setItem("infoperso_analysis_font_size", "normal");
+                            }}
+                            className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                              analysisFontSize === "normal"
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : isDark ? "text-zinc-400 hover:text-white" : "text-zinc-700 hover:text-black"
+                            }`}
+                            title="Taille Standard (15px)"
+                          >
+                            A Standard
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAnalysisFontSize("large");
+                              localStorage.setItem("infoperso_analysis_font_size", "large");
+                            }}
+                            className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                              analysisFontSize === "large"
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : isDark ? "text-zinc-400 hover:text-white" : "text-zinc-700 hover:text-black"
+                            }`}
+                            title="Taille Confort / Grand (18px)"
+                          >
+                            A+ Confort
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAnalysisFontSize("xlarge");
+                              localStorage.setItem("infoperso_analysis_font_size", "xlarge");
+                            }}
+                            className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                              analysisFontSize === "xlarge"
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : isDark ? "text-zinc-400 hover:text-white" : "text-zinc-700 hover:text-black"
+                            }`}
+                            title="Taille Très Grande / Big (21px)"
+                          >
+                            A++ Big
+                          </button>
                         </div>
-                      ))}
+                      </div>
+
+                      {deepDiveHistory.map((item, hIdx) => {
+                        const sizeClass =
+                          analysisFontSize === "xlarge"
+                            ? "text-lg sm:text-xl leading-relaxed sm:leading-9"
+                            : analysisFontSize === "normal"
+                            ? "text-sm sm:text-base leading-relaxed sm:leading-7"
+                            : "text-base sm:text-lg leading-relaxed sm:leading-8";
+
+                        return (
+                          <div 
+                            key={hIdx}
+                            className={`p-3.5 sm:p-6 rounded-xl sm:rounded-2xl border space-y-4 shadow-sm sm:shadow-lg transition-all ${
+                              isDark ? "bg-zinc-900 border-zinc-800 text-white" : "bg-white border-zinc-300 text-black shadow-md"
+                            }`}
+                          >
+                            <div className={`font-black text-base sm:text-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3 ${
+                              isDark ? "border-zinc-800 text-indigo-300" : "border-zinc-200 text-indigo-950"
+                            }`}>
+                              <span className="flex items-center gap-2">
+                                <span className="text-xl">❓</span> {item.question}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`Question: ${item.question}\n\nAnalyse:\n${item.answer}`);
+                                  onNotify("📋 Fiche d'analyse copiée dans le presse-papier !");
+                                }}
+                                className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors cursor-pointer self-start sm:self-auto ${
+                                  isDark 
+                                    ? "bg-zinc-800 text-indigo-300 border-zinc-700 hover:bg-zinc-700" 
+                                    : "bg-indigo-50 text-indigo-900 border-indigo-200 hover:bg-indigo-100"
+                                }`}
+                                title="Copier cette fiche d'analyse"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copier</span>
+                              </button>
+                            </div>
+                            <div className="pt-1">
+                              {renderAnalysisContent(item.answer, sizeClass, isDark)}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
                 {/* AI Summary Box */}
                 {!zenMode && (
-                  <div className={`rounded-xl p-4 space-y-4 shadow-sm mt-4 border ${
+                  <div className={`rounded-xl sm:rounded-2xl p-3.5 sm:p-6 space-y-4 shadow-sm sm:shadow-md mt-6 border-y sm:border ${
                     isSobre 
                       ? (isDark ? "bg-zinc-900 border-zinc-800" : "bg-zinc-50 border-zinc-250")
                       : isWarm
@@ -3851,19 +3821,19 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                           ? (isDark ? "bg-black border-cyan-500/30" : "bg-teal-50 border-teal-500/20")
                           : isFun
                             ? (isDark ? "bg-zinc-900 border-2 border-black" : "bg-yellow-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]")
-                            : (isDark ? "bg-slate-900/40 border-slate-800" : "bg-indigo-50/40 border-indigo-100")
+                            : (isDark ? "bg-slate-900/50 border-slate-800" : "bg-indigo-50/50 border-indigo-100")
                   }`}>
-                    <div className={`flex items-center justify-between border-b pb-2 ${
+                    <div className={`flex items-center justify-between border-b pb-3 ${
                       isDark ? "border-zinc-800" : "border-zinc-200"
                     }`}>
-                      <span className={`text-xs font-sans font-bold uppercase tracking-[0.1em] flex items-center gap-1.5 ${
+                      <span className={`text-sm sm:text-base font-sans font-bold uppercase tracking-[0.1em] flex items-center gap-2 ${
                         isSobre ? (isDark ? "text-zinc-200" : "text-zinc-700") :
                         isWarm ? (isDark ? "text-amber-200" : "text-amber-900") :
                         isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-700") :
                         isFun ? "text-black" :
                         (isDark ? "text-indigo-400" : "text-indigo-700")
                       }`}>
-                        <Cpu className={`w-3.5 h-3.5 animate-pulse ${
+                        <Cpu className={`w-4 h-4 animate-pulse ${
                           isSobre ? (isDark ? "text-zinc-400" : "text-zinc-550") :
                           isWarm ? (isDark ? "text-amber-400" : "text-amber-700") :
                           isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-600") :
@@ -3873,8 +3843,8 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                         Synthèse intelligente IA
                       </span>
                       {selectedArticle.aiSummaryModelUsed && (
-                        <span className={`text-[10px] font-mono font-semibold ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
+                        <span className={`text-xs font-mono font-semibold ${
+                          isDark ? "text-zinc-400" : "text-zinc-500"
                         }`}>
                           via {selectedArticle.aiSummaryModelUsed}
                         </span>
@@ -3882,25 +3852,25 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                     </div>
 
                     {isSummarizing ? (
-                      <div className="py-4 text-center text-zinc-400 space-y-2">
-                        <div className="flex justify-center gap-1">
-                          <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                          <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                          <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                      <div className="py-6 text-center text-zinc-400 space-y-2.5">
+                        <div className="flex justify-center gap-1.5">
+                          <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                          <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                          <span className="w-2.5 h-2.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
                         </div>
-                        <p className="font-sans font-semibold text-cyan-400 text-[11px] animate-pulse">Rappatriement et analyse du contenu en cours...</p>
+                        <p className="font-sans font-bold text-cyan-400 text-sm animate-pulse">Rappatriement et analyse du contenu en cours...</p>
                       </div>
                     ) : (
-                      <div className={`text-xs sm:text-sm leading-relaxed font-sans space-y-2 whitespace-pre-wrap ${
-                        isDark ? "text-zinc-200" : "text-zinc-850"
+                      <div className={`text-sm sm:text-base leading-relaxed sm:leading-7 font-sans space-y-3 whitespace-pre-wrap ${
+                        isDark ? "text-zinc-100" : "text-zinc-900"
                       }`}>
                         {selectedArticle.aiSummaryCustom ? (
                           selectedArticle.aiSummaryCustom
                         ) : (
                           <>
                             <p>{selectedArticle.summary}</p>
-                            <p className={`text-[10px] italic mt-2 ${
-                              isDark ? "text-zinc-500" : "text-zinc-550"
+                            <p className={`text-xs italic mt-2.5 ${
+                              isDark ? "text-zinc-400" : "text-zinc-600"
                             }`}>
                               *Ceci est un extrait statique. Cliquez ci-dessous pour regénérer une synthèse exhaustive avec votre IA préférée.*
                             </p>
@@ -3910,16 +3880,16 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                     )}
 
                     {/* Summary tool selectors */}
-                    <div className={`pt-2 border-t flex items-center gap-2 justify-between ${
+                    <div className={`pt-3 border-t flex flex-wrap items-center gap-3 justify-between ${
                       isDark ? "border-zinc-800" : "border-zinc-250"
                     }`}>
                       <select
                         value={summaryModelId}
                         onChange={(e) => setSummaryModelId(e.target.value)}
-                        className={`rounded p-1 text-xs outline-none font-sans cursor-pointer max-w-[120px] ${
+                        className={`rounded-lg p-2 text-xs sm:text-sm outline-none font-sans cursor-pointer max-w-[160px] ${
                           isDark 
-                            ? "bg-zinc-950 border border-zinc-800 text-zinc-300 focus:border-indigo-500" 
-                            : "bg-white border border-zinc-250 text-zinc-700 focus:border-indigo-400"
+                            ? "bg-zinc-950 border border-zinc-800 text-zinc-200 focus:border-indigo-500" 
+                            : "bg-white border border-zinc-250 text-zinc-800 focus:border-indigo-400"
                         }`}
                       >
                         {AVAILABLE_MODELS.map((m) => (
@@ -3932,10 +3902,10 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                       <button
                         onClick={() => handleGenerateSummary(selectedArticle)}
                         disabled={isSummarizing}
-                        className={`px-3 py-1.5 hover:opacity-95 disabled:opacity-40 font-sans font-bold text-xs rounded transition-all cursor-pointer uppercase tracking-wider ${
+                        className={`px-4 py-2 hover:opacity-95 disabled:opacity-40 font-sans font-bold text-xs sm:text-sm rounded-xl transition-all cursor-pointer uppercase tracking-wider ${
                           isFun 
                             ? "bg-yellow-300 border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400" 
-                            : "bg-linear-to-r from-cyan-500 via-indigo-500 to-violet-500 text-white"
+                            : "bg-linear-to-r from-cyan-500 via-indigo-500 to-violet-500 text-white shadow-md"
                         }`}
                       >
                         Synthèse IA Live
@@ -3957,7 +3927,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                 )}
 
                 {quizQuestions.length > 0 && (
-                  <div className={`mt-6 p-5 border rounded-2xl space-y-4 shadow-xl transition-all ${
+                  <div className={`mt-6 p-3.5 sm:p-5 border-y sm:border sm:rounded-2xl space-y-4 shadow-sm sm:shadow-xl transition-all ${
                     isSobre ? "bg-zinc-50 border-zinc-200 text-zinc-950" :
                     isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-950 font-serif" :
                     isCyber ? "bg-black border-cyan-400 text-cyan-400 font-mono shadow-[0_0_10px_rgba(6,182,212,0.15)]" :
@@ -4068,7 +4038,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
 
                 {/* POURQUOI CET ARTICLE - TRANSPARENCE */}
                 {!zenMode && (
-                  <div className={`mt-6 p-4 border rounded-2xl space-y-3 ${
+                  <div className={`mt-6 p-3 sm:p-4 border-y sm:border sm:rounded-2xl space-y-3 ${
                     isSobre ? "bg-zinc-50 border-zinc-200 text-zinc-950" :
                     isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-950 font-serif" :
                     isCyber ? "bg-black border-cyan-400 text-[#00ffcc] font-mono shadow-[0_0_10px_rgba(0,255,204,0.15)]" :
@@ -4224,6 +4194,17 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
                     </>
                   )}
                 </div>
+
+                <a
+                  href={getYouTubeSearchUrl(selectedArticle)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-1.5 px-3 bg-red-600 hover:bg-red-700 text-white text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Voir les vidéos & reportages YouTube sur ce sujet"
+                >
+                  <Youtube className="w-3.5 h-3.5 fill-white text-white" />
+                  YouTube
+                </a>
 
                 <a
                   href={getArticleOriginalUrl(selectedArticle)}

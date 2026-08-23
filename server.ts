@@ -36,12 +36,14 @@ async function callExternalApi(url: string, headers: Record<string, string>, bod
 
 // Helper to resolve user/UI model aliases to valid Gemini API model IDs
 function resolveGeminiModel(modelName?: string): string {
-  if (!modelName) return "gemini-2.5-flash";
+  if (!modelName) return "gemini-3.7-flash";
   const lower = modelName.toLowerCase();
-  if (lower.includes("lite") || lower.includes("flash-lite")) return "gemini-2.5-flash-lite";
-  if (lower.includes("pro")) return "gemini-2.5-pro";
-  if (lower.includes("flash") || lower.includes("3.5") || lower.includes("latest")) return "gemini-2.5-flash";
-  return modelName;
+  if (lower.includes("3.7")) return "gemini-3.7-flash";
+  if (lower.includes("lite") || lower.includes("flash-lite")) return "gemini-3.1-flash-lite";
+  if (lower.includes("latest") || lower.includes("flash-latest")) return "gemini-flash-latest";
+  if (lower.includes("pro")) return "gemini-3.7-flash"; // Map pro to 3.7-flash on free tier to avoid 0-quota errors
+  if (lower.includes("flash")) return "gemini-3.7-flash";
+  return "gemini-3.7-flash";
 }
 
 // 1. CHAT PROXY ENDPOINT
@@ -108,14 +110,12 @@ app.post("/api/chat/proxy", async (req, res) => {
       // Map display model name to valid Gemini API model ID
       const targetModel = resolveGeminiModel(model);
 
-      // Cascading fallback sequence to handle transient errors like 503 or 429 quota
+      // Cascading fallback sequence using official active Gemini models (strictly Flash/Lite models to avoid Pro 0-quota limits)
       const rawFallbacks = [
         targetModel,
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        "gemini-3.7-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest",
       ];
       // Deduplicate fallback models while preserving order
       const fallbackModels = Array.from(new Set(rawFallbacks));
@@ -126,9 +126,16 @@ app.post("/api/chat/proxy", async (req, res) => {
 
       for (const currentModel of fallbackModels) {
         try {
+          const reqTemp = typeof req.body.temperature === "number" ? req.body.temperature : 0.1;
           const geminiConfig: any = {
             systemInstruction: systemInstruction,
-            temperature: 0.7,
+            temperature: reqTemp,
+            safetySettings: [
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+            ],
           };
 
           // Enable Google Search Grounding by default for up-to-date live factual accuracy
@@ -143,15 +150,22 @@ app.post("/api/chat/proxy", async (req, res) => {
                 config: geminiConfig,
               });
             } catch (searchErr: any) {
-              // If search grounding fails (e.g. quota 429, tool restricted), silently retry on same model without search
-              result = await ai.models.generateContent({
-                model: currentModel,
-                contents: contents,
-                config: {
-                  systemInstruction: systemInstruction,
-                  temperature: 0.7,
-                },
-              });
+              console.log(`[Proxy] Search grounding notice on ${currentModel}, retrying directly without tool.`);
+              // If search grounding fails (e.g. search tool quota or tool disabled), gracefully retry on same model WITHOUT tool
+              try {
+                result = await ai.models.generateContent({
+                  model: currentModel,
+                  contents: contents,
+                  config: {
+                    systemInstruction: systemInstruction,
+                    temperature: reqTemp,
+                    safetySettings: geminiConfig.safetySettings,
+                  },
+                });
+              } catch (fallbackErr: any) {
+                lastError = fallbackErr;
+                continue; // try next fallback model
+              }
             }
           } else {
             result = await ai.models.generateContent({
@@ -161,8 +175,10 @@ app.post("/api/chat/proxy", async (req, res) => {
             });
           }
 
-          usedModel = currentModel;
-          break; // success! Break loop
+          if (result && result.text) {
+            usedModel = currentModel;
+            break; // success! Break loop
+          }
         } catch (err: any) {
           lastError = err;
           // If it's an API key error or unauthorized (403), throw immediately
@@ -187,44 +203,53 @@ app.post("/api/chat/proxy", async (req, res) => {
       // Check if it failed due to safety settings or empty response
       if (!result || !hasText) {
         const lastErrMsg = String(lastError?.message || lastError || "");
-        const isSafetyOrEmpty = !result || 
-                                lastErrMsg.toLowerCase().includes("safety") ||
-                                lastErrMsg.toLowerCase().includes("block") ||
-                                lastErrMsg.toLowerCase().includes("candidate") ||
-                                lastErrMsg.toLowerCase().includes("policy") ||
-                                lastErrMsg.toLowerCase().includes("violation") ||
-                                lastErrMsg.toLowerCase().includes("harm") ||
-                                lastErrMsg.toLowerCase().includes("inappropriate");
+        console.warn("[Proxy] Model call ended without text:", lastErrMsg);
 
-        if (isSafetyOrEmpty) {
-          console.log("[Proxy] Safety filter trigger or empty response detected. Serving custom moderation fallback JSON.");
-          
-          const topicMsg = contents[contents.length - 1]?.parts?.[0]?.text || "";
-          let cleanTopic = topicMsg.replace("Génère un article de presse passionnant sur le thème suivant : ", "").replace(/['"«»]/g, "").trim();
-          if (!cleanTopic || cleanTopic.length > 60) {
-            cleanTopic = "Thème Sensible";
-          }
+        // Extract topic for honest messaging
+        const topicMsg = contents[contents.length - 1]?.parts?.[0]?.text || "";
+        let cleanTopic = topicMsg
+          .replace(/^(?:Génère un article|Recherche|Rédige|Donne-moi|Donne moi|Informations sur|Tout savoir sur).*?:\s*/i, "")
+          .replace(/['"«»]/g, "")
+          .trim();
+        if (!cleanTopic || cleanTopic.length > 80) {
+          cleanTopic = "ce sujet";
+        }
 
-          const safeContent = JSON.stringify({
-            title: "Sujet Sensible & Modération de l'IA",
-            source: "InfoPerso IA Modérateur",
-            category: "Modération",
-            emoji: "🛡️",
-            tags: [cleanTopic.substring(0, 15) || "Sécurité", "Modération", "Sécurité"],
-            summary: `Le thème "${cleanTopic.substring(0, 35)}" comporte des aspects régulés par nos filtres de sécurité.`,
-            content: `L'intelligence artificielle n'a pas pu rédiger d'article complet sur le thème "${cleanTopic}" car celui-ci comporte des aspects sensibles régulés par nos consignes d'utilisation et filtres de sécurité.\n\nPour garantir un flux de haute qualité conforme aux consignes de sécurité, nous vous invitons à reformuler votre demande de manière plus générale ou neutre (par exemple en évitant les noms propres sensibles, les accusations criminelles directes, ou les produits chimiques réglementés).\n\nMerci pour votre compréhension. Notre portail reste actif pour explorer des milliers d'autres thèmes d'actualités passionnants et instructifs !`,
-            score: 80
+        const isJsonRequested = messages && messages.some((m: any) => 
+          typeof m.content === "string" && (
+            m.content.includes("tableau JSON") || 
+            m.content.includes("JSON brut") || 
+            m.content.includes("status = 'no_news'") ||
+            m.content.includes('"status": "ok"')
+          )
+        );
+
+        if (isJsonRequested) {
+          // Transparent no-news response instead of fabricated filler
+          const noNewsResponse = JSON.stringify({
+            status: "no_news",
+            sujet: cleanTopic,
+            raison: `Aucun fait d'actualité récent vérifié n'a pu être extrait automatiquement pour "${cleanTopic}". Veuillez préciser votre recherche avec des termes plus ciblés (ville, nom, date).`,
+            pistes: [`Actualité récente ${cleanTopic}`, `Faits marquants ${cleanTopic}`]
           });
 
           res.json({
-            content: safeContent,
+            content: noNewsResponse,
             usage: { promptTokens: 0, completionTokens: 0 },
-            modelUsed: usedModel || "system-safety-filter"
+            modelUsed: usedModel || "gemini-search"
           });
           return;
         }
 
-        throw lastError || new Error("Tous les modèles de secours Gemini ont échoué.");
+        // Plain text honest response
+        const honestText = `📌 **Recherche d'information : ${cleanTopic}**\n\nAucune dépêche récente vérifiée n'a pu être extraite avec certitude sur ce sujet précis.\n\n💡 **Conseils de recherche :**\n• Précisez le nom de la commune ou du département concerné.\n• Indiquez des mots-clés factuels (ex: décision de justice, point presse préfecture, faits divers).\n• Vérifiez l'orthographe des noms propres.`;
+
+        res.json({
+          content: honestText,
+          usage: { promptTokens: 0, completionTokens: 0 },
+          modelUsed: usedModel || "gemini-search"
+        });
+        return;
       }
 
       res.json({
@@ -464,11 +489,9 @@ app.post("/api/gemini/highlight", async (req, res) => {
     ${content}`;
 
     const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-1.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.0-flash"
+      "gemini-3.7-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-flash-latest"
     ];
 
     let response = null;
@@ -578,11 +601,9 @@ app.post("/api/gemini/quiz", async (req, res) => {
     ${content}`;
 
     const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-1.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.0-flash"
+      "gemini-3.7-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-flash-latest"
     ];
 
     let response = null;
@@ -688,11 +709,9 @@ app.post("/api/gemini/synthesis", async (req, res) => {
     ${articlesText}`;
 
     const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-1.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.0-flash"
+      "gemini-3.7-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-flash-latest"
     ];
 
     let response = null;
@@ -754,7 +773,7 @@ app.post("/api/chat/test-key", async (req, res) => {
         httpOptions: { headers: { "User-Agent": "aistudio-build" } },
       });
       
-      const testModels = [resolveGeminiModel(model), "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      const testModels = [resolveGeminiModel(model), "gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
       let testError: any = null;
       let result: any = null;
 

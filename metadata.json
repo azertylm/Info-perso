@@ -1,6 +1,6 @@
 {
-  "name": "Info Perso Grand Format",
-  "description": "Portail d'actualités simplifié avec police agrandie et confort visuel optimal pour seniors.",
+  "name": "Info Perso",
+  "description": "Portail d'actualités personnalisé et intelligent avec synthèse et approfondissement IA.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

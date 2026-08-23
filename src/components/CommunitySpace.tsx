@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { buildShareUrl } from "../lib/shareHelper";
 import { 
   auth, 
   db,
@@ -47,7 +48,8 @@ import {
   Maximize2,
   Minimize2,
   Bookmark,
-  Sparkle
+  Sparkle,
+  Youtube
 } from "lucide-react";
 import UserAuth from "./UserAuth";
 
@@ -575,13 +577,63 @@ export default function CommunitySpace({
     }
   };
 
-  const handleShareArticle = (article: CommunityArticle) => {
+  const handleShareArticle = async (article: CommunityArticle) => {
     try {
-      const textToCopy = `📰 [InfoPerso] ${article.title}\nSource: ${article.source}\nRésumé: ${article.summary}\nLisez en entier sur l'application !`;
-      navigator.clipboard.writeText(textToCopy);
-      onNotify("Lien et résumé de l'article copiés dans le presse-papiers ! 📋");
-    } catch (err) {
-      onNotify("Impossible de copier automatiquement.");
+      const shareUrl = buildShareUrl({
+        id: typeof article.id === "number" ? article.id : Date.now(),
+        title: article.title,
+        source: article.source,
+        category: article.category,
+        summary: article.summary,
+        content: article.content,
+        score: 95,
+        emoji: "📰",
+        tags: ["Communauté", article.category],
+        time: article.time || "Récemment",
+        featured: false
+      });
+      const title = `📰 [InfoPerso] ${article.title}`;
+      const text = `Résumé : ${article.summary}\n\nDécouvrez cet article partagé sur InfoPerso :`;
+
+      if (onAwardCuriosityPoints) {
+        onAwardCuriosityPoints(2, `Partage d'un article communautaire : "${article.title}" (+2 pts)`, article.category, "share");
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: `${text}\n${shareUrl}`,
+          url: shareUrl
+        });
+        onNotify("Article partagé avec succès ! 🚀");
+      } else {
+        const fullShareText = `${title}\nSource: ${article.source}\n\n${text}\n${shareUrl}`;
+        await navigator.clipboard.writeText(fullShareText);
+        onNotify("Lien direct et résumé copiés dans le presse-papiers ! 📋");
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        try {
+          const shareUrl = buildShareUrl({
+            id: typeof article.id === "number" ? article.id : Date.now(),
+            title: article.title,
+            source: article.source,
+            category: article.category,
+            summary: article.summary,
+            content: article.content,
+            score: 95,
+            emoji: "📰",
+            tags: ["Communauté", article.category],
+            time: article.time || "Récemment",
+            featured: false
+          });
+          const fallbackText = `📰 [InfoPerso] ${article.title}\nSource: ${article.source}\n\nRésumé : ${article.summary}\n\nLien direct : ${shareUrl}`;
+          await navigator.clipboard.writeText(fallbackText);
+          onNotify("Lien direct et résumé copiés dans le presse-papiers ! 📋");
+        } catch {
+          onNotify("Impossible de copier automatiquement.");
+        }
+      }
     }
   };
 
@@ -756,6 +808,34 @@ export default function CommunitySpace({
             ))}
           </div>
 
+          {/* Section Vidéos YouTube sur le sujet */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-red-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-600/10 border border-red-600/30 text-red-500 flex items-center justify-center shrink-0">
+                <Youtube className="w-5 h-5 fill-red-600 text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm sm:text-base text-white flex items-center gap-1.5 leading-tight">
+                  Reportages &amp; Vidéos YouTube
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Regardez les vidéos et documentaires liés à ce sujet sur YouTube.
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedArticle.title + " " + (selectedArticle.source || ""))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md hover:shadow-red-600/20 shrink-0 cursor-pointer"
+            >
+              <Youtube className="w-4 h-4 fill-white text-white" />
+              <span>Ouvrir sur YouTube</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+            </a>
+          </div>
+
           {/* Tags */}
           <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700/30">
             {selectedArticle.tags.map((tag) => (
@@ -775,6 +855,16 @@ export default function CommunitySpace({
                 <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
                 Soutenir ({selectedArticle.likes})
               </button>
+
+              <a
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedArticle.title + " " + (selectedArticle.source || ""))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition-all cursor-pointer shadow-xs"
+              >
+                <Youtube className="w-4 h-4 fill-white text-white" />
+                YouTube
+              </a>
 
               <button
                 onClick={() => handleShareArticle(selectedArticle)}

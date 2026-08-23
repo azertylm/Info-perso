@@ -60,7 +60,7 @@ export interface TranslationDict {
 
 export const TRANSLATIONS: Record<Language, TranslationDict> = {
   fr: {
-    appName: "Info Perso Grand Format",
+    appName: "Info Perso",
     tagline: "Votre curation intelligente hautement personnalisée",
     tabFeed: "Flux d'Actu",
     tabChat: "Curateur IA",
