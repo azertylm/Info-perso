@@ -79,11 +79,11 @@ export default function App() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
 
-  // 2 Display Modes: "sobre" | "fun"
-  const [displayMode, setDisplayMode] = useState<"sobre" | "fun">(() => {
-    const saved = localStorage.getItem("infoperso_display_mode");
-    if (saved === "fun" || saved === "sobre") return saved;
-    return "sobre";
+  // Display Modes: "sobre" | "pro" | "warm" | "cyber" | "fun"
+  const [displayMode, setDisplayMode] = useState<"sobre" | "pro" | "warm" | "cyber" | "fun">(() => {
+    const saved = localStorage.getItem("infoperso_display_mode") as any;
+    if (["sobre", "pro", "warm", "cyber", "fun"].includes(saved)) return saved;
+    return "pro";
   });
 
   // Dynamic light/dark themeMode
@@ -452,10 +452,10 @@ export default function App() {
   // Theme-specific helper variables
   const isSobre = displayMode === "sobre";
   const isFun = displayMode === "fun";
+  const isWarm = displayMode === "warm";
+  const isCyber = displayMode === "cyber";
+  const isPro = displayMode === "pro";
   const isDark = themeMode === "dark";
-  const isPro = false;
-  const isWarm = false;
-  const isCyber = false;
 
   const getThemeContainerClasses = () => {
     if (isDark) {
@@ -464,30 +464,70 @@ export default function App() {
     if (isFun) {
       return "bg-yellow-50 text-black selection:bg-yellow-200 p-1 sm:p-2";
     }
-    // Default to sobre (light mode, clear white, black text)
+    if (isWarm) {
+      return "bg-[#FDFBF7] text-[#251e1a] selection:bg-amber-100";
+    }
+    if (isCyber) {
+      return "bg-zinc-950 text-cyan-400 selection:bg-cyan-900";
+    }
+    // Default to sobre / pro (light mode, clear white, black text)
     return "bg-white text-black selection:bg-zinc-200";
   };
 
   const getLogoStyles = () => {
-    if (isDark) {
+    if (isCyber) {
       return {
         wrapper: "hidden",
-        title: "font-sans font-black tracking-tight text-base sm:text-lg text-white leading-none",
-        subtitle: "text-[9px] text-zinc-400 uppercase tracking-wider font-sans font-semibold hidden md:block mt-0.5"
+        title: `font-mono font-black tracking-wider text-base sm:text-lg uppercase leading-none bg-gradient-to-r ${
+          isDark 
+            ? "from-cyan-400 via-teal-300 to-emerald-400" 
+            : "from-teal-600 via-cyan-600 to-emerald-600"
+        } bg-clip-text text-transparent`,
+        subtitle: `text-[9px] ${isDark ? "text-cyan-400/70" : "text-teal-700"} uppercase tracking-wider font-mono font-bold hidden md:block mt-0.5`
+      };
+    }
+    if (isWarm) {
+      return {
+        wrapper: "hidden",
+        title: `font-serif font-bold tracking-tight text-base sm:text-lg leading-none bg-gradient-to-r ${
+          isDark 
+            ? "from-amber-300 via-orange-300 to-yellow-200" 
+            : "from-amber-800 via-orange-700 to-amber-950"
+        } bg-clip-text text-transparent`,
+        subtitle: `text-[9px] ${isDark ? "text-amber-300/70" : "text-amber-800/80"} uppercase tracking-wider font-serif font-semibold hidden md:block mt-0.5`
       };
     }
     if (isFun) {
       return {
         wrapper: "hidden",
-        title: "font-black tracking-tight text-base sm:text-xl text-black leading-none uppercase italic",
-        subtitle: "text-[9px] text-black uppercase tracking-wider font-extrabold hidden md:block mt-0.5"
+        title: `font-black tracking-tight text-base sm:text-xl uppercase italic leading-none bg-gradient-to-r ${
+          isDark 
+            ? "from-pink-400 via-fuchsia-300 to-yellow-300" 
+            : "from-fuchsia-600 via-pink-600 to-purple-600"
+        } bg-clip-text text-transparent`,
+        subtitle: "text-[9px] text-black dark:text-pink-300 uppercase tracking-wider font-extrabold hidden md:block mt-0.5"
       };
     }
-    // Sobre / Default
+    if (isSobre) {
+      return {
+        wrapper: "hidden",
+        title: `font-sans font-black tracking-tight text-base sm:text-lg leading-none bg-gradient-to-r ${
+          isDark 
+            ? "from-blue-400 via-indigo-300 to-zinc-200" 
+            : "from-blue-700 via-indigo-600 to-zinc-800"
+        } bg-clip-text text-transparent`,
+        subtitle: `text-[9px] ${isDark ? "text-zinc-400" : "text-zinc-500"} uppercase tracking-wider font-sans font-semibold hidden md:block mt-0.5`
+      };
+    }
+    // Pro / Standard Default
     return {
       wrapper: "hidden",
-      title: "font-sans font-black tracking-tight text-base sm:text-lg text-zinc-900 leading-none",
-      subtitle: "text-[9px] text-zinc-500 uppercase tracking-wider font-sans font-semibold hidden md:block mt-0.5"
+      title: `font-sans font-black tracking-tight text-base sm:text-lg leading-none bg-gradient-to-r ${
+        isDark 
+          ? "from-blue-400 via-indigo-300 to-cyan-400" 
+          : "from-blue-600 via-indigo-600 to-sky-600"
+      } bg-clip-text text-transparent`,
+      subtitle: `text-[9px] ${isDark ? "text-zinc-400" : "text-zinc-500"} uppercase tracking-wider font-sans font-semibold hidden md:block mt-0.5`
     };
   };
 
@@ -737,11 +777,11 @@ export default function App() {
 
       {/* TOPBAR */}
       <header className={`sticky top-0 z-40 transition-all duration-300 flex items-center justify-between ${
-        isSobre ? `${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"} border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5 shadow-xs` :
-        isWarm ? `${isDark ? "bg-[#2c2622] border-[#443830]" : "bg-[#FAF6F0] border-amber-900/15"} border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5 shadow-xs` :
-        isCyber ? `${isDark ? "bg-black border-cyan-500/30 shadow-[0_4px_12px_rgba(0,0,0,0.8)]" : "bg-[#f4fffe] border-[#0d9488]/30 shadow-md"} border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5` :
-        isFun ? `${isDark ? "bg-[#252136]" : "bg-white"} border-2 border-black rounded-xl min-h-[52px] sm:min-h-[56px] py-1 px-2.5 sm:px-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] my-1 mx-1 sm:mx-2` :
-        `${isDark ? "bg-slate-900/85 border-indigo-500/20 shadow-indigo-950/20" : "bg-white/95 border-indigo-100 shadow-indigo-100/20"} backdrop-blur-md border-b min-h-[52px] sm:min-h-[56px] py-1.5 sm:py-2 px-2.5 sm:px-5 shadow-xs`
+        isSobre ? `${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"} border-b min-h-[44px] sm:min-h-[52px] landscape:min-h-[36px] py-1 sm:py-1.5 landscape:py-0.5 px-2 sm:px-4 landscape:px-2 shadow-xs` :
+        isWarm ? `${isDark ? "bg-[#2c2622] border-[#443830]" : "bg-[#FAF6F0] border-amber-900/15"} border-b min-h-[44px] sm:min-h-[52px] landscape:min-h-[36px] py-1 sm:py-1.5 landscape:py-0.5 px-2 sm:px-4 landscape:px-2 shadow-xs` :
+        isCyber ? `${isDark ? "bg-black border-cyan-500/30 shadow-[0_4px_12px_rgba(0,0,0,0.8)]" : "bg-[#f4fffe] border-[#0d9488]/30 shadow-md"} border-b min-h-[44px] sm:min-h-[52px] landscape:min-h-[36px] py-1 sm:py-1.5 landscape:py-0.5 px-2 sm:px-4 landscape:px-2` :
+        isFun ? `${isDark ? "bg-[#252136]" : "bg-white"} border-2 border-black rounded-xl min-h-[44px] sm:min-h-[52px] landscape:min-h-[36px] py-0.5 sm:py-1 px-2 sm:px-3 landscape:px-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] my-0.5 sm:my-1 mx-1` :
+        `${isDark ? "bg-slate-900/85 border-indigo-500/20 shadow-indigo-950/20" : "bg-white/95 border-indigo-100 shadow-indigo-100/20"} backdrop-blur-md border-b min-h-[44px] sm:min-h-[52px] landscape:min-h-[36px] py-1 sm:py-1.5 landscape:py-0.5 px-2 sm:px-4 landscape:px-2 shadow-xs`
       }`}>
         <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-3 min-w-0">
           <button
@@ -771,10 +811,10 @@ export default function App() {
             className="flex items-center gap-1.5 cursor-pointer min-w-0 flex-1 sm:flex-initial"
           >
             <div className="min-w-0">
-              <h1 className={`${logo.title} truncate max-w-[200px] sm:max-w-xs md:max-w-none`}>
+              <h1 className={`${logo.title} truncate max-w-[200px] sm:max-w-xs md:max-w-none text-sm sm:text-base`}>
                 {customTitle || currentT.appName}
               </h1>
-              <p className={`${logo.subtitle} truncate max-w-[200px] sm:max-w-xs md:max-w-none`}>
+              <p className={`${logo.subtitle} truncate max-w-[200px] sm:max-w-xs md:max-w-none hidden sm:block landscape:hidden md:landscape:block`}>
                 {customTitle ? currentT.tagline : (isDark ? "L'information à l'état pur" : isFun ? "BAM! TES INFOS ICI! 💥" : "L'information à l'état pur")}
               </p>
             </div>
@@ -791,7 +831,7 @@ export default function App() {
               localStorage.setItem("infoperso_easy_mode", String(nextEasy));
               triggerToast(`Mode Big : ${nextEasy ? "Activé" : "Désactivé"}`);
             }}
-            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
               isEasyMode
                 ? "bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-250 dark:border-amber-900/30"
                 : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-850"
@@ -805,7 +845,7 @@ export default function App() {
           {/* FULLSCREEN TOGGLE BUTTON */}
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg cursor-pointer transition-all border text-xs font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg cursor-pointer transition-all border text-xs font-bold bg-zinc-100 border-zinc-300 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-850"
             title="Activer ou désactiver le mode Plein Écran (Style F11)"
           >
             {isFullscreen ? <Minimize className="w-4 h-4 text-indigo-500 animate-pulse" /> : <Maximize className="w-4 h-4" />}
@@ -972,7 +1012,7 @@ export default function App() {
         </aside>
 
         {/* MAIN VIEWPORT */}
-        <main className={`flex-1 p-4 sm:p-6 transition-all duration-300 ${
+        <main className={`flex-1 p-2 sm:p-4 md:p-5 lg:p-6 landscape:p-1 landscape:sm:p-2 transition-all duration-300 ${
           activeTab === "chat"
             ? `${isFun ? "h-[calc(100vh-125px)]" : "h-[calc(100vh-88px)]"} overflow-hidden flex flex-col`
             : "overflow-y-auto"

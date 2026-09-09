@@ -87,6 +87,7 @@ export interface NewsArticle {
   aiSummaryModelUsed?: string;
   originalUrl?: string;
   createdAt?: number;
+  isCustomGenerated?: boolean;
 }
 
 // Full Available Models definition

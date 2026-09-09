@@ -105,6 +105,34 @@
           "type": "number",
           "description": "Number of abuse flags the article has received"
         },
+        "ratingsCount": {
+          "type": "number",
+          "description": "Number of community ratings received"
+        },
+        "averageRating": {
+          "type": "number",
+          "description": "Average community star rating (1 to 5)"
+        },
+        "ratings": {
+          "type": "array",
+          "description": "List of member ratings"
+        },
+        "aiFactCheckScore": {
+          "type": "number",
+          "description": "Pre-publication AI verification score (0 to 100)"
+        },
+        "aiFactCheckVerdict": {
+          "type": "string",
+          "description": "AI fact-checking summary and verdict"
+        },
+        "newsAngle": {
+          "type": "string",
+          "description": "Current news context or referenced event"
+        },
+        "authorCertified": {
+          "type": "boolean",
+          "description": "Whether the author is highlighted with 5+ top-rated articles"
+        },
         "createdAt": {
           "type": "string",
           "description": "Server timestamp of creation"

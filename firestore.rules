@@ -53,6 +53,13 @@ service cloud.firestore {
         && data.authorEmail is string && data.authorEmail.size() <= 200
         && data.authorUid is string && data.authorUid.size() <= 128
         && (!('authorVerified' in data) || data.authorVerified is bool)
+        && (!('authorCertified' in data) || data.authorCertified is bool)
+        && (!('aiFactCheckScore' in data) || (data.aiFactCheckScore is int && data.aiFactCheckScore >= 0 && data.aiFactCheckScore <= 100))
+        && (!('aiFactCheckVerdict' in data) || (data.aiFactCheckVerdict is string && data.aiFactCheckVerdict.size() <= 300))
+        && (!('newsAngle' in data) || (data.newsAngle is string && data.newsAngle.size() <= 300))
+        && (!('ratingsCount' in data) || (data.ratingsCount is int && data.ratingsCount >= 0))
+        && (!('averageRating' in data) || (data.averageRating is number && data.averageRating >= 0 && data.averageRating <= 5))
+        && (!('ratings' in data) || (data.ratings is list && data.ratings.size() <= 500))
         && data.likes is int && data.likes >= 0
         && (!('flags' in data) || (data.flags is int && data.flags >= 0));
     }
@@ -85,33 +92,32 @@ service cloud.firestore {
     match /proposed_articles/{articleId} {
       allow read, list: if true;
       
-      allow create: if isEmailVerified()
+      allow create: if isSignedIn()
                     && isValidId(articleId)
                     && isValidProposedArticle(incoming())
                     && incoming().authorUid == request.auth.uid
                     && incoming().likes == 0
                     && (!('flags' in incoming()) || incoming().flags == 0)
-                    && (!('createdAt' in incoming()) || incoming().createdAt == request.time)
-                    && (!('authorVerified' in incoming()) || incoming().authorVerified == request.auth.token.email_verified);
+                    && (!('createdAt' in incoming()) || incoming().createdAt == request.time);
                     
       allow update: if isSignedIn() && (
-        // Action 1: Like action (by any signed-in user) - affectedKeys must strictly contain likes
+        // Action 1: Like action (by any signed-in user)
         (incoming().diff(existing()).affectedKeys().hasOnly(['likes']) && incoming().likes == existing().likes + 1)
         ||
-        // Action 2: Flag action (by any signed-in user) - affectedKeys must strictly contain flags
+        // Action 2: Rating action (by any signed-in user)
+        (incoming().diff(existing()).affectedKeys().hasAny(['ratings', 'ratingsCount', 'averageRating']))
+        ||
+        // Action 3: Flag action (by any signed-in user)
         (incoming().diff(existing()).affectedKeys().hasOnly(['flags']) && incoming().flags == existing().flags + 1)
         ||
-        // Action 3: Edit by Author (verified email, immutable authorUid/score/createdAt)
-        (isEmailVerified()
-         && request.auth.uid == existing().authorUid
+        // Action 4: Edit by Author
+        (request.auth.uid == existing().authorUid
          && incoming().authorUid == existing().authorUid
          && (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
-         && incoming().score == existing().score
-         && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'source', 'category', 'emoji', 'tags', 'summary', 'content', 'likes', 'flags', 'authorVerified', 'authorName', 'authorEmail'])
          && isValidProposedArticle(incoming()))
       );
       
-      allow delete: if isEmailVerified() && request.auth.uid == existing().authorUid;
+      allow delete: if isSignedIn() && request.auth.uid == existing().authorUid;
     }
 
     // 3. Community comments

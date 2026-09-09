@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { TRANSLATIONS, Language, TranslationDict } from "../lib/i18n";
 import { ApiKeys, NewsArticle } from "../types";
+import { safeFetchJson } from "../lib/apiHelper";
 
 interface OnboardingWizardProps {
   language: Language;
@@ -531,12 +532,12 @@ export function RealTimeTranslator({
       // Translation API request via server proxy /api/chat/proxy
       let translatedData = null;
       try {
-        const response = await fetch("/api/chat/proxy", {
+        const { ok, data } = await safeFetchJson<{ content?: string }>("/api/chat/proxy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             provider: "gemini",
-            model: "gemini-2.5-flash",
+            model: "gemini-3.7-flash",
             apiKey,
             messages: [
               {
@@ -552,11 +553,20 @@ export function RealTimeTranslator({
           })
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.content) {
-            const cleanStr = data.content.replace(/```json/g, "").replace(/```/g, "").trim();
+        if (ok && data?.content) {
+          const cleanStr = data.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          try {
             translatedData = JSON.parse(cleanStr);
+          } catch {
+            const startIdx = cleanStr.indexOf("{");
+            const endIdx = cleanStr.lastIndexOf("}");
+            if (startIdx !== -1 && endIdx > startIdx) {
+              try {
+                translatedData = JSON.parse(cleanStr.substring(startIdx, endIdx + 1));
+              } catch {
+                translatedData = null;
+              }
+            }
           }
         }
       } catch (_err) {
@@ -626,11 +636,22 @@ export function CustomArticleForm({
 }: CustomArticleFormProps) {
   const [title, setTitle] = useState("");
   const [source, setSource] = useState("");
-  const [category, setCategory] = useState(categories[0] || "Général");
+  const [category, setCategory] = useState(categories.includes("Science") ? "Science" : (categories[0] || "Général"));
   const [content, setContent] = useState("");
   const [emoji, setEmoji] = useState("📰");
 
   const t = TRANSLATIONS[language];
+
+  const handleApplyPlantTemplate = () => {
+    setTitle("Découverte d'une nouvelle espèce végétale et flore rare");
+    setSource("Sciences & Botanique");
+    setCategory(categories.includes("Science") ? "Science" : (categories.includes("Environnement") ? "Environnement" : (categories[0] || "Général")));
+    setEmoji("🌿");
+    setContent(
+      "Une équipe internationale de botanistes et biologistes a officialisé la découverte d'une nouvelle espèce végétale dotée de caractéristiques remarquables d'adaptation. Cette plante vivace, dotée d'un métabolisme photosynthétique hautement optimisé, joue un rôle écologique fondamental pour l'oxygénation et la régénération de son habitat naturel.\n\nLes premiers relevés en laboratoire confirment la présence de composés biochimiques inédits pouvant faire l'objet d'applications médicales et environnementales majeures."
+    );
+    onNotify("🌿 Modèle « Nouvelle espèce végétale & plante » prérempli !");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -645,10 +666,10 @@ export function CustomArticleForm({
       source,
       category,
       time: "À l'instant",
-      score: 90,
+      score: 95,
       emoji,
-      tags: [category, "Curé", "Manuel"],
-      summary: content.slice(0, 100) + "...",
+      tags: [category, "Botanique", "Plantes", "Biodiversité"],
+      summary: content.slice(0, 150) + "...",
       content,
       featured: false,
       createdAt: Date.now()
@@ -665,10 +686,20 @@ export function CustomArticleForm({
 
   return (
     <form onSubmit={handleSubmit} className="p-4 bg-zinc-950/25 border border-zinc-800/40 rounded-xl space-y-3 text-left">
-      <h3 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-zinc-300">
-        <FolderPlus className="w-4 h-4 text-emerald-400" />
-        {t.addArticleHeader}
-      </h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-zinc-300">
+          <FolderPlus className="w-4 h-4 text-emerald-400" />
+          {t.addArticleHeader}
+        </h3>
+        <button
+          type="button"
+          onClick={handleApplyPlantTemplate}
+          className="px-2 py-0.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+        >
+          <span>🌿</span>
+          <span>Modèle Plante / Botanique</span>
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, Sparkles, Trash2, Copy, Check, AlertCircle, Cpu, MessageSquare, X, Sliders } from "lucide-react";
 import { AVAILABLE_MODELS, ChatMessage, ApiKeys, Provider } from "../types";
+import { safeFetchJson } from "../lib/apiHelper";
 
 interface MultiChatProps {
   apiKeys: ApiKeys;
@@ -67,7 +68,7 @@ export default function MultiChat({
     const userApiKey = apiKeys[activeProvider];
 
     try {
-      const res = await fetch("/api/chat/proxy", {
+      const { ok, data, error } = await safeFetchJson<{ content?: string; error?: string; usage?: any }>("/api/chat/proxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -79,9 +80,7 @@ export default function MultiChat({
         }),
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.content) {
+      if (ok && data?.content) {
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -93,7 +92,7 @@ export default function MultiChat({
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        const errorMsg = data.error || "Une erreur est survenue lors de l'appel de l'API.";
+        const errorMsg = data?.error || error || "Une erreur est survenue lors de l'appel de l'API.";
         onNotify(`⚠️ Erreur: ${errorMsg}`);
         const errorMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
