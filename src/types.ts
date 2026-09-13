@@ -88,6 +88,38 @@ export interface NewsArticle {
   originalUrl?: string;
   createdAt?: number;
   isCustomGenerated?: boolean;
+  isSerendipitous?: boolean;
+}
+
+export type DiscoveryMode = "focus" | "balanced" | "serendipity";
+
+export interface NaturalRadarProfile {
+  id: string;
+  query: string;
+  extractedKeywords: string[];
+  extractedCategories: string[];
+  createdAt: number;
+  active: boolean;
+}
+
+export interface RssFeedSource {
+  id: string;
+  title: string;
+  url: string;
+  category: string;
+  icon?: string;
+  isActive: boolean;
+  itemCount?: number;
+  lastFetched?: number;
+}
+
+export interface PerspectiveAnalysis {
+  factualConsensus: string[];
+  economicAngle: string;
+  politicalAngle: string;
+  societalAngle: string;
+  polarizationLevel: "Faible" | "Modéré" | "Élevé";
+  controversyPoints: string[];
 }
 
 // Full Available Models definition

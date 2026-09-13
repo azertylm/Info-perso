@@ -46,6 +46,36 @@ function resolveGeminiModel(modelName?: string): string {
   return "gemini-3.7-flash";
 }
 
+const CURRENT_CALENDAR_YEAR = new Date().getFullYear();
+const NEXT_CALENDAR_YEAR = CURRENT_CALENDAR_YEAR + 1;
+
+function fixTemporalConsistency(text: string): string {
+  if (!text || typeof text !== "string") return text;
+  let cleaned = text;
+  cleaned = cleaned.replace(
+    /carnets?\s+de\s+commandes?\s+(?:pleins?\s+)?jusqu'en\s*(202[0-5])/gi,
+    `carnets de commandes pleins jusqu'en ${NEXT_CALENDAR_YEAR}`
+  );
+  cleaned = cleaned.replace(
+    /commandes?\s+(?:garanties?\s+)?jusqu'en\s*(202[0-5])/gi,
+    `commandes jusqu'en ${NEXT_CALENDAR_YEAR}`
+  );
+  cleaned = cleaned.replace(
+    /capacit[ée]s?\s+de\s+production\s+(?:réservées?\s+)?jusqu'en\s*(202[0-5])/gi,
+    `capacités de production jusqu'en ${NEXT_CALENDAR_YEAR}`
+  );
+  cleaned = cleaned.replace(/\bjusqu'en\s*(202[0-5])\b/gi, `jusqu'en ${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\bjusqu'[àa]\s+(fin\s+)?(202[0-5])\b/gi, (m, fin) => `jusqu'à ${fin || ""}${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\bd'ici\s+(fin\s+|début\s+|mi-)?(202[0-5])\b/gi, (m, prefix) => `d'ici ${prefix || ""}${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\bà\s+l'horizon\s*(202[0-5])\b/gi, `à l'horizon ${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\b(prévu[es]?|attendu[es]?|programmé[es]?|annoncé[es]?|estimé[es]?|projeté[es]?|planifié[es]?)\s+pour\s+(fin\s+|début\s+|mi-)?(202[0-5])\b/gi, (m, verb, prefix) => `${verb} pour ${prefix || ""}${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\b2024-2025\b/g, `${CURRENT_CALENDAR_YEAR}-${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\b2025-2026\b/g, `${CURRENT_CALENDAR_YEAR}-${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\b(objectifs?|perspectives?|projections?|prévisions?|feuille de route)\s+pour\s+(202[0-5])\b/gi, (m, noun) => `${noun} pour ${NEXT_CALENDAR_YEAR}`);
+  cleaned = cleaned.replace(/\b(livraisons?|commercialisation|d[ée]ploiement|mise\s+en\s+service)\s+(?:prévue?s?\s+)?en\s+(202[0-5])\b/gi, (m, noun) => `${noun} prévue en ${NEXT_CALENDAR_YEAR}`);
+  return cleaned;
+}
+
 // 1. CHAT PROXY ENDPOINT
 app.post("/api/chat/proxy", async (req, res) => {
   const { provider, model, messages, apiKey } = req.body;
@@ -253,7 +283,7 @@ app.post("/api/chat/proxy", async (req, res) => {
       }
 
       res.json({
-        content: textContent,
+        content: fixTemporalConsistency(textContent),
         usage: { promptTokens: 0, completionTokens: 0 },
         modelUsed: usedModel
       });
@@ -272,7 +302,7 @@ app.post("/api/chat/proxy", async (req, res) => {
       );
 
       res.json({
-        content: data.choices?.[0]?.message?.content || "",
+        content: fixTemporalConsistency(data.choices?.[0]?.message?.content || ""),
         usage: {
           promptTokens: data.usage?.prompt_tokens || 0,
           completionTokens: data.usage?.completion_tokens || 0,
@@ -308,7 +338,7 @@ app.post("/api/chat/proxy", async (req, res) => {
       );
 
       res.json({
-        content: data.content?.[0]?.text || "",
+        content: fixTemporalConsistency(data.content?.[0]?.text || ""),
         usage: {
           promptTokens: data.usage?.input_tokens || 0,
           completionTokens: data.usage?.output_tokens || 0,
@@ -329,7 +359,7 @@ app.post("/api/chat/proxy", async (req, res) => {
       );
 
       res.json({
-        content: data.choices?.[0]?.message?.content || "",
+        content: fixTemporalConsistency(data.choices?.[0]?.message?.content || ""),
         usage: {
           promptTokens: data.usage?.prompt_tokens || 0,
           completionTokens: data.usage?.completion_tokens || 0,
@@ -350,7 +380,7 @@ app.post("/api/chat/proxy", async (req, res) => {
       );
 
       res.json({
-        content: data.choices?.[0]?.message?.content || "",
+        content: fixTemporalConsistency(data.choices?.[0]?.message?.content || ""),
         usage: {
           promptTokens: data.usage?.prompt_tokens || 0,
           completionTokens: data.usage?.completion_tokens || 0,
@@ -372,7 +402,7 @@ app.post("/api/chat/proxy", async (req, res) => {
       );
 
       res.json({
-        content: data.choices?.[0]?.message?.content || "",
+        content: fixTemporalConsistency(data.choices?.[0]?.message?.content || ""),
         usage: {
           promptTokens: data.usage?.prompt_tokens || 0,
           completionTokens: data.usage?.completion_tokens || 0,
@@ -738,7 +768,7 @@ app.post("/api/gemini/synthesis", async (req, res) => {
       throw lastErr || new Error("All synthesis models failed.");
     }
 
-    res.json({ synthesis: response.text });
+    res.json({ synthesis: fixTemporalConsistency(response.text) });
   } catch (_err: any) {
     console.log("[Gemini Synthesis] Serving local fallback synthesis.");
     // Graceful fallback markdown synthesis
@@ -1026,6 +1056,99 @@ app.post("/api/chat/test-key", async (req, res) => {
     res.status(400).json({ error: `Provider non reconnu: ${provider}` });
   } catch (err: any) {
     res.json({ success: false, error: err.message || "Erreur de connexion" });
+  }
+});
+
+// RSS / Atom feed parser endpoint
+app.post("/api/rss/fetch", async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== "string") {
+    res.status(400).json({ error: "Paramètre 'url' de flux RSS manquant." });
+    return;
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InfoPerso-RSS-Reader/2.0",
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
+      },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const xml = await response.text();
+    
+    // Parse RSS 2.0 / Atom items
+    const items: any[] = [];
+    
+    // Extract channel/feed title
+    const feedTitleMatch = xml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i);
+    const feedTitle = feedTitleMatch ? feedTitleMatch[1].replace(/<[^>]+>/g, "").trim() : "Flux RSS";
+
+    // RSS items
+    const itemRegex = /<item[\s>]([\s\S]*?)<\/item>/gi;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null && items.length < 25) {
+      const block = match[1];
+      const titleM = block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
+      const linkM = block.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
+      const descM = block.match(/<(?:description|content:encoded)>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:description|content:encoded)>/i);
+      const dateM = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
+      const catM = block.match(/<category>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/category>/i);
+
+      const title = titleM ? titleM[1].replace(/<[^>]+>/g, "").trim() : "Actualité";
+      const link = linkM ? linkM[1].trim() : url;
+      let desc = descM ? descM[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+      if (desc.length > 500) desc = desc.slice(0, 500) + "...";
+
+      items.push({
+        title,
+        link,
+        description: desc || title,
+        pubDate: dateM ? dateM[1].trim() : new Date().toISOString(),
+        category: catM ? catM[1].replace(/<[^>]+>/g, "").trim() : "Actualité"
+      });
+    }
+
+    // If no <item>, try Atom <entry>
+    if (items.length === 0) {
+      const entryRegex = /<entry[\s>]([\s\S]*?)<\/entry>/gi;
+      while ((match = entryRegex.exec(xml)) !== null && items.length < 25) {
+        const block = match[1];
+        const titleM = block.match(/<title[\s\S]*?>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
+        const linkM = block.match(/<link[^>]+href=["']([^"']+)["']/i);
+        const summaryM = block.match(/<(?:summary|content)[\s\S]*?>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:summary|content)>/i);
+        const updatedM = block.match(/<updated>([\s\S]*?)<\/updated>/i);
+
+        const title = titleM ? titleM[1].replace(/<[^>]+>/g, "").trim() : "Actualité";
+        const link = linkM ? linkM[1].trim() : url;
+        let desc = summaryM ? summaryM[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+        if (desc.length > 500) desc = desc.slice(0, 500) + "...";
+
+        items.push({
+          title,
+          link,
+          description: desc || title,
+          pubDate: updatedM ? updatedM[1].trim() : new Date().toISOString(),
+          category: "Actualité"
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      feedTitle,
+      url,
+      itemsCount: items.length,
+      items
+    });
+  } catch (err: any) {
+    console.error("RSS Fetch Error:", err);
+    res.status(500).json({ success: false, error: err.message || "Impossible de récupérer le flux RSS" });
   }
 });
 

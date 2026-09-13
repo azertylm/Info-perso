@@ -195,6 +195,26 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
     return getNextSuggestedWords(articles, semanticTrail, allAvailableTags);
   }, [articles, semanticTrail, allAvailableTags]);
 
+  // Real-time calculation of how many articles match the current selection (unconditional hook)
+  const matchingArticlesCount = useMemo(() => {
+    if (!articles || articles.length === 0) return 20;
+    return articles.filter(art => {
+      if (selectedTrendTags && selectedTrendTags.length > 0) {
+        const matches = selectedTrendTags.some(t => (art.tags || []).includes(t));
+        if (!matches) return false;
+      }
+      if (semanticTrail && semanticTrail.length > 0) {
+        const artText = `${art.title} ${art.summary} ${(art.tags || []).join(" ")}`.toLowerCase();
+        const matches = semanticTrail.some(w => {
+          const norm = normalizeKeyword(w);
+          return (art.tags || []).some(t => normalizeKeyword(t).includes(norm)) || artText.includes(norm);
+        });
+        if (!matches) return false;
+      }
+      return true;
+    }).length;
+  }, [articles, selectedTrendTags, semanticTrail]);
+
   // Helper: toggle tag selection (Solution 1: multi-sélection)
   const handleToggleTag = (tag: string) => {
     if (!setSelectedTrendTags) {
@@ -389,26 +409,6 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
   const categories = ["Technologie", "IA", "Économie", "Politique", "Science", "Culture", "Sport", "Local"];
 
   const activeKeywordsCount = selectedTrendTags.length + (clickedTrendTag ? 1 : 0);
-
-  // Real-time calculation of how many articles match the current selection
-  const matchingArticlesCount = useMemo(() => {
-    if (!articles || articles.length === 0) return 20;
-    return articles.filter(art => {
-      if (selectedTrendTags && selectedTrendTags.length > 0) {
-        const matches = selectedTrendTags.some(t => (art.tags || []).includes(t));
-        if (!matches) return false;
-      }
-      if (semanticTrail && semanticTrail.length > 0) {
-        const artText = `${art.title} ${art.summary} ${(art.tags || []).join(" ")}`.toLowerCase();
-        const matches = semanticTrail.some(w => {
-          const norm = normalizeKeyword(w);
-          return (art.tags || []).some(t => normalizeKeyword(t).includes(norm)) || artText.includes(norm);
-        });
-        if (!matches) return false;
-      }
-      return true;
-    }).length;
-  }, [articles, selectedTrendTags, semanticTrail]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">

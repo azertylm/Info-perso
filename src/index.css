@@ -92,3 +92,30 @@ html:not(.dark) {
   background: #3f3f46;
 }
 
+/* === ENHANCEMENTS FOR FOLDABLE & DUAL-SCREEN SMARTPHONES === */
+/* W3C Foldables & Dual Screen Segment Media Queries (Galaxy Z Fold, Surface Duo, Pixel Fold) */
+@media (horizontal-viewport-segments: 2) {
+  :root {
+    --fold-hinge-width: env(viewport-segment-width 0 0, 12px);
+  }
+  .fold-split-container {
+    display: grid !important;
+    grid-template-columns: 1fr var(--fold-hinge-width) 1fr !important;
+  }
+}
+
+/* Virtual Hinge Protector Crease */
+.fold-hinge-seam {
+  background: linear-gradient(to right, transparent, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0.15), transparent);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Outer Narrow Cover Screen (Fold closed, aspect ratio 21:9 - 24:9) */
+@media screen and (max-width: 390px) and (min-height: 650px) {
+  .cover-screen-optimized {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
+
+
