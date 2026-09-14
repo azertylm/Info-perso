@@ -195,7 +195,7 @@ export const EditorialMixerBar: React.FC<PersonalizationSuiteProps> = ({
 
   return (
     <div
-      className={`rounded-2xl border transition-all mb-3 overflow-hidden ${
+      className={`rounded-2xl border transition-all mb-3 overflow-hidden editorial-mixer-bar ${
         isFun
           ? "bg-amber-100 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black"
           : isSobre
@@ -218,7 +218,7 @@ export const EditorialMixerBar: React.FC<PersonalizationSuiteProps> = ({
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
+            className={`compact-action-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
               isExpanded
                 ? "bg-cyan-500 text-white shadow-md shadow-cyan-500/25"
                 : isDark
@@ -238,7 +238,7 @@ export const EditorialMixerBar: React.FC<PersonalizationSuiteProps> = ({
                 onSetDiscoveryMode("focus");
                 onNotify("🎯 Mode Focus activé : 100% centré sur vos centres d'intérêt");
               }}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg font-bold cursor-pointer transition-all ${
+              className={`compact-action-btn flex items-center gap-1 px-2 py-1 rounded-lg font-bold cursor-pointer transition-all ${
                 discoveryMode === "focus"
                   ? "bg-indigo-600 text-white shadow-xs"
                   : "text-slate-400 hover:text-white"
@@ -253,7 +253,7 @@ export const EditorialMixerBar: React.FC<PersonalizationSuiteProps> = ({
                 onSetDiscoveryMode("balanced");
                 onNotify("⚖️ Mode Équilibré activé : centres d'intérêt + grands faits majeurs");
               }}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg font-bold cursor-pointer transition-all ${
+              className={`compact-action-btn flex items-center gap-1 px-2 py-1 rounded-lg font-bold cursor-pointer transition-all ${
                 discoveryMode === "balanced"
                   ? "bg-cyan-600 text-white shadow-xs"
                   : "text-slate-400 hover:text-white"
@@ -268,7 +268,7 @@ export const EditorialMixerBar: React.FC<PersonalizationSuiteProps> = ({
                 onSetDiscoveryMode("serendipity");
                 onNotify("🌐 Mode Sérendipité activé : ouvertures inattendues pour casser la bulle");
               }}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg font-bold cursor-pointer transition-all ${
+              className={`compact-action-btn flex items-center gap-1 px-2 py-1 rounded-lg font-bold cursor-pointer transition-all ${
                 discoveryMode === "serendipity"
                   ? "bg-purple-600 text-white shadow-xs"
                   : "text-slate-400 hover:text-white"

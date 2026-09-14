@@ -34,48 +34,51 @@ html:not(.dark) {
   }
 
   .text-\[8px\] {
-    font-size: 13px !important;
+    font-size: 10px !important;
   }
   .text-\[9px\] {
-    font-size: 14.5px !important;
+    font-size: 11px !important;
   }
   .text-\[10px\] {
-    font-size: 16px !important;
+    font-size: 12px !important;
   }
   .text-\[11px\] {
-    font-size: 17.5px !important;
+    font-size: 13px !important;
   }
   .text-xs {
-    font-size: 16px !important;
+    font-size: 13.5px !important;
   }
   .text-sm {
-    font-size: 19px !important;
+    font-size: 15.5px !important;
   }
   .text-base {
-    font-size: 22px !important;
+    font-size: 18px !important;
   }
   .text-lg {
-    font-size: 25px !important;
+    font-size: 21px !important;
   }
   .text-xl {
-    font-size: 28px !important;
+    font-size: 24px !important;
   }
   .text-2xl {
-    font-size: 34px !important;
+    font-size: 28px !important;
   }
   .text-3xl {
-    font-size: 42px !important;
+    font-size: 34px !important;
   }
   .text-4xl {
-    font-size: 50px !important;
+    font-size: 40px !important;
   }
 
-  /* Boost touch targets & readability padding only for interactive components */
-  button, select, input, a {
-    min-height: 48px !important;
+  /* Keep text inputs comfortable without inflating buttons and toolbars */
+  input[type="text"], input[type="search"] {
+    min-height: 40px !important;
   }
 
-  /* Prevent excessive vertical footprint for reader action footer and compact toolbars in Mode Big */
+  /* Prevent excessive vertical footprint for start page controls, chips, and toolbars in Mode Big */
+  .home-toolbar button,
+  .home-toolbar a,
+  .home-action-btn,
   .reader-actions-footer button,
   .reader-actions-footer a,
   .reader-compact-strip button,
@@ -83,16 +86,17 @@ html:not(.dark) {
   .youtube-filter-chip,
   .youtube-open-btn,
   .compact-action-btn,
-  .in-article-chip {
+  .in-article-chip,
+  .editorial-mixer-bar button {
     min-height: 32px !important;
     max-height: 38px !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     line-height: 1.15 !important;
     white-space: nowrap !important;
     padding-top: 0.25rem !important;
     padding-bottom: 0.25rem !important;
-    padding-left: 0.4rem !important;
-    padding-right: 0.4rem !important;
+    padding-left: 0.45rem !important;
+    padding-right: 0.45rem !important;
   }
 }
 

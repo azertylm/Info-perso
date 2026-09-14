@@ -66,7 +66,7 @@ export const FoldableBar: React.FC<FoldableBarProps> = ({
         {/* Main Trigger Button */}
         <button
           onClick={() => setIsOpenMenu(!isOpenMenu)}
-          className={`px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 font-bold transition-all cursor-pointer shadow-xs ${
+          className={`compact-action-btn px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 font-bold transition-all cursor-pointer shadow-xs ${
             isDark
               ? "bg-slate-900/90 hover:bg-slate-800 border-slate-700 text-slate-200"
               : "bg-white hover:bg-slate-50 border-slate-200 text-slate-800"
@@ -92,7 +92,7 @@ export const FoldableBar: React.FC<FoldableBarProps> = ({
               onSetHingeGuard(next);
               onNotify(next ? "🛡️ Protection charnière activée (espacement central anti-pliure)" : "Protection charnière désactivée");
             }}
-            className={`px-2 py-1 rounded-lg border text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-all ${
+            className={`compact-action-btn px-2 py-1 rounded-lg border text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-all ${
               hingeGuard
                 ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
                 : isDark ? "bg-slate-800/60 text-slate-400 border-slate-700/60" : "bg-slate-100 text-slate-600 border-slate-200"

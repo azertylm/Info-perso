@@ -4008,163 +4008,172 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between md:justify-end">
-          {/* Sort By */}
-          <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30 text-xs">
-            <button
-              onClick={() => setSortBy("score")}
-              className={`px-2.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                sortBy === "score"
-                  ? "bg-cyan-500 text-white shadow-sm"
-                  : "opacity-60 hover:opacity-100"
-              }`}
-            >
-              Score IA
-            </button>
-            <button
-              onClick={() => setSortBy("time")}
-              className={`px-2.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                sortBy === "time"
-                  ? "bg-cyan-500 text-white shadow-sm"
-                  : "opacity-60 hover:opacity-100"
-              }`}
-            >
-              Récents
-            </button>
+        <div className="home-toolbar w-full flex flex-col gap-2 mt-1">
+          {/* Row 1: Nav / Sort / View Controls */}
+          <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            {/* Left: Sort By & View Mode */}
+            <div className="flex items-center gap-2">
+              {/* Sort By */}
+              <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30 text-xs">
+                <button
+                  onClick={() => setSortBy("score")}
+                  className={`compact-action-btn px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                    sortBy === "score"
+                      ? "bg-cyan-500 text-white shadow-sm"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  Score IA
+                </button>
+                <button
+                  onClick={() => setSortBy("time")}
+                  className={`compact-action-btn px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                    sortBy === "time"
+                      ? "bg-cyan-500 text-white shadow-sm"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  Récents
+                </button>
+              </div>
+
+              {/* View Mode */}
+              <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`compact-action-btn p-1.5 rounded-lg transition-all cursor-pointer ${
+                    viewMode === "grid"
+                      ? "bg-cyan-500 text-white"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                  title="Vue Grille"
+                >
+                  <Grid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`compact-action-btn p-1.5 rounded-lg transition-all cursor-pointer ${
+                    viewMode === "list"
+                      ? "bg-cyan-500 text-white"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                  title="Vue Liste"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Foldable & Offline Cache */}
+            <div className="flex items-center gap-1.5">
+              <FoldableBar
+                foldMode={foldable.foldMode}
+                activePosture={foldable.activePosture}
+                isFoldableDetected={foldable.isFoldableDetected}
+                hingeGuard={foldable.hingeGuard}
+                onSetFoldMode={foldable.setFoldMode}
+                onSetHingeGuard={foldable.setHingeGuard}
+                isDark={isDark}
+                onNotify={onNotify}
+              />
+
+              {/* OFFLINE STORAGE & METRO CACHE INDICATOR */}
+              <button
+                onClick={() => {
+                  const meta = saveArticlesOffline(articles);
+                  refreshMeta();
+                  onNotify(`💾 ${meta.count} articles sauvegardés en cache hors-ligne (${meta.sizeKb} Ko) pour le métro ou l'avion !`);
+                }}
+                className={`compact-action-btn px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  !isOnline
+                    ? "bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse"
+                    : isDark
+                    ? "bg-slate-800/60 hover:bg-slate-800 border-slate-700/70 text-slate-300 hover:text-white"
+                    : "bg-white hover:bg-slate-50 border-slate-300 text-slate-700 shadow-xs"
+                }`}
+                title={
+                  !isOnline
+                    ? "Mode Hors-ligne actif : consultation depuis la mémoire locale"
+                    : "Sauvegarder immédiatement les articles en cache hors-ligne"
+                }
+              >
+                <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400" : "bg-amber-400 animate-ping"}`} />
+                <span className="hidden sm:inline">{isOnline ? "Hors-Ligne" : "Déconnecté"}</span>
+                <span className="text-[10px] opacity-80 font-mono">({cacheMeta.count})</span>
+              </button>
+            </div>
           </div>
 
-          {/* View Mode */}
-          <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30">
+          {/* Row 2: 4 Core Action Buttons - Compact 4-column dock on mobile */}
+          <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-4 gap-1.5 w-full">
+            {/* 1. BRIEFING AUDIO FLASH 3 MIN */}
             <button
-              onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-cyan-500 text-white"
-                  : "opacity-60 hover:opacity-100"
-              }`}
-              title="Vue Grille"
+              onClick={() => setShowPodcastModal(true)}
+              className="compact-action-btn home-action-btn w-full px-2 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all border shadow-xs bg-gradient-to-r from-red-500/15 via-rose-500/20 to-indigo-500/15 hover:from-red-500/25 hover:to-indigo-500/25 border-rose-500/40 text-rose-300 hover:text-white truncate"
+              title="Lancer le Briefing Audio Flash (3 minutes d'actualités matinales avec présentateur vocal)"
             >
-              <Grid className="w-4 h-4" />
+              <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse shrink-0" />
+              <span className="truncate">Podcast Flash</span>
+              <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/30 text-rose-200 font-mono shrink-0">3m</span>
             </button>
+
+            {/* 2. RSS & OPML FEEDS MANAGER */}
             <button
-              onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === "list"
-                  ? "bg-cyan-500 text-white"
-                  : "opacity-60 hover:opacity-100"
-              }`}
-              title="Vue Liste"
+              onClick={() => setShowRssModal(true)}
+              className="compact-action-btn home-action-btn w-full px-2 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all border shadow-xs bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300 hover:text-amber-200 truncate"
+              title="Gérer les flux RSS (Le Figaro, Les Échos, Futura...) et importer des fichiers OPML"
             >
-              <List className="w-4 h-4" />
+              <Rss className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">Flux RSS &amp; OPML</span>
+            </button>
+
+            {/* 3. BULK GENERATE 20 ARTICLES BUTTON */}
+            <button
+              onClick={() => handleBulkGenerateIAArticles(false)}
+              disabled={isBulkGenerating}
+              className={`compact-action-btn home-action-btn w-full px-2 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all border shadow-xs truncate ${
+                isBulkGenerating
+                  ? "opacity-75 cursor-not-allowed bg-slate-800 text-slate-400 border-slate-700"
+                  : isSobre
+                  ? "bg-zinc-900 hover:bg-black text-white border-zinc-800"
+                  : isWarm
+                  ? "bg-amber-900 hover:bg-amber-950 text-[#faf6ee] border-amber-800 font-serif"
+                  : isCyber
+                  ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-[#00ffcc] border-cyan-400 font-mono"
+                  : isFun
+                  ? "bg-yellow-400 hover:bg-yellow-300 text-black border border-black font-black"
+                  : "bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white border-cyan-400/40 shadow-cyan-500/20"
+              }`}
+              title="Rechercher des faits d'actualité vérifiés et régénérer 20 articles complets avec l'IA"
+            >
+              {isBulkGenerating ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-300 shrink-0" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse shrink-0" />
+              )}
+              <span className="truncate">{isBulkGenerating ? "Génération..." : "Générer 20"}</span>
+            </button>
+
+            {/* 4. SINGLE UNIFIED SETTINGS BUTTON */}
+            <button
+              onClick={() => setIsSettingsVoletOpen(true)}
+              className={`compact-action-btn home-action-btn w-full px-2 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all border shadow-xs truncate ${
+                activeFiltersCount > 0
+                  ? "bg-gradient-to-r from-cyan-500 to-indigo-500 text-white border-cyan-400 shadow-cyan-500/20"
+                  : isDark
+                  ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Réglages</span>
+              {activeFiltersCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-white text-cyan-600 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                  {activeFiltersCount}
+                </span>
+              )}
             </button>
           </div>
-
-          {/* Foldable Smartphone Engine Bar */}
-          <FoldableBar
-            foldMode={foldable.foldMode}
-            activePosture={foldable.activePosture}
-            isFoldableDetected={foldable.isFoldableDetected}
-            hingeGuard={foldable.hingeGuard}
-            onSetFoldMode={foldable.setFoldMode}
-            onSetHingeGuard={foldable.setHingeGuard}
-            isDark={isDark}
-            onNotify={onNotify}
-          />
-
-          {/* 1. BRIEFING AUDIO FLASH 3 MIN */}
-          <button
-            onClick={() => setShowPodcastModal(true)}
-            className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer transition-all border shadow-sm bg-gradient-to-r from-red-500/20 via-rose-500/25 to-indigo-500/20 hover:from-red-500/30 hover:to-indigo-500/30 border-rose-500/50 hover:border-rose-400 text-rose-300 hover:text-white"
-            title="Lancer le Briefing Audio Flash (3 minutes d'actualités matinales avec présentateur vocal)"
-          >
-            <Radio className="w-4 h-4 text-rose-400 animate-pulse" />
-            <span className="flex items-center gap-1.5">
-              <span>Podcast Flash</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/30 text-rose-200 font-mono">3 min</span>
-            </span>
-          </button>
-
-          {/* 2. RSS & OPML FEEDS MANAGER */}
-          <button
-            onClick={() => setShowRssModal(true)}
-            className="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer transition-all border shadow-sm bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300 hover:text-amber-200"
-            title="Gérer les flux RSS (Le Figaro, Les Échos, Futura, Tech...) et importer des fichiers OPML"
-          >
-            <Rss className="w-4 h-4 text-amber-400" />
-            <span>Flux RSS & OPML</span>
-          </button>
-
-          {/* 5. OFFLINE STORAGE & METRO CACHE INDICATOR */}
-          <button
-            onClick={() => {
-              const meta = saveArticlesOffline(articles);
-              refreshMeta();
-              onNotify(`💾 ${meta.count} articles sauvegardés en cache hors-ligne (${meta.sizeKb} Ko) pour le métro ou l'avion !`);
-            }}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
-              !isOnline
-                ? "bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse"
-                : isDark
-                ? "bg-slate-800/60 hover:bg-slate-800 border-slate-700/70 text-slate-300 hover:text-white"
-                : "bg-white hover:bg-slate-50 border-slate-300 text-slate-700 shadow-xs"
-            }`}
-            title={
-              !isOnline
-                ? "Mode Hors-ligne actif : consultation depuis la mémoire locale"
-                : "Sauvegarder immédiatement les 30 articles en cache hors-ligne pour le train ou l'avion"
-            }
-          >
-            <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400" : "bg-amber-400 animate-ping"}`} />
-            <span className="hidden sm:inline">{isOnline ? "Hors-Ligne" : "Déconnecté"}</span>
-            <span className="text-[10px] opacity-80 font-mono">({cacheMeta.count})</span>
-          </button>
-
-          {/* BULK GENERATE 20 ARTICLES BUTTON */}
-          <button
-            onClick={() => handleBulkGenerateIAArticles(false)}
-            disabled={isBulkGenerating}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border shadow-sm ${
-              isBulkGenerating
-                ? "opacity-75 cursor-not-allowed bg-slate-800 text-slate-400 border-slate-700"
-                : isSobre
-                ? "bg-zinc-900 hover:bg-black text-white border-zinc-800 shadow-zinc-800/20"
-                : isWarm
-                ? "bg-amber-900 hover:bg-amber-950 text-[#faf6ee] border-amber-800 font-serif shadow-amber-900/20"
-                : isCyber
-                ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-[#00ffcc] border-cyan-400 font-mono shadow-[0_0_10px_rgba(0,255,204,0.3)]"
-                : isFun
-                ? "bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5"
-                : "bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white border-cyan-400/40 shadow-cyan-500/25 hover:shadow-cyan-500/40"
-            }`}
-            title="Rechercher des faits d'actualité vérifiés et régénérer 20 articles complets avec l'IA (présentation 2×10 sur PC)"
-          >
-            {isBulkGenerating ? (
-              <RefreshCw className="w-4 h-4 animate-spin text-cyan-300" />
-            ) : (
-              <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
-            )}
-            <span>{isBulkGenerating ? "Génération..." : "Générer 20 articles"}</span>
-          </button>
-
-          {/* SINGLE UNIFIED SETTINGS BUTTON */}
-          <button
-            onClick={() => setIsSettingsVoletOpen(true)}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border shadow-sm ${
-              activeFiltersCount > 0
-                ? "bg-gradient-to-r from-cyan-500 to-indigo-500 text-white border-cyan-400 shadow-cyan-500/20"
-                : isDark
-                ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
-                : "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
-            }`}
-          >
-            <Sliders className="w-4 h-4" />
-            <span>Réglages &amp; Filtres</span>
-            {activeFiltersCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-white text-cyan-600 text-[10px] font-extrabold flex items-center justify-center">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
@@ -4250,7 +4259,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                   onNotify(`🎯 Thème « ${item.label} » ciblé en priorité dans votre flux !`);
                 }
               }}
-              className={`px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border flex items-center gap-1 ${
+              className={`compact-action-btn px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border flex items-center gap-1 ${
                 isSelected
                   ? "bg-cyan-500 text-white border-cyan-400 shadow-sm"
                   : isDark
