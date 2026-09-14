@@ -50,7 +50,10 @@ import {
   Loader2,
   Radio,
   Rss,
-  Scale
+  Scale,
+  Brain,
+  FileText,
+  LayoutGrid
 } from "lucide-react";
 import { NewsArticle, ApiKeys, AVAILABLE_MODELS, DiscoveryMode, NaturalRadarProfile } from "../types";
 import { motion } from "motion/react";
@@ -69,6 +72,10 @@ import { saveArticlesOffline, loadArticlesOffline, useNetworkStatus } from "../l
 import { DailyPodcastModal } from "./DailyPodcastModal";
 import { RssOpmlManagerModal } from "./RssOpmlManagerModal";
 import { NuancePerspectiveModal } from "./NuancePerspectiveModal";
+import { TimelineModal } from "./TimelineModal";
+import { DevilDebateModal } from "./DevilDebateModal";
+import { QuizMemoryModal } from "./QuizMemoryModal";
+import { ExecutiveBriefingModal } from "./ExecutiveBriefingModal";
 
 
 // Initial mock dataset from static HTML template
@@ -853,6 +860,7 @@ interface NewsFeedProps {
     trackCategoryWeights: boolean;
   };
   onAwardCuriosityPoints?: (points: number, reason: string, category?: string, actionType?: "read" | "share" | "quiz") => void;
+  isEasyMode?: boolean;
 }
 
 export default function NewsFeed({
@@ -872,7 +880,8 @@ export default function NewsFeed({
   stats = {},
   unlockedBadges = [],
   passiveSignalsSettings = { trackReadingTime: true, trackScrollDepth: true, trackReReading: true, trackCategoryWeights: true },
-  onAwardCuriosityPoints = () => {}
+  onAwardCuriosityPoints = () => {},
+  isEasyMode = false
 }: NewsFeedProps) {
   const isSobre = displayMode === "sobre";
   const isWarm = displayMode === "warm";
@@ -1284,6 +1293,12 @@ export default function NewsFeed({
   const [showPodcastModal, setShowPodcastModal] = useState(false);
   const [showRssModal, setShowRssModal] = useState(false);
   const [showNuanceModal, setShowNuanceModal] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [showDevilModal, setShowDevilModal] = useState(false);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [showExecutiveBriefingModal, setShowExecutiveBriefingModal] = useState(false);
+  const [readerActionsExpanded, setReaderActionsExpanded] = useState<boolean>(false);
+  const [showAllProposalsModal, setShowAllProposalsModal] = useState<boolean>(false);
   const [isBionicReading, setIsBionicReading] = useState<boolean>(() => {
     return localStorage.getItem("infoperso_bionic_reading") === "true";
   });
@@ -1915,10 +1930,65 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
   };
 
   const renderParagraph = (paragraph: string) => {
-    const consistentText = fixTemporalConsistency(paragraph);
+    let cleanText = fixTemporalConsistency(paragraph)
+      .replace(/<!\[CDATA\[/gi, "")
+      .replace(/\]\]>/gi, "");
+
+    // Format metadata footer if paragraph contains source or publication date
+    if (cleanText.includes("Source officielle :") || cleanText.includes("Publié le :")) {
+      const parts = cleanText.split("\n").filter(p => p.trim().length > 0);
+      return (
+        <div className={`mt-3 p-2.5 rounded-xl border text-xs space-y-1.5 ${
+          isDark ? "bg-zinc-900/60 border-zinc-800 text-zinc-300" : "bg-zinc-100/80 border-zinc-200 text-zinc-700"
+        }`}>
+          {parts.map((part, pIdx) => {
+            if (part.includes("Source officielle :")) {
+              const url = part.replace(/.*Source officielle\s*:\s*/i, "").trim();
+              return (
+                <div key={pIdx} className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-slate-400">Source :</span>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 underline font-mono text-[11px] truncate max-w-[280px] sm:max-w-md inline-flex items-center gap-1"
+                  >
+                    <span className="truncate">{url.replace(/^https?:\/\//, "").split("/")[0]}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+              );
+            }
+            if (part.includes("Publié le :")) {
+              const rawDate = part.replace(/.*Publié le\s*:\s*/i, "").trim();
+              let formattedDate = rawDate;
+              try {
+                if (!isNaN(Date.parse(rawDate))) {
+                  formattedDate = new Date(rawDate).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  });
+                }
+              } catch {}
+              return (
+                <div key={pIdx} className="flex items-center gap-1.5">
+                  <span className="font-bold text-slate-400">Date :</span>
+                  <span className="font-medium text-slate-300 dark:text-slate-200">{formattedDate}</span>
+                </div>
+              );
+            }
+            return <p key={pIdx} className="text-xs">{part}</p>;
+          })}
+        </div>
+      );
+    }
+
     return (
       <p className={`indent-3 leading-relaxed tracking-wide font-normal ${isDark ? "text-zinc-100" : "text-black"}`}>
-        {consistentText}
+        {cleanText}
       </p>
     );
   };
@@ -5176,17 +5246,24 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     <span className="hidden sm:inline">Nuances</span>
                   </button>
 
-                  {/* Share Article */}
+                  {/* Share Article (Toujours visible en haut) */}
                   <button
                     onClick={() => handleShareArticle(selectedArticle)}
-                    className={`p-1 rounded-md border transition-colors cursor-pointer ${
-                      isDark ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-indigo-400" :
-                      isFun ? "bg-white border border-black text-black hover:bg-yellow-100" :
-                      "bg-zinc-50 border-zinc-200 text-zinc-600 hover:text-indigo-600"
-                    }`}
+                    className="compact-action-btn flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-bold transition-all cursor-pointer bg-blue-600/15 hover:bg-blue-600/25 border-blue-500/40 text-blue-400 hover:text-blue-300"
                     title="Partager cet article"
                   >
-                    <Share2 className="w-3 h-3" />
+                    <Share2 className="w-3 h-3 text-blue-400" />
+                    <span className="hidden xs:inline">Partager</span>
+                  </button>
+
+                  {/* Export Article (Toujours visible en haut) */}
+                  <button
+                    onClick={() => handleExportArticle(selectedArticle, "html", isDark ? "dark" : "light")}
+                    className="compact-action-btn flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-bold transition-all cursor-pointer bg-emerald-600/15 hover:bg-emerald-600/25 border-emerald-500/40 text-emerald-400 hover:text-emerald-300"
+                    title="Exporter cet article au format HTML"
+                  >
+                    <Download className="w-3 h-3 text-emerald-400" />
+                    <span className="hidden xs:inline">Exporter</span>
                   </button>
 
                   {/* Dedicated Close Button in Top-Right - Croix rouge très visible */}
@@ -5396,47 +5473,50 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
 
                 </div>
 
-                {/* SECTION : LIEN YOUTUBE SUR LE SUJET (Ciblé Actualité Récente & En Direct) */}
-                <div className={`mt-3.5 p-3 rounded-xl border transition-all ${
+                {/* SECTION : LIEN YOUTUBE SUR LE SUJET - FORMAT STRICT 2 LIGNES */}
+                <div className={`mt-3 p-2.5 rounded-xl border transition-all ${
                   isSobre ? (isDark ? "bg-zinc-900/60 border-zinc-800 text-zinc-300" : "bg-zinc-50 border-zinc-200 text-zinc-700") :
                   isWarm ? (isDark ? "bg-[#382f2a]/60 border-amber-900/30 text-amber-200 font-serif" : "bg-[#FAF6F0] border-amber-900/20 text-amber-900 font-serif") :
                   isCyber ? (isDark ? "bg-black/60 border-red-500/40 text-red-400 font-mono" : "bg-red-50/50 border-red-200 text-red-950 font-mono") :
                   isFun ? (isDark ? "bg-zinc-900 border-2 border-white text-white rounded-xl" : "bg-white border-2 border-black rounded-xl text-black") :
                   (isDark ? "bg-slate-900/60 border-red-500/20 text-slate-300" : "bg-red-50/40 border-red-200 text-slate-800")
                 }`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-red-500/10">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-md bg-red-600/15 text-red-500 flex items-center justify-center shrink-0">
+                  {/* Ligne 1 : Titre + Bouton Ouvrir ↗ */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-5 h-5 rounded-md bg-red-600/20 text-red-500 flex items-center justify-center shrink-0">
                         <Youtube className="w-3.5 h-3.5 fill-red-600 text-red-600" />
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-200 dark:text-white flex items-center gap-1.5">
-                          <span>Reportages &amp; Vidéos YouTube</span>
-                          <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-red-600/20 text-red-400 border border-red-500/30">
-                            Actu du moment
-                          </span>
-                        </span>
-                      </div>
+                      <span className="text-xs font-bold truncate text-slate-200 dark:text-white">
+                        Reportages YouTube
+                      </span>
+                      <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 shrink-0 hidden xs:inline">
+                        Actu
+                      </span>
                     </div>
 
                     <a
                       href={getYouTubeSearchUrl(selectedArticle, selectedYouTubeFilter)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-all shrink-0 cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
-                      title={`Voir les vidéos sur YouTube ciblées sur l'actualité récente`}
+                      className="youtube-open-btn px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95"
+                      title="Ouvrir les vidéos sur YouTube"
                     >
                       <Youtube className="w-3.5 h-3.5 fill-white text-white" />
-                      <span>Ouvrir sur YouTube</span>
-                      <ExternalLink className="w-3 h-3 opacity-80" />
+                      <span>Ouvrir ↗</span>
                     </a>
                   </div>
 
-                  {/* Filter chips to tell YouTube to focus on breaking news / this week / recent / live */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] text-slate-400 font-medium mr-0.5">Filtrer :</span>
+                  {/* Ligne 2 : 4 filtres d'actualité en grille stricte 4 colonnes */}
+                  <div className="grid grid-cols-4 gap-1 w-full mt-2">
                     {YOUTUBE_FILTER_OPTIONS.map((opt) => {
                       const isSelected = selectedYouTubeFilter === opt.id;
+                      const shortLabels: Record<string, string> = {
+                        this_week: "🔥 Semaine",
+                        recent: "⏱️ Récentes",
+                        reportage: "📺 Enquêtes",
+                        live: "🔴 Direct",
+                      };
                       return (
                         <button
                           key={opt.id}
@@ -5445,25 +5525,27 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                             setSelectedYouTubeFilter(opt.id);
                             onNotify(`Filtre YouTube sélectionné : ${opt.label}`);
                           }}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                          className={`youtube-filter-chip text-[11px] py-1 px-1 rounded-md border font-bold text-center truncate transition-all cursor-pointer ${
                             isSelected
                               ? "bg-red-600 text-white border-red-600 shadow-xs"
-                              : "bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 border-slate-700/60 hover:border-slate-600"
+                              : isDark
+                              ? "bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700/80"
+                              : "bg-white hover:bg-slate-100 text-slate-700 border-slate-300"
                           }`}
                           title={opt.description}
                         >
-                          <span>{opt.badge}</span>
-                          <span>{opt.shortLabel}</span>
+                          {shortLabels[opt.id] || opt.shortLabel}
                         </button>
                       );
                     })}
                   </div>
 
-                  <div className="mt-1.5 text-[10px] text-slate-400 flex items-center justify-between gap-1 truncate">
+                  {/* Indication recherche discrète sur 1 seule ligne */}
+                  <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 flex items-center justify-between gap-1 truncate opacity-80">
                     <span className="truncate">
-                      🔍 Recherche ciblée : <strong className="text-slate-300">« {extractTopicalKeywords(selectedArticle)} »</strong> + filtre date récente
+                      🔍 Recherche : <strong className="text-slate-300 dark:text-slate-300">« {extractTopicalKeywords(selectedArticle)} »</strong>
                     </span>
-                    <span className="shrink-0 text-[9px] text-emerald-400 font-medium">✓ Filtre d'actualité actif</span>
+                    <span className="shrink-0 text-[9px] text-emerald-400 font-medium">✓ Filtre actif</span>
                   </div>
                 </div>
 
@@ -5496,9 +5578,9 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     )}
                   </div>
 
-                  {/* Compact Suggested Exploration Chips */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-bold opacity-70 mr-1 flex items-center gap-1">
+                  {/* Compact Suggested Exploration Chips - 1 seule ligne horizontale fluide */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full">
+                    <span className="text-[11px] font-bold opacity-70 shrink-0 flex items-center gap-1">
                       💡 Pistes :
                     </span>
                     {[
@@ -5513,7 +5595,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                         disabled={isDeepDiving}
                         onClick={() => handleDeepDive(item.query)}
                         title={item.query}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer inline-flex items-center gap-1.5 shrink-0 ${
+                        className={`compact-action-btn px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
                           isDark
                             ? "bg-zinc-900 border-zinc-700/70 hover:border-indigo-400 hover:bg-zinc-800 text-zinc-200"
                             : "bg-white border-zinc-250 hover:border-indigo-500 hover:bg-indigo-50/80 text-zinc-800 shadow-2xs"
@@ -6001,170 +6083,310 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     ))}
                   </div>
                 )}
+
+                {/* In-article exploration block - STRICT 2 LIGNES */}
+                <div className="mt-4 pt-3 border-t border-slate-700/25 space-y-1.5">
+                  {/* Ligne 1 : Titre + Lien vers tous les 10 outils */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider truncate opacity-90">
+                        Approfondir l'article (10 outils)
+                      </h4>
+                    </div>
+                    <button
+                      onClick={() => setShowAllProposalsModal(true)}
+                      className="text-xs font-bold text-indigo-400 hover:text-indigo-300 underline cursor-pointer shrink-0 flex items-center gap-1"
+                    >
+                      <span>Voir les 10 outils</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* Ligne 2 : Bandeau compact défilant 1 ligne d'accès direct */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full">
+                    {/* 1. Creuser */}
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("creuser-sujet-section");
+                        if (el) el.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-indigo-950/50 border-indigo-700/50 text-indigo-200 hover:bg-indigo-900/70"
+                    >
+                      <Search className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Creuser l'IA</span>
+                    </button>
+
+                    {/* 2. Nuances */}
+                    <button
+                      onClick={() => setShowNuanceModal(true)}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-cyan-950/50 border-cyan-700/50 text-cyan-200 hover:bg-cyan-900/70"
+                    >
+                      <Scale className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Nuances & Biais</span>
+                    </button>
+
+                    {/* 3. Frise */}
+                    <button
+                      onClick={() => setShowTimelineModal(true)}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-indigo-950/50 border-indigo-700/50 text-indigo-300 hover:bg-indigo-900/70"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-indigo-300" />
+                      <span>Frise Chrono</span>
+                    </button>
+
+                    {/* 4. Avocat */}
+                    <button
+                      onClick={() => setShowDevilModal(true)}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-rose-950/50 border-rose-700/50 text-rose-200 hover:bg-rose-900/70"
+                    >
+                      <Flame className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Avocat du Diable</span>
+                    </button>
+
+                    {/* 5. Quiz */}
+                    <button
+                      onClick={() => setShowQuizModal(true)}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-amber-950/50 border-amber-700/50 text-amber-200 hover:bg-amber-900/70"
+                    >
+                      <Brain className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Quiz (+25)</span>
+                    </button>
+
+                    {/* 6. Fiche */}
+                    <button
+                      onClick={() => setShowExecutiveBriefingModal(true)}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-emerald-950/50 border-emerald-700/50 text-emerald-200 hover:bg-emerald-900/70"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Fiche Exécutive</span>
+                    </button>
+
+                    {/* 7. Tout afficher */}
+                    <button
+                      onClick={() => setShowAllProposalsModal(true)}
+                      className="in-article-chip compact-action-btn px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 bg-zinc-800 border-zinc-700 text-zinc-100 hover:bg-zinc-700"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Tous les 10 outils...</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Reader Actions Footer */}
-              <div className="pt-4 border-t border-slate-700/20 flex flex-wrap gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    const el = document.getElementById("creuser-sujet-section");
-                    if (el) {
-                      el.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }}
-                  className={`py-1.5 px-3 border text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                    isDark 
-                      ? "bg-indigo-950/80 border-indigo-700/50 text-indigo-200 hover:text-white hover:bg-indigo-900" 
-                      : "bg-indigo-50 border-indigo-200 text-indigo-900 hover:bg-indigo-100 hover:text-indigo-950 shadow-xs"
-                  }`}
-                  title="Aller à la section d'approfondissement IA"
-                >
-                  <Search className="w-3.5 h-3.5 text-indigo-500" />
-                  Creuser le sujet
-                </button>
-
-                <button
-                  onClick={() => handleExtractQuotes(selectedArticle)}
-                  disabled={isExtractingQuotes}
-                  className={`py-1.5 px-3 border text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                    isDark
-                      ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white"
-                      : "bg-white border-slate-300 text-slate-700 hover:text-amber-700 hover:border-amber-300 shadow-xs"
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                  {isExtractingQuotes ? "Extraction..." : "Citations clés"}
-                </button>
-
-                {/* Nuances & Biais Perspective Analysis */}
-                <button
-                  onClick={() => setShowNuanceModal(true)}
-                  className={`py-1.5 px-3 border text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    isDark
-                      ? "bg-cyan-950/70 border-cyan-700/50 text-cyan-200 hover:text-white hover:bg-cyan-900"
-                      : "bg-cyan-50 border-cyan-200 text-cyan-900 hover:bg-cyan-100 shadow-xs"
-                  }`}
-                  title="Dossier de presse : perspectives croisées, angles et nuances"
-                >
-                  <Scale className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Nuances & Biais</span>
-                </button>
-
-                <button
-                  onClick={() => handleShareArticle(selectedArticle)}
-                  className={`py-1.5 px-3 border text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                    isDark
-                      ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white"
-                      : "bg-white border-slate-300 text-slate-700 hover:text-blue-600 hover:border-blue-300 shadow-xs"
-                  }`}
-                  title="Copier le résumé"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-blue-500" />
-                  Partager
-                </button>
-
-                <div className="relative">
+              {/* Reader Actions Footer - 2 lignes compactes avec Partage et Export visibles en permanence */}
+              <div className="reader-actions-footer pt-2 pb-1 border-t border-slate-700/20 shrink-0 space-y-1.5">
+                {/* Ligne 1 : Défilement fluide horizontal des outils IA d'approfondissement */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full reader-compact-strip">
                   <button
-                    onClick={() => setShowExportDropdown(!showExportDropdown)}
-                    className={`py-1.5 px-3 border text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                      isDark
-                        ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white"
-                        : "bg-white border-slate-300 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 shadow-xs"
+                    onClick={() => {
+                      const el = document.getElementById("creuser-sujet-section");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark 
+                        ? "bg-indigo-950/80 border-indigo-700/50 text-indigo-200 hover:text-white hover:bg-indigo-900" 
+                        : "bg-indigo-50 border-indigo-200 text-indigo-900 hover:bg-indigo-100 shadow-xs"
                     }`}
-                    title="Choisir le format d'exportation"
+                    title="Approfondir le sujet avec l'IA"
                   >
-                    <Download className="w-3.5 h-3.5 text-emerald-500" />
-                    Exporter
+                    <Search className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Creuser</span>
                   </button>
 
-                  {showExportDropdown && (
-                    <>
-                      {/* Backdrop to close dropdown on tap outside */}
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowExportDropdown(false)}
-                      />
-                      <div className={`absolute left-0 bottom-full mb-2 w-64 max-w-[85vw] border rounded-xl shadow-2xl p-1 z-50 animate-fade-in ${
-                        isDark ? "bg-slate-950 border-slate-700 text-slate-200" : "bg-white border-slate-300 text-slate-900"
-                      }`}>
-                        <div className={`px-3 py-2 text-[10px] uppercase font-bold border-b ${
-                          isDark ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-200"
-                        }`}>
-                          Format d'exportation
-                        </div>
-                        <button
-                          onClick={() => {
-                            handleExportArticle(selectedArticle, "html", "dark");
-                            setShowExportDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2.5 text-xs font-bold rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors ${
-                            isDark ? "text-indigo-300 hover:bg-slate-900" : "text-slate-900 hover:bg-slate-100"
-                          }`}
-                        >
-                          <span className="text-base">🌙</span>
-                          <div className="flex flex-col">
-                            <span className="flex items-center gap-1.5">
-                              HTML (Fond Noir)
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700">OLED</span>
-                            </span>
-                            <span className={`text-[10px] font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>Confort visuel nuit & grandes lettres</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleExportArticle(selectedArticle, "html", "light");
-                            setShowExportDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2.5 text-xs font-bold rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors ${
-                            isDark ? "text-emerald-400 hover:bg-slate-900" : "text-emerald-700 hover:bg-emerald-50"
-                          }`}
-                        >
-                          <span className="text-base">☀️</span>
-                          <div className="flex flex-col">
-                            <span>HTML (Fond Clair)</span>
-                            <span className={`text-[10px] font-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>Papier classique & impression</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleExportArticle(selectedArticle, "txt");
-                            setShowExportDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2.5 text-xs rounded-lg flex items-center gap-2.5 cursor-pointer transition-colors ${
-                            isDark ? "text-slate-300 hover:bg-slate-900" : "text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          <span className="text-base">📄</span>
-                          <div className="flex flex-col">
-                            <span>Texte brut (.txt)</span>
-                            <span className={`text-[10px] font-normal ${isDark ? "text-slate-500" : "text-slate-500"}`}>Format classique universel</span>
-                          </div>
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <button
+                    onClick={() => setShowNuanceModal(true)}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark
+                        ? "bg-cyan-950/70 border-cyan-700/50 text-cyan-200 hover:text-white hover:bg-cyan-900"
+                        : "bg-cyan-50 border-cyan-200 text-cyan-900 hover:bg-cyan-100 shadow-xs"
+                    }`}
+                    title="Perspectives croisées et nuances"
+                  >
+                    <Scale className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Nuances</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowTimelineModal(true)}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark
+                        ? "bg-indigo-950/70 border-indigo-700/50 text-indigo-200 hover:text-white hover:bg-indigo-900"
+                        : "bg-indigo-50 border-indigo-200 text-indigo-900 hover:bg-indigo-100 shadow-xs"
+                    }`}
+                    title="Frise chronologique de l'événement"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Frise</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowDevilModal(true)}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark
+                        ? "bg-rose-950/70 border-rose-700/50 text-rose-200 hover:text-white hover:bg-rose-900"
+                        : "bg-rose-50 border-rose-200 text-rose-900 hover:bg-rose-100 shadow-xs"
+                    }`}
+                    title="Avocat du Diable & Débat Socratique"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Avocat</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowQuizModal(true)}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark
+                        ? "bg-amber-950/70 border-amber-700/50 text-amber-200 hover:text-white hover:bg-amber-900"
+                        : "bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100 shadow-xs"
+                    }`}
+                    title="Quiz Mémorisation Active (+25 pts de curiosité)"
+                  >
+                    <Brain className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Quiz +25</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowExecutiveBriefingModal(true)}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark
+                        ? "bg-emerald-950/70 border-emerald-700/50 text-emerald-200 hover:text-white hover:bg-emerald-900"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100 shadow-xs"
+                    }`}
+                    title="Fiche Exécutive Décisionnelle 1-page"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Fiche</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleExtractQuotes(selectedArticle)}
+                    disabled={isExtractingQuotes}
+                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isDark
+                        ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white"
+                        : "bg-white border-slate-300 text-slate-700 hover:text-amber-700 shadow-xs"
+                    }`}
+                    title="Extraire les citations clés"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                    <span>Citations</span>
+                  </button>
+
+                  <a
+                    href={getYouTubeSearchUrl(selectedArticle, selectedYouTubeFilter)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="compact-action-btn py-1 px-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+                    title="Reportages & vidéos YouTube"
+                  >
+                    <Youtube className="w-3.5 h-3.5 fill-white text-white" />
+                    <span>YouTube</span>
+                  </a>
                 </div>
 
-                <a
-                  href={getYouTubeSearchUrl(selectedArticle, selectedYouTubeFilter)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-1.5 px-3 bg-red-600 hover:bg-red-700 text-white text-xs font-sans font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                  title="Voir les reportages & vidéos YouTube ciblés sur l'actualité du moment"
-                >
-                  <Youtube className="w-3.5 h-3.5 fill-white text-white" />
-                  <span>YouTube Actu</span>
-                </a>
+                {/* Ligne 2 : DOCK PERMANENT 4 BOUTONS FIXES TOUJOURS VISIBLES (Partager + Exporter + 10 Outils + Original) */}
+                <div className="grid grid-cols-4 gap-1 sm:gap-2 w-full items-center">
+                  {/* Bouton 1 : Partager - 100% visible tout le temps */}
+                  <button
+                    type="button"
+                    onClick={() => handleShareArticle(selectedArticle)}
+                    className="compact-action-btn w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
+                    title="Partager l'article"
+                  >
+                    <Share2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Partager</span>
+                  </button>
 
-                <a
-                  href={getArticleOriginalUrl(selectedArticle)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-1.5 bg-linear-to-r from-indigo-500 to-cyan-500 hover:opacity-95 text-white text-xs font-sans font-bold rounded-lg flex items-center justify-center gap-1 transition-all text-center"
-                >
-                  Original
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                  {/* Bouton 2 : Exporter - 100% visible tout le temps avec menu déroulant vers le haut */}
+                  <div className="relative w-full">
+                    <button
+                      type="button"
+                      onClick={() => setShowExportDropdown(!showExportDropdown)}
+                      className="compact-action-btn w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
+                      title="Exporter l'article (HTML, TXT)"
+                    >
+                      <Download className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Export</span>
+                      <ChevronUp className="w-3 h-3 shrink-0 opacity-80" />
+                    </button>
+
+                    {showExportDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
+                        <div className={`absolute left-0 bottom-full mb-2 w-64 max-w-[85vw] border rounded-xl shadow-2xl p-1 z-50 animate-fade-in ${
+                          isDark ? "bg-slate-950 border-slate-700 text-slate-200" : "bg-white border-slate-300 text-slate-900"
+                        }`}>
+                          <div className={`px-3 py-2 text-[10px] uppercase font-bold border-b ${
+                            isDark ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-200"
+                          }`}>
+                            Format d'exportation
+                          </div>
+                          <button
+                            onClick={() => {
+                              handleExportArticle(selectedArticle, "html", "dark");
+                              setShowExportDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
+                              isDark ? "text-indigo-300 hover:bg-slate-900" : "text-slate-900 hover:bg-slate-100"
+                            }`}
+                          >
+                            <span>🌙 HTML (Fond Noir OLED)</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleExportArticle(selectedArticle, "html", "light");
+                              setShowExportDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
+                              isDark ? "text-emerald-400 hover:bg-slate-900" : "text-emerald-700 hover:bg-emerald-50"
+                            }`}
+                          >
+                            <span>☀️ HTML (Fond Clair Papier)</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleExportArticle(selectedArticle, "txt");
+                              setShowExportDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
+                              isDark ? "text-slate-300 hover:bg-slate-900" : "text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            <span>📄 Texte brut (.txt)</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Bouton 3 : 10 Outils - 100% visible tout le temps */}
+                  <button
+                    type="button"
+                    onClick={() => setShowAllProposalsModal(true)}
+                    className={`compact-action-btn w-full py-1.5 px-2 border text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                      isDark
+                        ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700"
+                        : "bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border-zinc-300 shadow-2xs"
+                    }`}
+                    title="Voir les 10 outils d'approfondissement"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="truncate">10 Outils</span>
+                  </button>
+
+                  {/* Bouton 4 : Original - 100% visible tout le temps */}
+                  <a
+                    href={getArticleOriginalUrl(selectedArticle)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="compact-action-btn w-full py-1.5 px-2 bg-linear-to-r from-indigo-500 to-cyan-500 hover:opacity-95 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 shadow-xs transition-transform active:scale-95 text-center truncate"
+                    title="Consulter l'article original sur le site source"
+                  >
+                    <span className="truncate">Original</span>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  </a>
+                </div>
               </div>
 
               {/* Flex Mode Tabletop Pupitre Deck */}
@@ -6729,6 +6951,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         isDark={isDark}
         onNotify={onNotify}
         onOpenArticle={(art) => setSelectedArticle(art)}
+        geminiApiKey={apiKeys?.gemini || ""}
       />
 
       {/* 2. RSS & OPML Feeds Manager Modal (Agrégateur externe & imports) */}
@@ -6755,6 +6978,280 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         onNotify={onNotify}
         geminiApiKey={apiKeys?.gemini || ""}
       />
+
+      {/* 4. Interactive Event Timeline Modal */}
+      <TimelineModal
+        isOpen={showTimelineModal}
+        onClose={() => setShowTimelineModal(false)}
+        article={selectedArticle}
+        isDark={isDark}
+        onNotify={onNotify}
+        geminiApiKey={apiKeys?.gemini || ""}
+      />
+
+      {/* 5. Devil's Advocate & Socratic Debate Modal */}
+      <DevilDebateModal
+        isOpen={showDevilModal}
+        onClose={() => setShowDevilModal(false)}
+        article={selectedArticle}
+        isDark={isDark}
+        onNotify={onNotify}
+        geminiApiKey={apiKeys?.gemini || ""}
+      />
+
+      {/* 6. Active Recall Quiz Flashcard Modal */}
+      <QuizMemoryModal
+        isOpen={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+        article={selectedArticle}
+        isDark={isDark}
+        onNotify={onNotify}
+        onAwardCuriosityPoints={onAwardCuriosityPoints}
+        geminiApiKey={apiKeys?.gemini || ""}
+      />
+
+      {/* 7. Executive Briefing Memo 1-Page Modal */}
+      <ExecutiveBriefingModal
+        isOpen={showExecutiveBriefingModal}
+        onClose={() => setShowExecutiveBriefingModal(false)}
+        article={selectedArticle}
+        isDark={isDark}
+        onNotify={onNotify}
+      />
+
+      {/* 8. Modal Toutes les Propositions & Outils IA de l'Article */}
+      {showAllProposalsModal && selectedArticle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-fade-in">
+          <div className={`w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
+            isDark ? "bg-zinc-950 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"
+          }`}>
+            {/* Header */}
+            <div className={`p-4 border-b flex items-center justify-between shrink-0 ${
+              isDark ? "border-zinc-800 bg-zinc-900/60" : "border-zinc-200 bg-zinc-50"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
+                  <LayoutGrid className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base flex items-center gap-2">
+                    Propositions & Outils d'Analyse
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-semibold">10 outils</span>
+                  </h3>
+                  <p className="text-xs opacity-60 line-clamp-1 max-w-sm sm:max-w-md">{selectedArticle.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAllProposalsModal(false)}
+                className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                title="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable grid of propositions */}
+            <div className="p-4 overflow-y-auto space-y-4">
+              {/* Category 1: Exploration & Angles */}
+              <div>
+                <h4 className="text-[11px] uppercase font-bold tracking-wider opacity-60 mb-2 flex items-center gap-1.5">
+                  <Search className="w-3.5 h-3.5 text-indigo-400" />
+                  Analyses & Perspectives
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      const el = document.getElementById("creuser-sujet-section");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-indigo-950/40 border-indigo-800/40 hover:bg-indigo-900/60" : "bg-indigo-50/70 border-indigo-200 hover:bg-indigo-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-indigo-400">
+                      <Search className="w-4 h-4" />
+                      <span>Creuser le sujet</span>
+                    </div>
+                    <p className="text-[11px] opacity-70">Posez des questions d'approfondissement directes à l'IA.</p>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      setShowNuanceModal(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-cyan-950/40 border-cyan-800/40 hover:bg-cyan-900/60" : "bg-cyan-50/70 border-cyan-200 hover:bg-cyan-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-cyan-400">
+                      <Scale className="w-4 h-4" />
+                      <span>Nuances & Biais</span>
+                    </div>
+                    <p className="text-[11px] opacity-70">Comparez les angles de vue et l'équilibre journalistique.</p>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      setShowTimelineModal(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-indigo-950/40 border-indigo-800/40 hover:bg-indigo-900/60" : "bg-indigo-50/70 border-indigo-200 hover:bg-indigo-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-indigo-300">
+                      <Clock className="w-4 h-4" />
+                      <span>Frise Chronologique</span>
+                    </div>
+                    <p className="text-[11px] opacity-70">Reconstituez les dates clés : passé, présent et projections.</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category 2: Débat & Mémorisation */}
+              <div>
+                <h4 className="text-[11px] uppercase font-bold tracking-wider opacity-60 mb-2 flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-rose-400" />
+                  Débat & Mémorisation Active
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      setShowDevilModal(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-rose-950/40 border-rose-800/40 hover:bg-rose-900/60" : "bg-rose-50/70 border-rose-200 hover:bg-rose-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-rose-400">
+                      <Flame className="w-4 h-4" />
+                      <span>Avocat du Diable</span>
+                    </div>
+                    <p className="text-[11px] opacity-70">Testez les failles et contre-arguments de la thèse.</p>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      setShowQuizModal(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-amber-950/40 border-amber-800/40 hover:bg-amber-900/60" : "bg-amber-50/70 border-amber-200 hover:bg-amber-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-amber-400">
+                      <Brain className="w-4 h-4" />
+                      <span>Quiz (+25 pts)</span>
+                    </div>
+                    <p className="text-[11px] opacity-70">3 questions flash pour ancrer les faits clés dans votre mémoire.</p>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      setShowExecutiveBriefingModal(true);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-emerald-950/40 border-emerald-800/40 hover:bg-emerald-900/60" : "bg-emerald-50/70 border-emerald-200 hover:bg-emerald-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-emerald-400">
+                      <FileText className="w-4 h-4" />
+                      <span>Fiche Exécutive</span>
+                    </div>
+                    <p className="text-[11px] opacity-70">Note de synthèse 1-page prête pour réunion ou briefing.</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category 3: Multimédia & Diffusion */}
+              <div>
+                <h4 className="text-[11px] uppercase font-bold tracking-wider opacity-60 mb-2 flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5 text-blue-400" />
+                  Multimédia & Partage
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      handleExtractQuotes(selectedArticle);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-zinc-900/60 border-zinc-800 hover:bg-zinc-800" : "bg-zinc-50 border-zinc-200 hover:bg-zinc-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-amber-500">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Citations</span>
+                    </div>
+                    <p className="text-[10px] opacity-70">Extraits clés et punchlines.</p>
+                  </button>
+
+                  <a
+                    href={getYouTubeSearchUrl(selectedArticle, selectedYouTubeFilter)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowAllProposalsModal(false)}
+                    className="p-3 rounded-xl border border-red-500/30 bg-red-950/20 hover:bg-red-950/40 text-left flex flex-col gap-1 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-red-400">
+                      <Youtube className="w-4 h-4 text-red-500 fill-red-500" />
+                      <span>YouTube</span>
+                    </div>
+                    <p className="text-[10px] opacity-70 text-red-300/80">Reportages et décryptages vidéo.</p>
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      setShowAllProposalsModal(false);
+                      handleShareArticle(selectedArticle);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                      isDark ? "bg-zinc-900/60 border-zinc-800 hover:bg-zinc-800" : "bg-zinc-50 border-zinc-200 hover:bg-zinc-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-blue-400">
+                      <Share2 className="w-4 h-4" />
+                      <span>Partager</span>
+                    </div>
+                    <p className="text-[10px] opacity-70">Copier le lien et la synthèse.</p>
+                  </button>
+
+                  <a
+                    href={getArticleOriginalUrl(selectedArticle)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowAllProposalsModal(false)}
+                    className="p-3 rounded-xl border border-cyan-500/30 bg-linear-to-r from-indigo-950/40 to-cyan-950/40 hover:from-indigo-900/50 hover:to-cyan-900/50 text-left flex flex-col gap-1 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs text-cyan-300">
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Original ↗</span>
+                    </div>
+                    <p className="text-[10px] opacity-70 text-cyan-200/80">Lire sur {selectedArticle.source}.</p>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer modal */}
+            <div className={`p-3 border-t flex items-center justify-between shrink-0 text-xs ${
+              isDark ? "border-zinc-800 bg-zinc-900/40 text-zinc-400" : "border-zinc-200 bg-zinc-50 text-zinc-500"
+            }`}>
+              <span>Astuce : Vous pouvez aussi lancer chaque outil directement depuis la barre défilante au bas de l'article.</span>
+              <button
+                onClick={() => setShowAllProposalsModal(false)}
+                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer transition-colors"
+              >
+                Compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

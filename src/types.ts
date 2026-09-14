@@ -122,6 +122,21 @@ export interface PerspectiveAnalysis {
   controversyPoints: string[];
 }
 
+export interface TimelineEvent {
+  date: string;
+  title: string;
+  description: string;
+  badge?: string;
+  isMilestone?: boolean;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
 // Full Available Models definition
 export const AVAILABLE_MODELS: ModelConfig[] = [
   // Gemini

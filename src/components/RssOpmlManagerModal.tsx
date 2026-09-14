@@ -212,19 +212,35 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
             successCount++;
             data.items.slice(0, 6).forEach((item: any, idx: number) => {
               const articleId = Date.now() + Math.floor(Math.random() * 1000000) + idx;
+              const cleanTitle = (item.title || "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+              const cleanDesc = (item.description || "").replace(/<!\[CDATA\[|\]\]>/g, "").replace(/<[^>]+>/g, "").trim();
+              const cleanLink = (item.link || "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+              let cleanDate = (item.pubDate || "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+              try {
+                if (cleanDate && !isNaN(Date.parse(cleanDate))) {
+                  cleanDate = new Date(cleanDate).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  });
+                }
+              } catch {}
+
               allNewArticles.push({
                 id: articleId,
-                title: item.title,
+                title: cleanTitle,
                 source: feed.title,
                 category: feed.category || item.category || "Actualité",
                 time: "À l'instant",
                 score: 90,
                 emoji: feed.icon || "📰",
                 tags: ["RSS", feed.category, "Direct"],
-                summary: item.description.slice(0, 260) + (item.description.length > 260 ? "..." : ""),
-                content: `${item.title}\n\n${item.description}\n\nSource officielle : ${item.link}\nPublié le : ${item.pubDate}`,
+                summary: cleanDesc.slice(0, 260) + (cleanDesc.length > 260 ? "..." : ""),
+                content: `${cleanTitle}\n\n${cleanDesc}${cleanLink ? `\n\nSource officielle : ${cleanLink}` : ""}${cleanDate ? `\nPublié le : ${cleanDate}` : ""}`,
                 featured: idx === 0,
-                originalUrl: item.link,
+                originalUrl: cleanLink,
                 createdAt: Date.now() - idx * 60000,
                 isCustomGenerated: false
               });

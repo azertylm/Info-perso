@@ -1040,6 +1040,7 @@ export default function App() {
                 unlockedBadges={unlockedBadges}
                 passiveSignalsSettings={passiveSignalsSettings}
                 onAwardCuriosityPoints={handleAwardCuriosityPoints}
+                isEasyMode={isEasyMode}
               />
             </div>
           )}
