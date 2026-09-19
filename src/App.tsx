@@ -21,7 +21,11 @@ import {
   Terminal,
   Keyboard,
   Maximize,
-  Minimize
+  Minimize,
+  Cloud,
+  Monitor,
+  Tablet,
+  Smartphone
 } from "lucide-react";
 
 import { ApiKeys, RibInfo, NewsArticle } from "./types";
@@ -35,6 +39,13 @@ import UserProfileDrawer from "./components/UserProfileDrawer";
 import ShortcutsGuide from "./components/ShortcutsGuide";
 import { auth, onAuthStateChanged } from "./lib/firebase";
 import { SubscriptionStatus, listenToSubscription } from "./lib/subscriptionService";
+import { 
+  listenToUserProfile, 
+  saveUserProfileDebounced, 
+  saveUserProfileNow, 
+  UserSyncProfile, 
+  detectDeviceType 
+} from "./lib/userSyncService";
 
 // Multi-language system
 import { TRANSLATIONS, Language, TranslationDict } from "./lib/i18n";
@@ -159,9 +170,19 @@ export default function App() {
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("infoperso_custom_categories");
-      return saved ? JSON.parse(saved) : ["IA", "Technologie", "Local", "Design", "Économie", "Médias"];
+      const list = saved ? JSON.parse(saved) : ["IA", "Technologie", "Culture", "Local", "Design", "Économie", "Médias"];
+      if (Array.isArray(list) && !list.includes("Culture")) {
+        // Insert Culture after Technologie
+        const techIdx = list.indexOf("Technologie");
+        if (techIdx !== -1) {
+          list.splice(techIdx + 1, 0, "Culture");
+        } else {
+          list.push("Culture");
+        }
+      }
+      return list;
     } catch {
-      return ["IA", "Technologie", "Local", "Design", "Économie", "Médias"];
+      return ["IA", "Technologie", "Culture", "Local", "Design", "Économie", "Médias"];
     }
   });
 
@@ -406,10 +427,14 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastTimer, setToastTimer] = useState<any>(null);
 
-  // Easy Mode (Readability Mode for Seniors / Vision Comfort)
-  const [isEasyMode, setIsEasyMode] = useState<boolean>(() => {
-    return localStorage.getItem("infoperso_easy_mode") === "true";
+  // Easy / Big Mode (0 = Standard, 1 = Big +25%, 2 = Big XL / +35% de plus sur la version big)
+  const [easyModeLevel, setEasyModeLevel] = useState<number>(() => {
+    const stored = localStorage.getItem("infoperso_easy_mode");
+    if (stored === "2" || stored === "max" || stored === "super") return 2;
+    if (stored === "true" || stored === "1") return 1;
+    return 0;
   });
+  const isEasyMode = easyModeLevel > 0;
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -611,11 +636,25 @@ export default function App() {
     return "w-full py-2 bg-zinc-900 text-white hover:bg-black text-xs font-sans font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-xs";
   };
 
+  // Cloud Synchronization State for Personal Account
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(null);
+  const [currentDevice, setCurrentDevice] = useState(() => detectDeviceType());
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCurrentDevice(detectDeviceType());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const logo = getLogoStyles();
 
-  // Load from localStorage on mount and listen to subscription
+  // Load from localStorage on mount and listen to subscription & user cloud sync
   useEffect(() => {
     let unsubscribeSub: (() => void) | null = null;
+    let unsubscribeProfile: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -624,22 +663,128 @@ export default function App() {
         unsubscribeSub();
         unsubscribeSub = null;
       }
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
 
       if (user) {
         // Start listening to the subscription document in real-time
         unsubscribeSub = listenToSubscription(user.uid, (sub) => {
           setSubscription(sub);
         }, user.email || "");
+
+        // Start listening to the personal user profile for cross-device sync
+        unsubscribeProfile = listenToUserProfile(user.uid, (cloudData) => {
+          if (cloudData) {
+            if (cloudData.savedArticleIds && Array.isArray(cloudData.savedArticleIds)) {
+              setSavedIds(new Set(cloudData.savedArticleIds));
+              localStorage.setItem("infoperso_saved", JSON.stringify(cloudData.savedArticleIds));
+            }
+            if (cloudData.readArticleIds && Array.isArray(cloudData.readArticleIds)) {
+              setReadIds(new Set(cloudData.readArticleIds));
+              localStorage.setItem("infoperso_read", JSON.stringify(cloudData.readArticleIds));
+            }
+            if (cloudData.themeMode && (cloudData.themeMode === "dark" || cloudData.themeMode === "light")) {
+              setThemeMode(cloudData.themeMode);
+              localStorage.setItem("infoperso_theme_mode", cloudData.themeMode);
+            }
+            if (cloudData.displayMode) {
+              setDisplayMode(cloudData.displayMode);
+              localStorage.setItem("infoperso_display_mode", cloudData.displayMode);
+            }
+            if (cloudData.easyModeLevel !== undefined) {
+              setEasyModeLevel(cloudData.easyModeLevel);
+              localStorage.setItem("infoperso_easy_mode", String(cloudData.easyModeLevel));
+            } else if (cloudData.isEasyMode !== undefined) {
+              const lvl = cloudData.isEasyMode ? 1 : 0;
+              setEasyModeLevel(lvl);
+              localStorage.setItem("infoperso_easy_mode", String(lvl));
+            }
+            if (typeof cloudData.curiosityScore === "number") {
+              setCuriosityScore(cloudData.curiosityScore);
+              localStorage.setItem("infoperso_curiosity_score", String(cloudData.curiosityScore));
+            }
+            if (cloudData.unlockedBadges && Array.isArray(cloudData.unlockedBadges)) {
+              setUnlockedBadges(cloudData.unlockedBadges);
+              localStorage.setItem("infoperso_unlocked_badges", JSON.stringify(cloudData.unlockedBadges));
+            }
+            if (cloudData.customTitle) {
+              setCustomTitle(cloudData.customTitle);
+              localStorage.setItem("infoperso_custom_title", cloudData.customTitle);
+            }
+            if (cloudData.customCategories && Array.isArray(cloudData.customCategories)) {
+              setCustomCategories(cloudData.customCategories);
+              localStorage.setItem("infoperso_custom_categories", JSON.stringify(cloudData.customCategories));
+            }
+            if (cloudData.lastSyncAt) {
+              setLastCloudSyncTime(new Date(cloudData.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            }
+          } else {
+            // Seed cloud with initial device state
+            saveUserProfileNow(user.uid, {
+              email: user.email || "",
+              displayName: user.displayName || "",
+              photoURL: user.photoURL || "",
+              savedArticleIds: Array.from(savedIds) as number[],
+              readArticleIds: Array.from(readIds) as number[],
+              themeMode,
+              displayMode,
+              isEasyMode,
+              easyModeLevel,
+              curiosityScore,
+              unlockedBadges,
+              customTitle,
+              customCategories
+            }).catch(console.error);
+            setLastCloudSyncTime("À l'instant");
+          }
+        });
       } else {
         setSubscription(null);
+        setLastCloudSyncTime(null);
       }
     });
 
     return () => {
       unsubscribeAuth();
       if (unsubscribeSub) unsubscribeSub();
+      if (unsubscribeProfile) unsubscribeProfile();
     };
   }, []);
+
+  const handleForceSyncNow = async () => {
+    if (!currentUser) {
+      triggerToast("Veuillez vous connecter pour synchroniser vos données.");
+      return;
+    }
+    setIsCloudSyncing(true);
+    try {
+      await saveUserProfileNow(currentUser.uid, {
+        email: currentUser.email || "",
+        displayName: currentUser.displayName || "",
+        photoURL: currentUser.photoURL || "",
+        savedArticleIds: Array.from(savedIds) as number[],
+        readArticleIds: Array.from(readIds) as number[],
+        themeMode,
+        displayMode,
+        isEasyMode,
+        easyModeLevel,
+        curiosityScore,
+        unlockedBadges,
+        customTitle,
+        customCategories
+      });
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastCloudSyncTime(nowStr);
+      triggerToast(`☁️ Données synchronisées sur PC, Tablette et Téléphone (${nowStr}) !`);
+    } catch (e) {
+      console.error(e);
+      triggerToast("Erreur lors de la synchronisation.");
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -680,6 +825,13 @@ export default function App() {
     }
     setSavedIds(updated);
     localStorage.setItem("infoperso_saved", JSON.stringify(Array.from(updated)));
+    if (currentUser) {
+      saveUserProfileDebounced(currentUser.uid, {
+        savedArticleIds: Array.from(updated) as number[],
+        email: currentUser.email || "",
+        displayName: currentUser.displayName || ""
+      });
+    }
   };
 
   const handleMarkRead = (id: number) => {
@@ -687,6 +839,13 @@ export default function App() {
     updated.add(id);
     setReadIds(updated);
     localStorage.setItem("infoperso_read", JSON.stringify(Array.from(updated)));
+    if (currentUser) {
+      saveUserProfileDebounced(currentUser.uid, {
+        readArticleIds: Array.from(updated) as number[],
+        email: currentUser.email || "",
+        displayName: currentUser.displayName || ""
+      });
+    }
   };
 
   const handleCompleteOnboarding = (title: string, categories: string[], startFresh: boolean) => {
@@ -696,6 +855,13 @@ export default function App() {
     localStorage.setItem("infoperso_custom_title", title);
     localStorage.setItem("infoperso_custom_categories", JSON.stringify(categories));
     localStorage.setItem("infoperso_onboarding_completed", "true");
+    
+    if (currentUser) {
+      saveUserProfileDebounced(currentUser.uid, {
+        customTitle: title,
+        customCategories: categories
+      });
+    }
     
     if (startFresh) {
       localStorage.removeItem("infoperso_articles");
@@ -734,7 +900,9 @@ export default function App() {
   return (
     <div 
       dir={language === "ar" ? "rtl" : "ltr"}
-      className={`h-screen overflow-hidden flex flex-col relative transition-colors duration-300 ${getThemeContainerClasses()} ${isEasyMode ? "easy-mode" : ""}`}
+      className={`h-screen overflow-hidden flex flex-col relative transition-colors duration-300 ${getThemeContainerClasses()} ${
+        easyModeLevel === 2 ? "easy-mode easy-mode-max" : easyModeLevel === 1 ? "easy-mode" : ""
+      }`}
     >
       {/* Decorative colorful ambient background glows */}
       {isPro && (
@@ -823,23 +991,71 @@ export default function App() {
 
         {/* Top actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* EASY / BIG MODE TOGGLE BUTTON */}
+          {/* USER ACCOUNT & MULTI-DEVICE SYNC BUTTON */}
+          <button
+            onClick={() => setActiveTab("auth")}
+            className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "auth"
+                ? "bg-indigo-600 text-white border-indigo-500 shadow-sm"
+                : currentUser
+                  ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20"
+                  : "bg-zinc-100 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-850"
+            }`}
+            title="Mon Compte & Synchronisation (PC, Tablette, Téléphone)"
+          >
+            {currentUser ? (
+              <>
+                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline font-medium truncate max-w-[90px]">
+                  {currentUser.displayName?.split(" ")[0] || "Compte"}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </>
+            ) : (
+              <>
+                <UserIcon className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">Mon Compte</span>
+              </>
+            )}
+          </button>
+
+          {/* EASY / BIG MODE TOGGLE BUTTON (3 NIVEAUX: Standard, Big 1, Big 2 +35%) */}
           <button
             onClick={() => {
-              const nextEasy = !isEasyMode;
-              setIsEasyMode(nextEasy);
-              localStorage.setItem("infoperso_easy_mode", String(nextEasy));
-              triggerToast(`Mode Big : ${nextEasy ? "Activé" : "Désactivé"}`);
+              const nextLevel = (easyModeLevel + 1) % 3;
+              setEasyModeLevel(nextLevel);
+              localStorage.setItem("infoperso_easy_mode", String(nextLevel));
+              if (currentUser) {
+                saveUserProfileDebounced(currentUser.uid, {
+                  isEasyMode: nextLevel > 0,
+                  easyModeLevel: nextLevel
+                });
+              }
+              const labels = [
+                "Mode Texte Standard (Normal)",
+                "Mode Big 1 : Texte agrandi (+25%)",
+                "Mode Big 2 : Texte Maxi (+35% de plus !)"
+              ];
+              triggerToast(labels[nextLevel]);
             }}
-            className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-              isEasyMode
-                ? "bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-250 dark:border-amber-900/30"
-                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-850"
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+              easyModeLevel === 2
+                ? "bg-amber-500 text-black border-amber-400 shadow-sm font-black"
+                : easyModeLevel === 1
+                  ? "bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-900/40 font-bold"
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-850"
             }`}
-            title="Agrandir la police et optimiser le contraste (Mode Big)"
+            title={`Taille du texte : ${easyModeLevel === 0 ? "Standard" : easyModeLevel === 1 ? "Big 1 (+25%)" : "Big 2 Maxi (+35% de plus)"} - Cliquer pour changer (3 modes)`}
           >
-            <span>big</span>
-            <span className={`w-1.5 h-1.5 rounded-full ${isEasyMode ? "bg-emerald-500 animate-pulse" : "bg-zinc-400 dark:bg-zinc-600"}`}></span>
+            <span className="uppercase tracking-wider text-[11px]">
+              {easyModeLevel === 2 ? "big 2" : easyModeLevel === 1 ? "big 1" : "big"}
+            </span>
+            <span className="flex items-center gap-0.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${easyModeLevel >= 1 ? (easyModeLevel === 2 ? "bg-black" : "bg-emerald-500 animate-pulse") : "bg-zinc-400 dark:bg-zinc-600"}`} />
+              {easyModeLevel === 2 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
+              )}
+            </span>
           </button>
 
           {/* FULLSCREEN TOGGLE BUTTON */}
@@ -882,7 +1098,7 @@ export default function App() {
       <div className="w-full h-[1px] bg-zinc-200 dark:bg-zinc-800" />
 
       {/* WORKSPACE LAYOUT */}
-      <div className="flex-1 flex min-h-0 relative z-10 overflow-hidden">
+      <div className="flex-1 flex min-h-0 relative overflow-hidden">
         {/* SIDEBAR BACKDROP */}
         {sidebarOpen && (
           <div
@@ -946,17 +1162,33 @@ export default function App() {
                 {savedIds.size}
               </span>
             </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("auth");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "auth", "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-indigo-400" />
+                Mon Compte & Synchro
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 uppercase">
+                {currentDevice.shortLabel}
+              </span>
+            </button>
           </div>
 
           {/* Categories */}
           <div className="space-y-1.5 pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800">
             <span className="block text-xs uppercase tracking-[0.2em] font-bold px-2 text-zinc-550 dark:text-zinc-400">Catégories</span>
-            {customCategories.map((cat) => {
+            {customCategories.map((cat, catIdx) => {
               const isActive = activeTab === "flux" && activeFilter === cat;
 
               return (
                 <button
-                  key={cat}
+                  key={`nav-cat-${cat}-${catIdx}`}
                   onClick={() => {
                     setActiveTab("flux");
                     setOnlySaved(false);
@@ -977,12 +1209,12 @@ export default function App() {
           <div className="space-y-2">
             <span className={`block text-[10px] uppercase tracking-[0.2em] font-bold px-2 ${isSobre ? isDark ? "text-zinc-400" : "text-zinc-500" : isWarm ? isDark ? "text-amber-200/60" : "text-amber-850/60" : isCyber ? isDark ? "text-[#00ffcc]/60" : "text-[#0d9488]/60" : isFun ? isDark ? "text-white" : "text-black font-extrabold" : isDark ? "text-cyan-400/60" : "text-indigo-500/70"}`}>Tags actifs</span>
             <div className="flex flex-wrap gap-1.5 px-1">
-              {["Claude API", "LLM", "Occitanie", "Startup", "React", "OpenAI", "Benchmark", "Design"].map((tag) => {
+              {["Claude API", "LLM", "Occitanie", "Startup", "React", "OpenAI", "Benchmark", "Design"].map((tag, tagIdx) => {
                 const isActive = activeTag === tag;
 
                 return (
                   <button
-                    key={tag}
+                    key={`nav-tag-${tag}-${tagIdx}`}
                     onClick={() => {
                       setActiveTab("flux");
                       setOnlySaved(false);
@@ -1012,9 +1244,9 @@ export default function App() {
         </aside>
 
         {/* MAIN VIEWPORT */}
-        <main className={`flex-1 p-2 sm:p-4 md:p-5 lg:p-6 landscape:p-1 landscape:sm:p-2 transition-all duration-300 ${
+        <main className={`flex-1 p-2 sm:p-4 md:p-5 lg:p-6 landscape:p-1 landscape:sm:p-2 pb-28 md:pb-8 transition-all duration-300 ${
           activeTab === "chat"
-            ? `${isFun ? "h-[calc(100vh-125px)]" : "h-[calc(100vh-88px)]"} overflow-hidden flex flex-col`
+            ? `${isFun ? "h-[calc(100vh-125px)]" : "h-[calc(100vh-88px)]"} overflow-hidden flex flex-col pb-28 md:pb-0`
             : "overflow-y-auto"
         }`}>
           {activeTab === "flux" && (
@@ -1104,7 +1336,15 @@ export default function App() {
 
           {activeTab === "auth" && (
             <div className="py-6 sm:py-10 max-w-lg mx-auto">
-              <UserAuth onNotify={triggerToast} onClose={() => setActiveTab("flux")} themeMode={themeMode} />
+              <UserAuth 
+                onNotify={triggerToast} 
+                onClose={() => setActiveTab("flux")} 
+                themeMode={themeMode}
+                displayMode={displayMode}
+                onForceSync={handleForceSyncNow}
+                isSyncing={isCloudSyncing}
+                lastSyncTime={lastCloudSyncTime}
+              />
             </div>
           )}
 
@@ -1141,6 +1381,95 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* MOBILE & TABLET BOTTOM PERSISTENT NAVIGATION BAR */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md transition-all ${
+        isDark
+          ? "bg-zinc-950/95 border-zinc-800 text-zinc-400"
+          : isFun
+            ? "bg-yellow-300 border-t-3 border-black text-black shadow-[0_-2px_0_0_rgba(0,0,0,1)]"
+            : isWarm
+              ? "bg-[#FDFBF7]/95 border-amber-900/15 text-amber-950"
+              : isCyber
+                ? "bg-black/95 border-cyan-500/30 text-cyan-400"
+                : "bg-white/95 border-zinc-200 text-zinc-600"
+      }`}>
+        <button
+          onClick={() => {
+            setActiveTab("flux");
+            setOnlySaved(false);
+            setActiveFilter(null);
+            setActiveTag(null);
+          }}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+            activeTab === "flux" && !onlySaved 
+              ? (isFun ? "text-black scale-110 font-black" : "text-indigo-600 dark:text-indigo-400") 
+              : "opacity-70 hover:opacity-100"
+          }`}
+        >
+          <Newspaper className="w-4 h-4" />
+          <span>Flux</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("flux");
+            setOnlySaved(true);
+            setActiveFilter(null);
+            setActiveTag(null);
+          }}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer relative ${
+            activeTab === "flux" && onlySaved 
+              ? (isFun ? "text-black scale-110 font-black" : "text-rose-600 dark:text-rose-400") 
+              : "opacity-70 hover:opacity-100"
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${savedIds.size > 0 ? "fill-rose-500 text-rose-500" : ""}`} />
+          <span>Favoris</span>
+          {savedIds.size > 0 && (
+            <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-rose-500" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("communaute")}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+            activeTab === "communaute" 
+              ? (isFun ? "text-black scale-110 font-black" : "text-indigo-600 dark:text-indigo-400") 
+              : "opacity-70 hover:opacity-100"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Communauté</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("chat")}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+            activeTab === "chat" 
+              ? (isFun ? "text-black scale-110 font-black" : "text-indigo-600 dark:text-indigo-400") 
+              : "opacity-70 hover:opacity-100"
+          }`}
+        >
+          <Bot className="w-4 h-4" />
+          <span>Chat IA</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("auth")}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer relative ${
+            activeTab === "auth" 
+              ? (isFun ? "text-black scale-110 font-black" : "text-indigo-600 dark:text-indigo-400") 
+              : "opacity-70 hover:opacity-100"
+          }`}
+        >
+          <Cloud className="w-4 h-4" />
+          <span>Compte</span>
+          {currentUser && (
+            <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          )}
+        </button>
+      </nav>
 
       {/* USER PROFILE DRAWER */}
       <UserProfileDrawer

@@ -434,7 +434,7 @@ RÈGLES D'ÉCRITURE RADIOPHONIQUE IMPÉRATIVES :
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "gemini",
-          model: "gemini-3.7-flash",
+          model: "gemini-3.8-flash",
           apiKey: geminiApiKey || "",
           messages: [{ role: "user", content: prompt }]
         })

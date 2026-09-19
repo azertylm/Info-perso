@@ -16,11 +16,21 @@ import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.projectId && 
+  firebaseConfig.apiKey && 
+  firebaseConfig.firestoreDatabaseId && 
+  firebaseConfig.firestoreDatabaseId !== "remixed-firestore-database-id"
+);
+
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
 
 async function testConnection() {
+  if (!isFirebaseConfigured) {
+    return;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {

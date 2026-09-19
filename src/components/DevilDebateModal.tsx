@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { NewsArticle } from "../types";
 import {
   Flame,
@@ -119,7 +120,7 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "gemini",
-          model: "gemini-3.7-flash",
+          model: "gemini-3.8-flash",
           apiKey: geminiApiKey || "",
           messages: [{ role: "user", content: prompt }]
         })
@@ -157,17 +158,17 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
 
   if (!isOpen || !article) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-2xl rounded-3xl border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden ${
+        className={`w-full max-w-2xl rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88vh] overflow-hidden ${
           isDark
             ? "bg-slate-900 border-rose-500/30 text-slate-100"
             : "bg-white border-slate-200 text-slate-900"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shadow-inner">
               <Flame className="w-5 h-5" />
@@ -193,7 +194,7 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
         </div>
 
         {/* Persona Switcher Tabs */}
-        <div className="grid grid-cols-3 gap-1.5 p-3 border-b border-slate-700/30 bg-black/20">
+        <div className="grid grid-cols-3 gap-1.5 p-3 border-b border-slate-700/30 bg-black/20 shrink-0">
           {(Object.keys(PERSONAS) as PersonaType[]).map((pKey) => {
             const p = PERSONAS[pKey];
             const isSelected = currentPersona === pKey;
@@ -222,7 +223,7 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
         </div>
 
         {/* Chat History */}
-        <div className="p-4 sm:p-5 space-y-3 overflow-y-auto scrollbar flex-1">
+        <div className="p-4 sm:p-5 space-y-3 overflow-y-auto scrollbar flex-1 min-h-0">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -265,7 +266,7 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
         </div>
 
         {/* Quick Challenge Chips */}
-        <div className="px-4 py-2 border-t border-slate-700/30 flex flex-wrap gap-1.5 bg-black/10">
+        <div className="px-4 py-2 border-t border-slate-700/30 flex flex-wrap gap-1.5 bg-black/10 shrink-0">
           {[
             "💥 Quelle est la plus grande faille de cet article ?",
             "🔍 Quels sont les non-dits passés sous silence ?",
@@ -282,7 +283,7 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 sm:p-4 border-t border-slate-700/40 flex items-center gap-2 bg-black/20">
+        <div className="p-3 sm:p-4 border-t border-slate-700/40 flex items-center gap-2 bg-black/20 shrink-0">
           <input
             type="text"
             placeholder="Posez une objection ou défendez votre point de vue..."
@@ -305,4 +306,6 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };

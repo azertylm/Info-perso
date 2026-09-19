@@ -106,19 +106,55 @@ export function decodeArticleFromShare(encoded: string): NewsArticle | null {
 }
 
 /**
- * Builds the complete shareable URL with embedded portable article payload.
+ * Persists an article to the server registry so it can be retrieved by anyone via its ID.
+ */
+export async function saveArticleToServerRegistry(article: NewsArticle): Promise<boolean> {
+  try {
+    const res = await fetch("/api/articles/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ article })
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("Could not persist shared article to server:", err);
+    return false;
+  }
+}
+
+/**
+ * Fetches a shared article directly from the server registry by its ID.
+ */
+export async function fetchSharedArticleById(id: number | string): Promise<NewsArticle | null> {
+  try {
+    const res = await fetch(`/api/articles/share?id=${encodeURIComponent(id)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.success && data.article) {
+      return data.article;
+    }
+  } catch (err) {
+    console.warn("Error fetching shared article from server:", err);
+  }
+  return null;
+}
+
+/**
+ * Builds the complete shareable URL. Produces a clean, short URL
+ * that never gets broken or truncated by messaging apps like WhatsApp or SMS.
  */
 export function buildShareUrl(article: NewsArticle): string {
+  // Fire-and-forget save to server registry
+  saveArticleToServerRegistry(article).catch(() => {});
+
   const baseUrl = window.location.origin + window.location.pathname;
-  const encoded = encodeArticleForShare(article);
-  if (encoded) {
-    return `${baseUrl}?article=${article.id}&sdata=${encoded}`;
-  }
+  // Clean, short URL that is always under 100 characters and 100% WhatsApp-safe
   return `${baseUrl}?article=${article.id}`;
 }
 
 /**
  * Extracts and decodes any shared article from the current window location (search params or hash).
+ * Synchronous pass: checks existingArticles and valid sdata payload.
  */
 export function getSharedArticleFromUrl(existingArticles: NewsArticle[] = []): NewsArticle | null {
   try {
@@ -128,22 +164,63 @@ export function getSharedArticleFromUrl(existingArticles: NewsArticle[] = []): N
       : (window.location.hash.startsWith("#") ? window.location.hash.substring(1) : "");
     const hashParams = new URLSearchParams(hashQuery);
 
-    const sdata = searchParams.get("sdata") || hashParams.get("sdata") || searchParams.get("d") || hashParams.get("d");
-    if (sdata) {
-      const decoded = decodeArticleFromShare(sdata);
-      if (decoded) return decoded;
-    }
-
+    // 1. Check existing articles by ID
     const articleIdStr = searchParams.get("article") || hashParams.get("article") || searchParams.get("art") || hashParams.get("art");
     if (articleIdStr) {
       const articleId = parseInt(articleIdStr, 10);
       if (!isNaN(articleId)) {
         const found = existingArticles.find((a) => a.id === articleId);
         if (found) return found;
+
+        // Also check localStorage
+        try {
+          const savedStr = localStorage.getItem("infoperso_articles");
+          if (savedStr) {
+            const savedList = JSON.parse(savedStr);
+            if (Array.isArray(savedList)) {
+              const fromStorage = savedList.find((a: any) => a.id === articleId);
+              if (fromStorage) return fromStorage;
+            }
+          }
+        } catch {}
       }
+    }
+
+    // 2. Check sdata fallback (for legacy links)
+    const sdata = searchParams.get("sdata") || hashParams.get("sdata") || searchParams.get("d") || hashParams.get("d");
+    if (sdata) {
+      const decoded = decodeArticleFromShare(sdata);
+      if (decoded) return decoded;
     }
   } catch (err) {
     console.warn("Error parsing shared article from URL:", err);
+  }
+  return null;
+}
+
+/**
+ * Asynchronously resolves a shared article from the URL, querying the server registry
+ * if the article is not already in memory or localStorage.
+ */
+export async function resolveSharedArticleAsync(existingArticles: NewsArticle[] = []): Promise<NewsArticle | null> {
+  // First attempt synchronous resolution
+  const syncResult = getSharedArticleFromUrl(existingArticles);
+  if (syncResult) return syncResult;
+
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashQuery = window.location.hash.includes("?")
+      ? window.location.hash.split("?")[1]
+      : (window.location.hash.startsWith("#") ? window.location.hash.substring(1) : "");
+    const hashParams = new URLSearchParams(hashQuery);
+
+    const articleIdStr = searchParams.get("article") || hashParams.get("article") || searchParams.get("art") || hashParams.get("art");
+    if (articleIdStr) {
+      const serverArticle = await fetchSharedArticleById(articleIdStr);
+      if (serverArticle) return serverArticle;
+    }
+  } catch (err) {
+    console.warn("Async shared article resolution failed:", err);
   }
   return null;
 }

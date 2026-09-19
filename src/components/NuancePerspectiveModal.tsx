@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { NewsArticle, PerspectiveAnalysis } from "../types";
 import {
   Scale,
@@ -121,7 +122,7 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "gemini",
-          model: "gemini-3.7-flash",
+          model: "gemini-3.8-flash",
           apiKey: geminiApiKey || "",
           messages: [{ role: "user", content: prompt }]
         })
@@ -162,17 +163,17 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-3xl rounded-3xl border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden ${
+        className={`w-full max-w-3xl rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88vh] overflow-hidden ${
           isDark
             ? "bg-gradient-to-b from-slate-900 via-slate-950 to-black border-cyan-500/30 text-slate-100"
             : "bg-white border-slate-200 text-slate-900"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
               <Scale className="w-5 h-5" />
@@ -198,7 +199,7 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
         </div>
 
         {/* Body content */}
-        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto scrollbar flex-1">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto scrollbar flex-1 min-h-0">
           {/* Section 1: Faits vérifiés & consensus factuel */}
           <div className={`p-4 rounded-2xl border ${
             isDark ? "bg-slate-950/60 border-slate-800" : "bg-slate-50 border-slate-200"
@@ -279,11 +280,11 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20">
+        <div className="p-3.5 sm:p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20 shrink-0">
           <button
             onClick={handleDeepAIAnalysis}
             disabled={isAnalyzing}
-            className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg disabled:opacity-40 transition-all cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg disabled:opacity-40 transition-all cursor-pointer"
           >
             <Sparkles className={`w-3.5 h-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
             <span>{isAnalyzing ? "Analyse IA approfondie..." : "Affiner l'analyse avec Gemini"}</span>
@@ -291,7 +292,7 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
 
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-700/60 hover:bg-slate-800/60 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-700/60 hover:bg-slate-800/60 cursor-pointer"
           >
             Fermer
           </button>
@@ -299,4 +300,6 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };

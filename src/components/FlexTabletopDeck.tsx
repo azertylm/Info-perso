@@ -33,6 +33,7 @@ interface FlexTabletopDeckProps {
   isDark: boolean;
   onToggleDark: () => void;
   onExportHtml: (isDarkTheme: boolean) => void;
+  onExportPdf?: () => void;
   zenMode: boolean;
   onToggleZen: () => void;
   extractedQuotes?: string[];
@@ -55,6 +56,7 @@ export const FlexTabletopDeck: React.FC<FlexTabletopDeckProps> = ({
   isDark,
   onToggleDark,
   onExportHtml,
+  onExportPdf,
   zenMode,
   onToggleZen,
   extractedQuotes = [],
@@ -223,8 +225,18 @@ export const FlexTabletopDeck: React.FC<FlexTabletopDeckProps> = ({
           </button>
         )}
 
-        {/* HTML Export buttons */}
+        {/* Export buttons: PDF with Photo & HTML */}
         <div className="flex items-center gap-1">
+          {onExportPdf && (
+            <button
+              onClick={onExportPdf}
+              className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+              title="Créer et télécharger un PDF illustré avec photo"
+            >
+              <FileText className="w-3.5 h-3.5 text-white" />
+              <span>PDF Photo</span>
+            </button>
+          )}
           <button
             onClick={() => onExportHtml(true)}
             className="px-2.5 py-1.5 rounded-xl bg-black hover:bg-zinc-900 text-zinc-100 border border-zinc-700 text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"

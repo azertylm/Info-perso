@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { NewsArticle, RssFeedSource } from "../types";
 import {
   Rss,
@@ -266,17 +267,17 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-2xl rounded-3xl border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden ${
+        className={`w-full max-w-2xl rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88vh] overflow-hidden ${
           isDark
             ? "bg-slate-900 border-slate-700 text-slate-100"
             : "bg-white border-slate-200 text-slate-900"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
               <Rss className="w-5 h-5" />
@@ -302,7 +303,7 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto scrollbar flex-1">
+        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto scrollbar flex-1 min-h-0">
           {/* Add custom feed input form */}
           <form onSubmit={handleAddFeed} className="space-y-2 p-3.5 rounded-2xl border bg-slate-800/20 border-slate-700/50">
             <div className="text-xs font-bold uppercase tracking-wider opacity-75 flex items-center gap-1.5">
@@ -430,7 +431,7 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
         </div>
 
         {/* Footer actions */}
-        <div className="p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20">
+        <div className="p-3.5 sm:p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20 shrink-0">
           <div className="text-xs font-medium text-amber-400 min-w-0 truncate">
             {syncStatus || `${feeds.filter((f) => f.isActive).length} flux sélectionnés prêts à être synchronisés`}
           </div>
@@ -455,4 +456,6 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };

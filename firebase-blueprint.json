@@ -175,6 +175,90 @@
         }
       },
       "required": ["articleId", "authorName", "authorEmail", "authorUid", "content", "likes"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Personal user account profile, synchronized cross-device settings, bookmarks, and reader stats",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication user ID"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User profile avatar photo URL"
+        },
+        "themeMode": {
+          "type": "string",
+          "enum": ["light", "dark"],
+          "description": "Color theme mode"
+        },
+        "displayMode": {
+          "type": "string",
+          "enum": ["sobre", "pro", "warm", "cyber", "fun"],
+          "description": "Interface visual style archetype"
+        },
+        "isEasyMode": {
+          "type": "boolean",
+          "description": "Accessibility high contrast and large font toggle"
+        },
+        "savedArticleIds": {
+          "type": "array",
+          "description": "List of bookmarked article IDs"
+        },
+        "readArticleIds": {
+          "type": "array",
+          "description": "List of read article IDs"
+        },
+        "curiosityScore": {
+          "type": "number",
+          "description": "Curiosity reward points"
+        },
+        "unlockedBadges": {
+          "type": "array",
+          "description": "List of unlocked badge identifiers"
+        },
+        "customTitle": {
+          "type": "string",
+          "description": "Custom user feed title"
+        },
+        "customCategories": {
+          "type": "array",
+          "description": "List of active category filters"
+        },
+        "followedTags": {
+          "type": "array",
+          "description": "List of preferred hashtag topics"
+        },
+        "blacklistedTags": {
+          "type": "array",
+          "description": "List of muted hashtags"
+        },
+        "lastActiveDevice": {
+          "type": "string",
+          "description": "Identifier of the last device active (PC, Tablette, Smartphone)"
+        },
+        "lastSyncAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last synchronization timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Profile update timestamp"
+        }
+      },
+      "required": ["uid"]
     }
   },
   "firestore": {
@@ -189,6 +273,10 @@
     "community_comments/{commentId}": {
       "schema": "CommunityComment",
       "description": "Comments on community articles"
+    },
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User personal account profile and cross-device sync state for PC, tablet, and mobile"
     }
   }
 }

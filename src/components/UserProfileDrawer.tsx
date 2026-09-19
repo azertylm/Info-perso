@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   X, Award, BarChart3, Clock, Share2, HelpCircle, 
   Flame, BookOpen, Layers, CheckCircle, RefreshCw, Zap, Sliders,
-  Crown, CreditCard, Check, Lock, Smartphone, Terminal, UserCheck
+  Crown, CreditCard, Check, Lock, Smartphone, Terminal, UserCheck,
+  Cloud, Monitor, Tablet
 } from "lucide-react";
 import { 
   SubscriptionStatus, 
@@ -240,6 +241,49 @@ export default function UserProfileDrawer({
 
             {/* PANEL BODY */}
             <div className="p-5 flex-1 space-y-6">
+              {/* CROSS-DEVICE SYNC CARD */}
+              <div className={`p-3 rounded-xl border flex items-center justify-between text-xs ${
+                currentUser
+                  ? isDark 
+                    ? "bg-indigo-950/30 border-indigo-500/30 text-indigo-200" 
+                    : "bg-indigo-50/80 border-indigo-200 text-indigo-900"
+                  : isDark 
+                    ? "bg-zinc-900/60 border-zinc-800 text-zinc-400" 
+                    : "bg-zinc-100 border-zinc-200 text-zinc-600"
+              }`}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    currentUser 
+                      ? "bg-indigo-500/20 text-indigo-400" 
+                      : "bg-zinc-800 text-zinc-400"
+                  }`}>
+                    <Cloud className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold truncate text-[11px]">
+                        {currentUser ? "Compte Synchronisé" : "Compte Hors-Ligne"}
+                      </p>
+                      {currentUser && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[10px] opacity-75 truncate">
+                      {currentUser ? `${currentUser.email} • PC, Tablette, Mobile` : "Synchronisez vos favoris et scores sur tous vos écrans"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    onClose();
+                    if (onNavigateToTab) onNavigateToTab("auth");
+                  }}
+                  className="px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white shrink-0 ml-2 transition-all cursor-pointer shadow-xs"
+                >
+                  {currentUser ? "Gérer" : "Connexion"}
+                </button>
+              </div>
+
               {/* HERO SCORE & LEVEL PROGRESS */}
               <div className={getCardStyle()}>
                 <div className="flex items-center justify-between mb-2">

@@ -21,7 +21,10 @@ import {
   ArrowRight,
   Layers,
   Sparkle,
-  RotateCcw
+  RotateCcw,
+  Palette,
+  Zap,
+  Film
 } from "lucide-react";
 import { NewsArticle } from "../types";
 import {
@@ -33,6 +36,7 @@ import {
   normalizeKeyword,
   RelatedWord
 } from "../lib/semanticExplorer";
+import { CULTURE_SHORTCUTS } from "./CultureBarAndModal";
 
 interface SettingsVoletProps {
   isOpen: boolean;
@@ -123,7 +127,7 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
   handleClearAllFilters,
 }) => {
   const [activeTab, setActiveTab] = useState<"themes" | "flux_ia" | "filters" | "algo">("themes");
-  const [themesSubTab, setThemesSubTab] = useState<"rebond" | "packs" | "nuage">("rebond");
+  const [themesSubTab, setThemesSubTab] = useState<"rebond" | "culture" | "packs" | "nuage">("rebond");
 
   // Local search filter for tags
   const [tagSearchQuery, setTagSearchQuery] = useState("");
@@ -648,6 +652,17 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
                     Rebond Sémantique en Cascade
                   </button>
                   <button
+                    onClick={() => setThemesSubTab("culture")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      themesSubTab === "culture"
+                        ? "bg-rose-600 text-white shadow-xs"
+                        : "bg-rose-950/40 text-rose-300 border border-rose-500/30 hover:bg-rose-900/60"
+                    }`}
+                  >
+                    <Palette className="w-3.5 h-3.5" />
+                    🎨 Art &amp; Culture (5 Raccourcis &amp; Réglages)
+                  </button>
+                  <button
                     onClick={() => setThemesSubTab("packs")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       themesSubTab === "packs"
@@ -848,6 +863,272 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
                         </button>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* SUB-TAB: ART & CULTURE (5 RACCOURCIS & RÉGLAGES) */}
+              {themesSubTab === "culture" && (
+                <div className="space-y-4">
+                  {/* Curateur & Algorithme Culturel */}
+                  <div className={`p-4 rounded-xl border space-y-3 ${isDark ? "bg-rose-950/20 border-rose-500/30 text-rose-100" : "bg-rose-50 border-rose-200 text-rose-950"}`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                          <Palette className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm flex items-center gap-1.5">
+                            Curateur Art &amp; Culture
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-extrabold uppercase">
+                              5 Raccourcis Actifs
+                            </span>
+                          </h4>
+                          <p className="text-xs opacity-75">
+                            Activez le mode curateur pour propulser l'art, le cinéma, les expositions et le spectacle vivant en tête de votre flux.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          const currentWeight = categoryWeights["Culture"] || 3;
+                          const nextWeight = currentWeight >= 4 ? 3 : 5;
+                          updateCategoryWeight("Culture", nextWeight);
+                          const cultureTags = ["Culture", "Cinéma", "Pop Culture", "Dikkenek", "Musées", "Théâtre", "Littérature", "Musique"];
+                          cultureTags.forEach(t => {
+                            updateTagWeight(t, nextWeight === 5 ? "boost" : "neutral");
+                          });
+                          onNotify(nextWeight === 5 
+                            ? "✨ Mode Curateur Culture activé (pondération maximale 5/5 et tags boostés) !"
+                            : "⚖️ Mode Curateur Culture réinitialisé à l'équilibre neutre (3/5)."
+                          );
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-rose-900/30 transition-all shrink-0"
+                      >
+                        <Zap className="w-3.5 h-3.5 fill-current" />
+                        <span>{(categoryWeights["Culture"] || 3) >= 4 ? "Curateur Actif (5/5)" : "Activer Boost Curateur"}</span>
+                      </button>
+                    </div>
+
+                    {/* Culture Category Weight Slider */}
+                    <div className="pt-2 border-t border-rose-500/20 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-rose-400" />
+                          Pondération algorithmique de la catégorie Culture :
+                        </span>
+                        <span className="font-bold text-rose-400 font-mono">
+                          Niveau {categoryWeights["Culture"] || 3}/5
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        step="1"
+                        value={categoryWeights["Culture"] || 3}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          updateCategoryWeight("Culture", val);
+                          onNotify(`⚖️ Culture pondérée au niveau ${val}/5.`);
+                        }}
+                        className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                      />
+                      <div className="flex justify-between text-[10px] opacity-60">
+                        <span>1 (Discret)</span>
+                        <span>3 (Équilibré)</span>
+                        <span>5 (Priorité absolue)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Focus Spécial : Dikkenek 20 ans */}
+                  <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${isDark ? "bg-amber-950/20 border-amber-500/40 text-amber-200" : "bg-amber-50 border-amber-300 text-amber-950"}`}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 text-base shrink-0">
+                        🎬
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 uppercase">
+                            Pop Culture Culte
+                          </span>
+                          <span className="text-xs font-bold">Bruxelles - Place Poelaert</span>
+                        </div>
+                        <h5 className="font-bold text-xs mt-0.5">
+                          Dikkenek fêtera ses 20 ans : projections gratuites et répliques d'anthologie
+                        </h5>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (setSelectedTrendTags) {
+                          setSelectedTrendTags(prev => Array.from(new Set([...prev, "Dikkenek", "Cinéma", "Pop Culture"])));
+                        }
+                        if (setSemanticTrail) {
+                          setSemanticTrail(prev => Array.from(new Set([...prev, "Dikkenek", "Cinéma"])));
+                        }
+                        updateTagWeight("Dikkenek", "boost");
+                        updateTagWeight("Cinéma", "boost");
+                        onClose();
+                        onNotify("🎬 Mots-clés Dikkenek & Cinéma ciblés dans votre flux !");
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs shrink-0 cursor-pointer shadow-xs transition-all"
+                    >
+                      Cibler dans mon flux
+                    </button>
+                  </div>
+
+                  {/* 5 Raccourcis Culturels Détaillés */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                        Les 5 Raccourcis Thématiques Vers l'Art &amp; la Culture
+                      </h4>
+                      <button
+                        onClick={() => {
+                          const allCultureTags = ["Culture", "Cinéma", "Pop Culture", "Dikkenek", "Musées", "Théâtre", "Littérature", "Musique"];
+                          if (setSelectedTrendTags) setSelectedTrendTags(allCultureTags);
+                          if (setSemanticTrail) setSemanticTrail(allCultureTags);
+                          allCultureTags.forEach(t => updateTagWeight(t, "boost"));
+                          updateCategoryWeight("Culture", 5);
+                          onClose();
+                          onNotify("🎭 Pack Complet Art & Culture activé avec succès !");
+                        }}
+                        className="text-xs text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
+                      >
+                        Activer les 5 raccourcis en 1 clic
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {CULTURE_SHORTCUTS.map((shortcut) => {
+                        const isTagSelected = (selectedTrendTags || []).includes(shortcut.tag) || (semanticTrail || []).includes(shortcut.tag);
+
+                        return (
+                          <div
+                            key={shortcut.id}
+                            className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-2.5 ${
+                              isTagSelected
+                                ? "bg-rose-950/40 border-rose-500 text-white shadow-xs"
+                                : isDark
+                                ? "bg-slate-800/40 border-slate-700/60 hover:border-slate-600"
+                                : "bg-slate-50 border-slate-200 hover:border-slate-300"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="font-bold text-xs flex items-center gap-1.5">
+                                  <span className="text-base">{shortcut.emoji}</span>
+                                  {shortcut.label}
+                                </span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                                  isTagSelected ? "bg-rose-500 text-white" : "bg-slate-700/60 text-slate-300"
+                                }`}>
+                                  {shortcut.badge}
+                                </span>
+                              </div>
+                              <p className="text-[11px] opacity-75 mt-1 line-clamp-2">
+                                {shortcut.desc}
+                              </p>
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {shortcut.matchTags.slice(0, 3).map(mt => (
+                                  <span key={mt} className="text-[9px] px-1.5 py-0.2 rounded bg-black/20 text-slate-300 font-mono">
+                                    #{mt}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-700/40">
+                              <span className="text-[10px] opacity-60">
+                                {isTagSelected ? "Filtre actif" : "Inactif"}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    if (setSelectedTrendTags) {
+                                      if (isTagSelected) {
+                                        setSelectedTrendTags(prev => prev.filter(t => t !== shortcut.tag));
+                                      } else {
+                                        setSelectedTrendTags(prev => Array.from(new Set([...prev, shortcut.tag])));
+                                      }
+                                    }
+                                    if (setSemanticTrail) {
+                                      if (isTagSelected) {
+                                        setSemanticTrail(prev => prev.filter(t => t !== shortcut.tag));
+                                      } else {
+                                        setSemanticTrail(prev => Array.from(new Set([...prev, shortcut.tag])));
+                                      }
+                                    }
+                                    updateTagWeight(shortcut.tag, isTagSelected ? "neutral" : "boost");
+                                    onNotify(isTagSelected 
+                                      ? `Filtre « ${shortcut.label} » retiré.`
+                                      : `${shortcut.emoji} Raccourci « ${shortcut.label} » activé.`
+                                    );
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                                    isTagSelected
+                                      ? "bg-rose-600 text-white hover:bg-rose-500"
+                                      : isDark
+                                      ? "bg-slate-700 hover:bg-slate-600 text-slate-200"
+                                      : "bg-white hover:bg-slate-100 text-slate-800 border border-slate-300"
+                                  }`}
+                                >
+                                  {isTagSelected ? "Désactiver" : "Activer Raccourci"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Réglage des Mots-Clés Artistiques */}
+                  <div className={`p-3.5 rounded-xl border space-y-2.5 ${isDark ? "bg-slate-900/60 border-slate-800" : "bg-white border-slate-200"}`}>
+                    <h5 className="font-bold text-xs flex items-center gap-1.5 text-rose-400">
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      Réglage fin des mots-clés artistiques &amp; culturels
+                    </h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {["Cinéma", "Pop Culture", "Dikkenek", "Musées", "Théâtre", "Littérature", "Musique", "Patrimoine"].map(t => {
+                        const status = tagWeights[t] || "neutral";
+                        return (
+                          <div key={t} className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 flex flex-col justify-between gap-1.5 text-center">
+                            <span className="text-xs font-bold truncate">#{t}</span>
+                            <div className="flex justify-center gap-1">
+                              <button
+                                onClick={() => {
+                                  updateTagWeight(t, status === "boost" ? "neutral" : "boost");
+                                  onNotify(`Tag #${t} ${status === "boost" ? "remis en neutre" : "boosté (+12 pts)"}.`);
+                                }}
+                                className={`text-[10px] px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                                  status === "boost" ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                }`}
+                                title="Booster ce tag"
+                              >
+                                {status === "boost" ? "Boosté" : "Boost"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  updateTagWeight(t, status === "exclude" ? "neutral" : "exclude");
+                                  onNotify(`Tag #${t} ${status === "exclude" ? "remis en neutre" : "masqué"}.`);
+                                }}
+                                className={`text-[10px] px-1.5 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                                  status === "exclude" ? "bg-rose-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                }`}
+                                title="Masquer ce tag"
+                              >
+                                {status === "exclude" ? "Masqué" : "Masquer"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}

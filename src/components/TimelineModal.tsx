@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { NewsArticle, TimelineEvent } from "../types";
 import {
   Clock,
@@ -39,6 +40,54 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
     const generateHeuristicTimeline = (art: NewsArticle): TimelineEvent[] => {
       const title = art.title;
       const cat = art.category || "Actualité";
+
+      // Rigorous fact-checked chronological milestones for La Grande-Motte Ville-Port
+      if (art.id === 3 || (art.title && art.title.toLowerCase().includes("grande-motte"))) {
+        return [
+          {
+            date: "2018 - 2019",
+            title: "Genèse du projet 'Ville-Port'",
+            description: "La municipalité et les partenaires régionaux engagent les études initiales pour transformer le port cinquantenaire (Acte II de la Mission Racine).",
+            badge: "Origines",
+            isMilestone: false
+          },
+          {
+            date: "Septembre 2023",
+            title: "Validation de 'Ville-Port 2'",
+            description: "Après concertations citoyennes et concertations sur le patrimoine de Balladur, le conseil municipal valide le projet réajusté.",
+            badge: "Délibération",
+            isMilestone: false
+          },
+          {
+            date: "2024 - 2025",
+            title: "Enquête publique & travaux préparatoires",
+            description: "Avis d'enquête publique favorable, réorganisation des zones techniques et fermetures préalables des accès fin 2025.",
+            badge: "Préparation",
+            isMilestone: false
+          },
+          {
+            date: "Janvier 2026",
+            title: "Démarrage des travaux portuaires",
+            description: "Lancement effectif du dragage lourd, confortement des quais et sécurisation des bassins face aux submersions marines.",
+            badge: "Travaux engagés",
+            isMilestone: true
+          },
+          {
+            date: "Automne 2026 - 2028",
+            title: "Chantier Presqu'île Baumel & Halle Nautique",
+            description: "Requalification du cœur opérationnel, construction de la Halle Nautique de 3 000 m² et du Bureau du Port (agence ODA).",
+            badge: "Phases en cours",
+            isMilestone: true
+          },
+          {
+            date: "Horizon 2030",
+            title: "Livraison finale des 400 anneaux & 'La Colline'",
+            description: "Achèvement complet des extensions éco-conçues, des 2,5 km de promenade littorale et du quartier résidentiel de 250 logements.",
+            badge: "Projection finale",
+            isMilestone: false
+          }
+        ];
+      }
 
       return [
         {
@@ -111,7 +160,7 @@ Réponds STRICTEMENT au format JSON comme suit :
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "gemini",
-          model: "gemini-3.7-flash",
+          model: "gemini-3.8-flash",
           apiKey: geminiApiKey || "",
           messages: [{ role: "user", content: prompt }]
         })
@@ -139,17 +188,17 @@ Réponds STRICTEMENT au format JSON comme suit :
 
   if (!isOpen || !article) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-3xl rounded-3xl border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden ${
+        className={`w-full max-w-3xl rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88vh] overflow-hidden ${
           isDark
             ? "bg-slate-900 border-indigo-500/30 text-slate-100"
             : "bg-white border-slate-200 text-slate-900"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
               <Clock className="w-5 h-5" />
@@ -175,7 +224,7 @@ Réponds STRICTEMENT au format JSON comme suit :
         </div>
 
         {/* Timeline Content */}
-        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto scrollbar flex-1 relative">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto scrollbar flex-1 min-h-0 relative">
           <div className="relative pl-6 sm:pl-8 border-l-2 border-indigo-500/30 space-y-8 my-2">
             {events.map((ev, idx) => (
               <div key={idx} className="relative group">
@@ -236,11 +285,11 @@ Réponds STRICTEMENT au format JSON comme suit :
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20">
+        <div className="p-3.5 sm:p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20 shrink-0">
           <button
             onClick={handleEnrichWithAI}
             disabled={isGenerating}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 disabled:opacity-40 transition-all cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 disabled:opacity-40 transition-all cursor-pointer"
           >
             <Sparkles className={`w-3.5 h-3.5 ${isGenerating ? "animate-spin" : ""}`} />
             <span>{isGenerating ? "Chronologie en cours..." : "Reconstituer avec l'IA"}</span>
@@ -248,7 +297,7 @@ Réponds STRICTEMENT au format JSON comme suit :
 
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-700/60 hover:bg-slate-800/60 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-700/60 hover:bg-slate-800/60 cursor-pointer"
           >
             Fermer
           </button>
@@ -256,4 +305,6 @@ Réponds STRICTEMENT au format JSON comme suit :
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };

@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { NewsArticle } from "../types";
 import {
   FileText,
@@ -72,17 +73,17 @@ Mettre sous surveillance active le mot-clé "${article.tags[0] || article.catego
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-3xl rounded-3xl border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden ${
+        className={`w-full max-w-3xl rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88vh] overflow-hidden ${
           isDark
             ? "bg-slate-900 border-emerald-500/30 text-slate-100"
             : "bg-white border-slate-200 text-slate-900"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 print:hidden">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 print:hidden shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
               <FileText className="w-5 h-5" />
@@ -108,7 +109,7 @@ Mettre sous surveillance active le mot-clé "${article.tags[0] || article.catego
         </div>
 
         {/* Printable Document Canvas */}
-        <div className="p-6 sm:p-8 space-y-6 overflow-y-auto scrollbar flex-1 font-sans print:p-0 print:m-0">
+        <div className="p-6 sm:p-8 space-y-6 overflow-y-auto scrollbar flex-1 min-h-0 font-sans print:p-0 print:m-0">
           {/* Institutional Header */}
           <div className="border-b-2 border-emerald-500/40 pb-4 flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -212,7 +213,7 @@ Mettre sous surveillance active le mot-clé "${article.tags[0] || article.catego
         </div>
 
         {/* Action Toolbar */}
-        <div className="p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20 print:hidden">
+        <div className="p-3.5 sm:p-4 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-3 bg-black/20 print:hidden shrink-0">
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyMarkdown}
@@ -242,4 +243,6 @@ Mettre sous surveillance active le mot-clé "${article.tags[0] || article.catego
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };

@@ -98,6 +98,40 @@ export const SEMANTIC_RELATION_MAP: Record<string, { related: string[]; descript
     description: "Marché du travail, compétences d'avenir et mutations professionnelles"
   },
 
+  // Art, Culture & Pop Culture
+  "culture": {
+    related: ["Cinéma", "Pop Culture", "Musées", "Théâtre", "Littérature", "Musique", "Patrimoine", "Dikkenek", "Expositions"],
+    description: "Actualité culturelle, beaux-arts, cinéma culte, patrimoine et scènes vivantes"
+  },
+  "cinéma": {
+    related: ["Pop Culture", "Dikkenek", "Films", "Festivals", "Culture", "Acteurs", "Réalisateurs", "Bruxelles"],
+    description: "Cinéma d'auteur, comédies cultes, tournages et célébrations cinématographiques"
+  },
+  "pop culture": {
+    related: ["Cinéma", "Dikkenek", "BD", "Musique", "Séries", "Culture", "Culte", "Festivals"],
+    description: "Phénomènes populaires, répliques cultes, œuvres intergénérationnelles et humour"
+  },
+  "dikkenek": {
+    related: ["Cinéma", "Pop Culture", "Bruxelles", "Belgique", "Culture", "Comédie", "Humour"],
+    description: "Comédie culte d'Olivier Van Hoofstadt, carjacking de Claudy Focan et célébration des 20 ans"
+  },
+  "musées": {
+    related: ["Expositions", "Patrimoine", "Beaux-Arts", "Peinture", "Culture", "Histoire", "Rétrospective"],
+    description: "Musées nationaux, chefs-d'œuvre, expositions temporaires et histoire de l'art"
+  },
+  "théâtre": {
+    related: ["Spectacle", "Scène", "Humour", "Culture", "Comédie", "Opéra", "Avignon"],
+    description: "Arts de la scène, dramaturgie contemporaine, pièces classiques et spectacle vivant"
+  },
+  "littérature": {
+    related: ["BD", "Livres", "Romans", "Culture", "Auteurs", "Prix Littéraires", "Édition"],
+    description: "Grands romans, bande dessinée franco-belge, essais et actualité littéraire"
+  },
+  "musique": {
+    related: ["Concert", "Rock", "Légendes", "Vinyles", "Culture", "Festivals", "Albums"],
+    description: "Scènes musicales, enregistrements cultes, vinyles et tournées historiques"
+  },
+
   // Science & Espace
   "science": {
     related: ["Espace", "Médecine", "Physique", "Recherche", "Astronomie", "Biologie"],
@@ -145,6 +179,13 @@ export const DEFAULT_THEMATIC_PACKS: ThematicPack[] = [
     emoji: "🔬",
     description: "Grandes découvertes, recherche fondamentale et cosmos",
     tags: ["Science", "Espace", "Recherche"]
+  },
+  {
+    id: "pack_culture_arts",
+    name: "Art, Culture & Pop Culture",
+    emoji: "🎭",
+    description: "Cinéma culte, Dikkenek, musées & patrimoine, spectacle vivant, BD et musique",
+    tags: ["Culture", "Cinéma", "Pop Culture", "Dikkenek", "Musées", "Théâtre", "Littérature", "Musique"]
   }
 ];
 
@@ -288,6 +329,7 @@ export function getNextSuggestedWords(
  */
 export function groupTagsByRubrique(tags: string[]): Record<string, string[]> {
   const rubriques: Record<string, string[]> = {
+    "🎭 Art, Culture & Pop Culture": [],
     "💻 Tech, IA & Digital": [],
     "🌍 Géopolitique & Monde": [],
     "🌿 Climat, Énergie & Planète": [],
@@ -299,6 +341,25 @@ export function groupTagsByRubrique(tags: string[]): Record<string, string[]> {
   for (const tag of tags) {
     const norm = normalizeKeyword(tag);
     if (
+      norm.includes("cultur") ||
+      norm.includes("cine") ||
+      norm.includes("film") ||
+      norm.includes("dikkenek") ||
+      norm.includes("musee") ||
+      norm.includes("expo") ||
+      norm.includes("theatre") ||
+      norm.includes("spectacle") ||
+      norm.includes("litterature") ||
+      norm.includes("livre") ||
+      norm.includes("bd") ||
+      norm.includes("musique") ||
+      norm.includes("concert") ||
+      norm.includes("patrimoine") ||
+      norm.includes("pop") ||
+      norm.includes("art")
+    ) {
+      rubriques["🎭 Art, Culture & Pop Culture"].push(tag);
+    } else if (
       norm.includes("ia") ||
       norm.includes("tech") ||
       norm.includes("claude") ||

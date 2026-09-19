@@ -5,7 +5,8 @@ import {
   auth, 
   db,
   OperationType,
-  handleFirestoreError
+  handleFirestoreError,
+  isFirebaseConfigured
 } from "../lib/firebase";
 import { 
   collection, 
@@ -431,11 +432,11 @@ export default function CommunitySpace({
     }
   }, []);
 
-  // Fetch articles from Firestore
+  // Fetch articles from Firestore or localStorage
   const fetchArticles = async () => {
     setLoading(true);
     try {
-      if (db) {
+      if (isFirebaseConfigured && db) {
         const q = query(collection(db, "proposed_articles"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         const fetched: CommunityArticle[] = [];
@@ -482,12 +483,24 @@ export default function CommunitySpace({
           setArticles([...fetched, ...PRELOADED_COMMUNITY_ARTICLES]);
         }
       } else {
-        setArticles(PRELOADED_COMMUNITY_ARTICLES);
+        // Standalone local mode
+        try {
+          const stored = localStorage.getItem("infoperso_community_articles");
+          const localList: CommunityArticle[] = stored ? JSON.parse(stored) : [];
+          setArticles([...localList, ...PRELOADED_COMMUNITY_ARTICLES]);
+        } catch {
+          setArticles(PRELOADED_COMMUNITY_ARTICLES);
+        }
       }
     } catch (err) {
-      console.error("Firestore retrieval error, fallback to preloaded:", err);
-      handleFirestoreError(err, OperationType.LIST, "proposed_articles");
-      setArticles(PRELOADED_COMMUNITY_ARTICLES);
+      console.warn("Articles retrieval fallback to local/preloaded:", err);
+      try {
+        const stored = localStorage.getItem("infoperso_community_articles");
+        const localList: CommunityArticle[] = stored ? JSON.parse(stored) : [];
+        setArticles([...localList, ...PRELOADED_COMMUNITY_ARTICLES]);
+      } catch {
+        setArticles(PRELOADED_COMMUNITY_ARTICLES);
+      }
     } finally {
       setLoading(false);
     }
@@ -633,8 +646,8 @@ export default function CommunitySpace({
         setSelectedArticle(updatedArticle);
       }
 
-      // Sync with Firestore if real document
-      if (db && !article.id.startsWith("demo-")) {
+      // Sync with Firestore if real document and configured
+      if (isFirebaseConfigured && db && !article.id.startsWith("demo-")) {
         const docRef = doc(db, "proposed_articles", article.id);
         await updateDoc(docRef, {
           ratings: existingRatings,
@@ -646,7 +659,7 @@ export default function CommunitySpace({
       onNotify(`⭐ Note de ${ratingValue}/5 enregistrée ! Merci pour votre avis.`);
       onAwardCuriosityPoints(3, `Évaluation de l'article "${article.title.slice(0, 30)}..." (+3 pts)`, article.category, "read");
     } catch (err) {
-      console.error("Error rating article:", err);
+      console.warn("Notice rating article locally:", err);
       onNotify("Note prise en compte localement !");
     }
   };
@@ -660,14 +673,14 @@ export default function CommunitySpace({
         setSelectedArticle(prev => prev ? { ...prev, likes: prev.likes + 1 } : null);
       }
 
-      if (db && !art.id.startsWith("demo-")) {
+      if (isFirebaseConfigured && db && !art.id.startsWith("demo-")) {
         const docRef = doc(db, "proposed_articles", art.id);
         await updateDoc(docRef, { likes: increment(1) });
       }
       onNotify("Merci pour votre appréciation ! ❤️");
       onAwardCuriosityPoints(1, `Appréciation d'un article (+1 pt)`, art.category);
     } catch (err) {
-      console.error("Error updating like:", err);
+      console.warn("Notice like updated locally:", err);
     }
   };
 
@@ -801,13 +814,28 @@ export default function CommunitySpace({
         createdAt: serverTimestamp()
       };
 
-      if (db) {
-        const docRef = await addDoc(collection(db, "proposed_articles"), newDoc);
-        setArticles(prev => [{ id: docRef.id, ...newDoc, time: "À l'instant" } as any, ...prev]);
-      } else {
-        const fallbackId = `article-${Date.now()}`;
-        setArticles(prev => [{ id: fallbackId, ...newDoc, time: "À l'instant" } as any, ...prev]);
+      const fallbackId = `article-${Date.now()}`;
+      let createdArticleItem: any = { id: fallbackId, ...newDoc, time: "À l'instant" };
+
+      if (isFirebaseConfigured && db) {
+        try {
+          const docRef = await addDoc(collection(db, "proposed_articles"), newDoc);
+          createdArticleItem.id = docRef.id;
+        } catch (dbErr) {
+          console.warn("Firestore save failed, using local item:", dbErr);
+        }
       }
+
+      setArticles(prev => {
+        const next = [createdArticleItem, ...prev];
+        try {
+          const savedArticles = next.filter((a: any) => !a.id.startsWith("demo-"));
+          localStorage.setItem("infoperso_community_articles", JSON.stringify(savedArticles));
+        } catch (e) {
+          console.warn("Local storage save error:", e);
+        }
+        return next;
+      });
 
       onNotify("🎉 Article vérifié par l'IA et publié avec succès ! (+15 pts)");
       onAwardCuriosityPoints(15, `Publication de l'article "${title.slice(0, 30)}..." (+15 pts)`, category, "share");
@@ -826,7 +854,9 @@ export default function CommunitySpace({
     } catch (err: any) {
       console.error(err);
       onNotify("Erreur lors de la publication : " + err.message);
-      handleFirestoreError(err, OperationType.CREATE, "proposed_articles");
+      if (isFirebaseConfigured) {
+        handleFirestoreError(err, OperationType.CREATE, "proposed_articles");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -893,7 +923,7 @@ export default function CommunitySpace({
 
     const fetchComments = async () => {
       try {
-        if (db) {
+        if (isFirebaseConfigured && db) {
           const q = query(
             collection(db, "community_comments"),
             where("articleId", "==", selectedArticle.id),
@@ -905,9 +935,30 @@ export default function CommunitySpace({
             fetched.push({ id: doc.id, ...doc.data() });
           });
           setComments(fetched);
+        } else {
+          try {
+            const stored = localStorage.getItem(`infoperso_comments_${selectedArticle.id}`);
+            if (stored) {
+              setComments(JSON.parse(stored));
+            } else {
+              setComments([
+                {
+                  id: "c-demo-1",
+                  articleId: selectedArticle.id,
+                  authorName: "Marc Tech",
+                  authorEmail: "marc@infoperso.fr",
+                  content: "Excellente analyse, très bien sourcée ! L'éclairage sur les retombées concrètes est particulièrement instructif.",
+                  createdAt: { seconds: Date.now() / 1000 - 3600 },
+                  likes: 5
+                }
+              ]);
+            }
+          } catch {
+            setComments([]);
+          }
         }
       } catch (err) {
-        console.error("Error retrieving comments:", err);
+        console.warn("Notice retrieving comments locally:", err);
         setComments([
           {
             id: "c-demo-1",
@@ -947,18 +998,31 @@ export default function CommunitySpace({
         likes: 0
       };
 
-      if (db) {
-        const docRef = await addDoc(collection(db, "community_comments"), newComment);
-        setComments(prev => [...prev, { id: docRef.id, ...newComment, createdAt: { seconds: Date.now() / 1000 } }]);
+      const commentId = `c-${Date.now()}`;
+      if (isFirebaseConfigured && db) {
+        try {
+          const docRef = await addDoc(collection(db, "community_comments"), newComment);
+          setComments(prev => [...prev, { id: docRef.id, ...newComment, createdAt: { seconds: Date.now() / 1000 } }]);
+        } catch (dbErr) {
+          setComments(prev => [...prev, { id: commentId, ...newComment, createdAt: { seconds: Date.now() / 1000 } }]);
+        }
       } else {
-        setComments(prev => [...prev, { id: `c-${Date.now()}`, ...newComment, createdAt: { seconds: Date.now() / 1000 } }]);
+        setComments(prev => {
+          const updated = [...prev, { id: commentId, ...newComment, createdAt: { seconds: Date.now() / 1000 } }];
+          try {
+            localStorage.setItem(`infoperso_comments_${selectedArticle!.id}`, JSON.stringify(updated));
+          } catch (e) {
+            console.warn("Local storage comment save error:", e);
+          }
+          return updated;
+        });
       }
 
       setNewCommentText("");
       onNotify("Commentaire publié ! 💬 (+2 pts)");
       onAwardCuriosityPoints(2, "Commentaire sur un article communautaire (+2 pts)", selectedArticle?.category);
     } catch (err: any) {
-      console.error(err);
+      console.warn(err);
       onNotify("Commentaire publié localement ! 💬");
     } finally {
       setSubmittingComment(false);

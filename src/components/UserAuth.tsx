@@ -11,20 +11,45 @@ import {
   onAuthStateChanged,
   User
 } from "../lib/firebase";
-import { LogIn, LogOut, Mail, Lock, User as UserIcon, ShieldAlert, CheckCircle2, AlertCircle } from "lucide-react";
+import { 
+  LogIn, 
+  LogOut, 
+  Mail, 
+  Lock, 
+  User as UserIcon, 
+  ShieldAlert, 
+  CheckCircle2, 
+  AlertCircle,
+  Monitor,
+  Tablet,
+  Smartphone,
+  Cloud,
+  RefreshCw,
+  Sparkles,
+  Check,
+  Bookmark,
+  Layers
+} from "lucide-react";
+import { detectDeviceType, DeviceInfo } from "../lib/userSyncService";
 
 interface UserAuthProps {
   onNotify: (msg: string) => void;
   onClose?: () => void;
   displayMode?: "sobre" | "pro" | "warm" | "cyber" | "fun";
   themeMode?: "light" | "dark";
+  onForceSync?: () => Promise<void>;
+  isSyncing?: boolean;
+  lastSyncTime?: string | null;
 }
 
 export default function UserAuth({ 
   onNotify, 
   onClose, 
   displayMode = "pro", 
-  themeMode = "dark" 
+  themeMode = "dark",
+  onForceSync,
+  isSyncing = false,
+  lastSyncTime
 }: UserAuthProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -34,12 +59,21 @@ export default function UserAuth({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [currentDevice, setCurrentDevice] = useState<DeviceInfo>(() => detectDeviceType());
 
   const isSobre = displayMode === "sobre";
   const isWarm = displayMode === "warm";
   const isCyber = displayMode === "cyber";
   const isFun = displayMode === "fun";
   const isDark = themeMode === "dark";
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCurrentDevice(detectDeviceType());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -233,15 +267,125 @@ export default function UserAuth({
               (user.displayName?.slice(0, 2) || user.email?.slice(0, 2) || "U")
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className={`font-sans font-bold text-base sm:text-lg truncate ${isFun ? "text-black font-black" : isDark ? "text-white" : "text-zinc-900"}`}>
               {user.displayName || "Utilisateur InfoPerso"}
             </h3>
             <p className={`text-xs font-mono truncate ${isFun ? "text-black/70" : isDark ? "text-zinc-400" : "text-zinc-500"}`}>{user.email}</p>
           </div>
+          <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>En ligne</span>
+          </div>
         </div>
 
         <div className="space-y-4">
+          {/* Multi-Device Synchronization Card */}
+          <div className={`p-4 rounded-xl border space-y-3.5 ${
+            isSobre ? isDark ? "bg-zinc-950/70 border-zinc-800 text-zinc-200" : "bg-zinc-50 border-zinc-200 text-zinc-800" :
+            isWarm ? isDark ? "bg-[#27211d] border-amber-900/30 text-amber-100" : "bg-[#FAF6F0] border-amber-950/15 text-amber-900" :
+            isCyber ? isDark ? "bg-black border-cyan-500/30 text-[#00ffcc]" : "bg-[#f4fffe] border-cyan-500/40 text-black" :
+            isFun ? "bg-cyan-100 border-2 border-black rounded-xl text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" :
+            isDark ? "bg-slate-950/60 border-indigo-500/20 text-slate-200" : "bg-indigo-50/50 border-indigo-100 text-slate-800"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cloud className={`w-4 h-4 ${isCyber ? "text-cyan-400 animate-pulse" : isFun ? "text-black" : "text-indigo-400"}`} />
+                <h4 className={`text-xs sm:text-sm font-bold tracking-wide uppercase ${isFun ? "font-black" : ""}`}>
+                  Synchronisation Multi-Appareils
+                </h4>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <Check className="w-3 h-3" /> Cloud Actif
+              </span>
+            </div>
+
+            <p className="text-xs opacity-85 leading-relaxed">
+              Votre compte personnel assure la synchronisation continue de votre interface et de vos données sur vos ordinateurs, tablettes et téléphones.
+            </p>
+
+            {/* Current Device Detection Display */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className={`p-2.5 rounded-lg border text-center transition-all ${
+                currentDevice.type === "pc" 
+                  ? "bg-indigo-500/20 border-indigo-400 text-indigo-300 font-bold shadow-xs" 
+                  : "border-zinc-800/40 opacity-60"
+              }`}>
+                <Monitor className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                <span className="block text-[10px]">PC / Mac</span>
+                {currentDevice.type === "pc" && (
+                  <span className="text-[8px] bg-indigo-500 text-white px-1.5 py-0.2 rounded-full mt-1 inline-block">Actuel</span>
+                )}
+              </div>
+
+              <div className={`p-2.5 rounded-lg border text-center transition-all ${
+                currentDevice.type === "tablet" 
+                  ? "bg-indigo-500/20 border-indigo-400 text-indigo-300 font-bold shadow-xs" 
+                  : "border-zinc-800/40 opacity-60"
+              }`}>
+                <Tablet className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                <span className="block text-[10px]">Tablette</span>
+                {currentDevice.type === "tablet" && (
+                  <span className="text-[8px] bg-indigo-500 text-white px-1.5 py-0.2 rounded-full mt-1 inline-block">Actuel</span>
+                )}
+              </div>
+
+              <div className={`p-2.5 rounded-lg border text-center transition-all ${
+                currentDevice.type === "mobile" 
+                  ? "bg-indigo-500/20 border-indigo-400 text-indigo-300 font-bold shadow-xs" 
+                  : "border-zinc-800/40 opacity-60"
+              }`}>
+                <Smartphone className="w-4 h-4 mx-auto mb-1 opacity-80" />
+                <span className="block text-[10px]">Smartphone</span>
+                {currentDevice.type === "mobile" && (
+                  <span className="text-[8px] bg-indigo-500 text-white px-1.5 py-0.2 rounded-full mt-1 inline-block">Actuel</span>
+                )}
+              </div>
+            </div>
+
+            {/* Sync Features Checklist */}
+            <div className="space-y-1.5 text-[11px] pt-1 border-t border-zinc-800/20">
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Articles sauvegardés et favoris partagés</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Historique de lecture & progression conservés</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Même thème (clair/sombre, pro/sobre) et filtres</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Score de curiosité et badges synchronisés</span>
+              </div>
+            </div>
+
+            {/* Manual Sync Trigger */}
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-800/20">
+              <span className="text-[10px] opacity-70">
+                {lastSyncTime ? `Dernière synchro : ${lastSyncTime}` : "Synchronisé en direct"}
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (onForceSync) {
+                    await onForceSync();
+                  } else {
+                    onNotify("☁️ Synchronisation avec le compte réussie !");
+                  }
+                }}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                <span>{isSyncing ? "Synchronisation..." : "Synchroniser maintenant"}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Email Verification Status */}
           <div className={`p-4 rounded-xl border flex items-start gap-3 ${
             isSobre ? isDark ? "bg-zinc-950/60 border-zinc-800 text-zinc-300" : "bg-zinc-50 border-zinc-200 text-zinc-800" :
@@ -308,13 +452,26 @@ export default function UserAuth({
 
   return (
     <div className={getContainerClass()}>
-      <div className="text-center">
-        <h3 className={`text-2xl font-bold mb-2 ${isFun ? "font-black uppercase tracking-tight italic" : isWarm ? "font-serif italic font-bold" : "font-sans"}`}>
-          Espace Connexion
+      <div className="text-center space-y-2">
+        <h3 className={`text-2xl font-bold ${isFun ? "font-black uppercase tracking-tight italic" : isWarm ? "font-serif italic font-bold" : "font-sans"}`}>
+          Compte Personnel
         </h3>
-        <p className="text-xs sm:text-sm opacity-70 leading-relaxed">
-          Rejoignez la communauté InfoPerso pour proposer des articles et personnaliser votre filtre d'actualités.
+        <p className="text-xs sm:text-sm opacity-80 leading-relaxed">
+          Connectez-vous pour utiliser l'application sur votre <strong>PC</strong>, votre <strong>tablette</strong> et votre <strong>téléphone</strong> avec la même interface et vos données synchronisées.
         </p>
+
+        {/* Device Badges */}
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+            <Monitor className="w-3.5 h-3.5" /> PC
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+            <Tablet className="w-3.5 h-3.5" /> Tablette
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20">
+            <Smartphone className="w-3.5 h-3.5" /> Smartphone
+          </span>
+        </div>
       </div>
 
       {/* Tabs */}

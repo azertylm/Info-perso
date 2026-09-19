@@ -89,6 +89,8 @@ export interface NewsArticle {
   createdAt?: number;
   isCustomGenerated?: boolean;
   isSerendipitous?: boolean;
+  isLive?: boolean;
+  rawRssLink?: string;
 }
 
 export type DiscoveryMode = "focus" | "balanced" | "serendipity";
@@ -141,8 +143,8 @@ export interface QuizQuestion {
 export const AVAILABLE_MODELS: ModelConfig[] = [
   // Gemini
   {
-    id: "gemini-3.7-flash",
-    name: "Gemini 3.7 Flash",
+    id: "gemini-3.8-flash",
+    name: "Gemini 3.8 Flash",
     provider: "gemini",
     description: "Le modèle par excellence pour les tâches rapides, la synthèse et le chat d'actualité en temps réel.",
     contextWindow: "1M tokens",

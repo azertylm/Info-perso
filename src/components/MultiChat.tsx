@@ -16,7 +16,7 @@ export default function MultiChat({
   displayMode = "pro",
   themeMode = "dark"
 }: MultiChatProps) {
-  const [selectedModelId, setSelectedModelId] = useState("gemini-3.7-flash");
+  const [selectedModelId, setSelectedModelId] = useState("gemini-3.8-flash");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("Tu es un assistant IA professionnel, utile, précis, créatif et concis. Réponds toujours en français.");

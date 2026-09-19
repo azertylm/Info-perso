@@ -1,4 +1,4 @@
-import { db, OperationType, handleFirestoreError } from "./firebase";
+import { db, OperationType, handleFirestoreError, isFirebaseConfigured } from "./firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
 export interface SubscriptionStatus {
@@ -30,9 +30,19 @@ const DEFAULT_FREE_STATUS = (email: string = ""): SubscriptionStatus => ({
 });
 
 /**
- * Fetch the current subscription status from Firestore.
+ * Fetch the current subscription status from Firestore or localStorage.
  */
 export async function getSubscription(uid: string): Promise<SubscriptionStatus | null> {
+  const localKey = `infoperso_subscription_${uid}`;
+  if (!isFirebaseConfigured) {
+    try {
+      const stored = localStorage.getItem(localKey);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }
+
   const path = `subscriptions/${uid}`;
   try {
     const docRef = doc(db, "subscriptions", uid);
@@ -57,6 +67,17 @@ export function listenToSubscription(
   onUpdate: (status: SubscriptionStatus) => void,
   userEmail: string = ""
 ): () => void {
+  const localKey = `infoperso_subscription_${uid}`;
+  if (!isFirebaseConfigured) {
+    try {
+      const stored = localStorage.getItem(localKey);
+      onUpdate(stored ? JSON.parse(stored) : DEFAULT_FREE_STATUS(userEmail));
+    } catch {
+      onUpdate(DEFAULT_FREE_STATUS(userEmail));
+    }
+    return () => {};
+  }
+
   const docRef = doc(db, "subscriptions", uid);
   const path = `subscriptions/${uid}`;
   
@@ -99,6 +120,17 @@ export async function subscribeUser(
     appSource
   };
 
+  const localKey = `infoperso_subscription_${uid}`;
+  try {
+    localStorage.setItem(localKey, JSON.stringify(subscriptionData));
+  } catch (e) {
+    console.warn("Local storage subscription save error:", e);
+  }
+
+  if (!isFirebaseConfigured) {
+    return subscriptionData;
+  }
+
   const path = `subscriptions/${uid}`;
   try {
     const docRef = doc(db, "subscriptions", uid);
@@ -116,7 +148,7 @@ export async function subscribeUser(
 export async function simulateExpiry(uid: string, email: string): Promise<SubscriptionStatus> {
   const subscriptionData: SubscriptionStatus = {
     status: "expired",
-    planName: "Abonnement Expire",
+    planName: "Abonnement Expiré",
     subscribedApps: CONNECTED_APPS,
     expiresAt: new Date(Date.now() - 86400000).toISOString(), // expired yesterday
     createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
@@ -124,6 +156,17 @@ export async function simulateExpiry(uid: string, email: string): Promise<Subscr
     customerEmail: email,
     appSource: "Simulation"
   };
+
+  const localKey = `infoperso_subscription_${uid}`;
+  try {
+    localStorage.setItem(localKey, JSON.stringify(subscriptionData));
+  } catch (e) {
+    console.warn("Local storage subscription save error:", e);
+  }
+
+  if (!isFirebaseConfigured) {
+    return subscriptionData;
+  }
 
   const path = `subscriptions/${uid}`;
   try {
@@ -141,6 +184,17 @@ export async function simulateExpiry(uid: string, email: string): Promise<Subscr
  */
 export async function resetToFree(uid: string, email: string): Promise<SubscriptionStatus> {
   const subscriptionData = DEFAULT_FREE_STATUS(email);
+  const localKey = `infoperso_subscription_${uid}`;
+  try {
+    localStorage.setItem(localKey, JSON.stringify(subscriptionData));
+  } catch (e) {
+    console.warn("Local storage subscription reset error:", e);
+  }
+
+  if (!isFirebaseConfigured) {
+    return subscriptionData;
+  }
+
   const path = `subscriptions/${uid}`;
   try {
     const docRef = doc(db, "subscriptions", uid);

@@ -73,6 +73,27 @@ service cloud.firestore {
         && data.likes is int && data.likes >= 0;
     }
 
+    function isValidUserProfile(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && (!('email' in data) || (data.email is string && data.email.size() <= 200))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000))
+        && (!('themeMode' in data) || data.themeMode in ['light', 'dark'])
+        && (!('displayMode' in data) || data.displayMode in ['sobre', 'pro', 'warm', 'cyber', 'fun'])
+        && (!('isEasyMode' in data) || data.isEasyMode is bool)
+        && (!('curiosityScore' in data) || (data.curiosityScore is int && data.curiosityScore >= 0))
+        && (!('savedArticleIds' in data) || (data.savedArticleIds is list && data.savedArticleIds.size() <= 500))
+        && (!('readArticleIds' in data) || (data.readArticleIds is list && data.readArticleIds.size() <= 2000))
+        && (!('unlockedBadges' in data) || (data.unlockedBadges is list && data.unlockedBadges.size() <= 50))
+        && (!('customCategories' in data) || (data.customCategories is list && data.customCategories.size() <= 30))
+        && (!('customTitle' in data) || (data.customTitle is string && data.customTitle.size() <= 100))
+        && (!('followedTags' in data) || (data.followedTags is list && data.followedTags.size() <= 50))
+        && (!('blacklistedTags' in data) || (data.blacklistedTags is list && data.blacklistedTags.size() <= 50))
+        && (!('lastActiveDevice' in data) || (data.lastActiveDevice is string && data.lastActiveDevice.size() <= 50))
+        && (!('lastSyncAt' in data) || (data.lastSyncAt is string && data.lastSyncAt.size() <= 100))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 100));
+    }
+
     // 1. Shared Multi-App Subscription collection (PII Protected)
     match /subscriptions/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
@@ -148,9 +169,18 @@ service cloud.firestore {
       allow delete: if isEmailVerified() && request.auth.uid == existing().authorUid;
     }
 
-    // User profiles matching fallback
+    // 4. User profile & Cross-device synchronization for PC, Tablet, Mobile
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId 
+                    && isValidId(userId)
+                    && isValidUserProfile(incoming())
+                    && incoming().uid == request.auth.uid;
+      allow update: if isSignedIn() && request.auth.uid == userId 
+                    && isValidId(userId)
+                    && isValidUserProfile(incoming())
+                    && incoming().uid == existing().uid;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
     }
   }
 }

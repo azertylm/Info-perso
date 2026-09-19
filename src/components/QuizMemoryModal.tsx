@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { NewsArticle, QuizQuestion } from "../types";
 import {
   Brain,
@@ -135,17 +136,17 @@ export const QuizMemoryModal: React.FC<QuizMemoryModalProps> = ({
 
   const currentQ = questions[currentIndex];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-xl rounded-3xl border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden ${
+        className={`w-full max-w-xl rounded-3xl border shadow-2xl flex flex-col max-h-[85dvh] sm:max-h-[88vh] overflow-hidden ${
           isDark
             ? "bg-slate-900 border-amber-500/30 text-slate-100"
             : "bg-white border-slate-200 text-slate-900"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/40 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
               <Brain className="w-5 h-5" />
@@ -171,7 +172,7 @@ export const QuizMemoryModal: React.FC<QuizMemoryModalProps> = ({
         </div>
 
         {/* Question Stage */}
-        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto scrollbar flex-1">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto scrollbar flex-1 min-h-0">
           {!isFinished ? (
             <div className="space-y-4">
               {/* Progress dots */}
@@ -277,7 +278,7 @@ export const QuizMemoryModal: React.FC<QuizMemoryModalProps> = ({
         </div>
 
         {/* Footer actions */}
-        <div className="p-4 border-t border-slate-700/40 flex items-center justify-between gap-3 bg-black/20">
+        <div className="p-3.5 sm:p-4 border-t border-slate-700/40 flex items-center justify-between gap-3 bg-black/20 shrink-0">
           {!isFinished ? (
             !isSubmitted ? (
               <button
@@ -317,4 +318,6 @@ export const QuizMemoryModal: React.FC<QuizMemoryModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };
