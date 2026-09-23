@@ -35,6 +35,14 @@ const DEFAULT_CURATED_FEEDS: RssFeedSource[] = [
     isActive: true
   },
   {
+    id: "canard-enchaine",
+    title: "Le Canard Enchaîné",
+    url: "https://www.lecanardenchaine.fr/rss/index.xml",
+    category: "Actualité",
+    icon: "🦆",
+    isActive: true
+  },
+  {
     id: "lesechos-eco",
     title: "Les Échos - Économie",
     url: "https://services.lesechos.fr/rss/les-echos-economie.xml",
@@ -86,7 +94,21 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
   const [feeds, setFeeds] = useState<RssFeedSource[]>(() => {
     try {
       const saved = localStorage.getItem("infoperso_user_rss_feeds");
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((f: RssFeedSource) => {
+            let u = (f.url || "").trim();
+            if (u.includes("wwww.")) {
+              u = u.replace("wwww.", "www.");
+            }
+            if (/xn--lecannardenchan|xn--lecanardenchan|lecannardenchaine|lecanardenchaine/i.test(u)) {
+              return { ...f, title: "Le Canard Enchaîné", url: "https://www.lecanardenchaine.fr/rss/index.xml", icon: "🦆" };
+            }
+            return { ...f, url: u };
+          });
+        }
+      }
     } catch {}
     return DEFAULT_CURATED_FEEDS;
   });
@@ -122,14 +144,30 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
     if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
       cleanUrl = "https://" + cleanUrl;
     }
+    cleanUrl = cleanUrl.replace(/^(https?:\/\/)+wwww\./i, "$1www.");
 
-    const title = newTitle.trim() || new URL(cleanUrl).hostname.replace("www.", "");
+    let title = newTitle.trim();
+    let icon = "📡";
+
+    if (/xn--lecannardenchan|xn--lecanardenchan|lecannardenchaine|lecanardenchaine/i.test(cleanUrl) || /canard.*encha/i.test(title)) {
+      cleanUrl = "https://www.lecanardenchaine.fr/rss/index.xml";
+      if (!title) title = "Le Canard Enchaîné";
+      icon = "🦆";
+    }
+
+    if (!title) {
+      try {
+        title = new URL(cleanUrl).hostname.replace("www.", "");
+      } catch {
+        title = "Flux RSS";
+      }
+    }
     const newSource: RssFeedSource = {
       id: `custom-${Date.now()}`,
       title,
       url: cleanUrl,
       category: newCategory,
-      icon: "📡",
+      icon,
       isActive: true
     };
 
@@ -240,6 +278,7 @@ export const RssOpmlManagerModal: React.FC<RssOpmlManagerModalProps> = ({
                 tags: ["RSS", feed.category, "Direct"],
                 summary: cleanDesc.slice(0, 260) + (cleanDesc.length > 260 ? "..." : ""),
                 content: `${cleanTitle}\n\n${cleanDesc}${cleanLink ? `\n\nSource officielle : ${cleanLink}` : ""}${cleanDate ? `\nPublié le : ${cleanDate}` : ""}`,
+                imageUrl: item.imageUrl || undefined,
                 featured: idx === 0,
                 originalUrl: cleanLink,
                 createdAt: Date.now() - idx * 60000,

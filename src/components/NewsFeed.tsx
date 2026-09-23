@@ -1348,7 +1348,6 @@ export default function NewsFeed({
   }, [articles]);
 
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [deepDiveQuery, setDeepDiveQuery] = useState("");
@@ -1365,9 +1364,6 @@ export default function NewsFeed({
   const [isDeepDiving, setIsDeepDiving] = useState(false);
   const [analysisFontSize, setAnalysisFontSize] = useState<"normal" | "large" | "xlarge">(() => {
     return (localStorage.getItem("infoperso_analysis_font_size") as "normal" | "large" | "xlarge") || "large";
-  });
-  const [freeGenUsed, setFreeGenUsed] = useState<boolean>(() => {
-    return localStorage.getItem("infoperso_free_gen_used") === "true";
   });
 
   // 5 New Strategic Features States
@@ -2531,6 +2527,9 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           await saveArticleToServerRegistry(extracted);
           setArticles((prev) => [extracted, ...prev.filter((a) => a.id !== extracted.id)]);
           setSelectedArticle(extracted);
+          if (extracted.imageUrl) {
+            setCurrentReaderPhoto(extracted.imageUrl);
+          }
           setIsGeneratingCustom(null);
           onNotify(`✨ Article extrait en direct de ${extracted.source} !`);
           return;
@@ -2550,15 +2549,6 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     if (!cleanTopic) {
       setIsGeneratingCustom(null);
       return;
-    }
-
-    if (!apiKeys.gemini) {
-      const used = localStorage.getItem("infoperso_free_gen_used") === "true";
-      if (used) {
-        setShowLimitModal(true);
-        setIsGeneratingCustom(null);
-        return;
-      }
     }
 
     setIsGeneratingCustom(cleanTopic);
@@ -2708,11 +2698,6 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           content: candidateContent,
           originalUrl: detectedCleanUrl || (isUrl ? interest.trim() : undefined)
         });
-
-        if (!apiKeys.gemini) {
-          localStorage.setItem("infoperso_free_gen_used", "true");
-          setFreeGenUsed(true);
-        }
 
         // Automatically add tags to followed tags and preferences so the app learns what the user likes!
         const autoTags = Array.isArray(newArticle.tags) ? newArticle.tags : [];
@@ -3493,13 +3478,17 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       setDeepDiveHistory([]);
       setIsDeepDiving(false);
 
-      // Tenter une résolution en direct de l'entité sur Wikimedia Commons si disponible
+      // Tenter une résolution en direct de l'entité sur Wikimedia Commons si disponible UNIQUEMENT si l'article n'a pas déjà sa propre photo
       const currentArt = selectedArticle;
-      fetchLiveWikimediaPhoto(currentArt.title, currentArt.category).then(wikiPhoto => {
-        if (wikiPhoto && selectedArticle?.id === currentArt.id) {
-          setCurrentReaderPhoto(wikiPhoto);
-        }
-      }).catch(() => {});
+      if (currentArt.imageUrl && currentArt.imageUrl.startsWith("http")) {
+        setCurrentReaderPhoto(currentArt.imageUrl);
+      } else {
+        fetchLiveWikimediaPhoto(currentArt.title, currentArt.category).then(wikiPhoto => {
+          if (wikiPhoto && selectedArticle?.id === currentArt.id) {
+            setCurrentReaderPhoto(wikiPhoto);
+          }
+        }).catch(() => {});
+      }
     }
   }, [selectedArticle]);
 
@@ -3916,7 +3905,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         setIsExportingPdf(true);
         onNotify("⏳ Création du PDF illustré avec photo...");
         try {
-          const targetPhoto = currentReaderPhoto || article.imageUrl || getArticleIllustration(article);
+          const targetPhoto = article.imageUrl || currentReaderPhoto || getArticleIllustration(article);
           const success = await exportArticleAsPdf({
             article,
             photoUrl: targetPhoto,
@@ -3952,7 +3941,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
 
       const summaryText = fixTemporalConsistency(cleanText(rawSummary));
       const contentText = fixTemporalConsistency(cleanText(article.content));
-      const articlePhotoUrl = currentReaderPhoto || article.imageUrl || getArticleIllustration(article);
+      const articlePhotoUrl = article.imageUrl || currentReaderPhoto || getArticleIllustration(article);
       
       if (format === "html") {
         const isInitialDark = htmlTheme === "dark";
@@ -6754,32 +6743,53 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                             ? (isDark ? "bg-zinc-900 border-2 border-black" : "bg-yellow-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]")
                             : (isDark ? "bg-slate-900/50 border-slate-800" : "bg-indigo-50/50 border-indigo-100")
                   }`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
+                    <div className={`flex items-center justify-between border-b pb-3 gap-2 flex-wrap ${
                       isDark ? "border-zinc-800" : "border-zinc-200"
                     }`}>
-                      <span className={`text-sm sm:text-base font-sans font-bold uppercase tracking-[0.1em] flex items-center gap-2 ${
-                        isSobre ? (isDark ? "text-zinc-200" : "text-zinc-700") :
-                        isWarm ? (isDark ? "text-amber-200" : "text-amber-900") :
-                        isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-700") :
-                        isFun ? "text-black" :
-                        (isDark ? "text-indigo-400" : "text-indigo-700")
-                      }`}>
-                        <Cpu className={`w-4 h-4 animate-pulse ${
-                          isSobre ? (isDark ? "text-zinc-400" : "text-zinc-550") :
-                          isWarm ? (isDark ? "text-amber-400" : "text-amber-700") :
-                          isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-600") :
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-sm sm:text-base font-sans font-bold uppercase tracking-[0.1em] flex items-center gap-2 ${
+                          isSobre ? (isDark ? "text-zinc-200" : "text-zinc-700") :
+                          isWarm ? (isDark ? "text-amber-200" : "text-amber-900") :
+                          isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-700") :
                           isFun ? "text-black" :
-                          (isDark ? "text-indigo-400" : "text-indigo-600")
-                        }`} />
-                        Synthèse intelligente IA
-                      </span>
-                      {selectedArticle.aiSummaryModelUsed && (
-                        <span className={`text-xs font-mono font-semibold ${
-                          isDark ? "text-zinc-400" : "text-zinc-500"
+                          (isDark ? "text-indigo-400" : "text-indigo-700")
                         }`}>
-                          via {selectedArticle.aiSummaryModelUsed}
+                          <Cpu className={`w-4 h-4 animate-pulse ${
+                            isSobre ? (isDark ? "text-zinc-400" : "text-zinc-550") :
+                            isWarm ? (isDark ? "text-amber-400" : "text-amber-700") :
+                            isCyber ? (isDark ? "text-[#00ffcc]" : "text-teal-600") :
+                            isFun ? "text-black" :
+                            (isDark ? "text-indigo-400" : "text-indigo-600")
+                          }`} />
+                          Synthèse intelligente IA
                         </span>
-                      )}
+                        {selectedArticle.aiSummaryModelUsed && (
+                          <span className={`text-xs font-mono font-semibold ${
+                            isDark ? "text-zinc-400" : "text-zinc-500"
+                          }`}>
+                            via {selectedArticle.aiSummaryModelUsed}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          const textToCopy = selectedArticle.aiSummaryCustom || selectedArticle.summary || "";
+                          if (textToCopy) {
+                            navigator.clipboard.writeText(textToCopy);
+                            onNotify("📋 Résumé copié dans le presse-papiers !");
+                          }
+                        }}
+                        title="Copier le résumé directement dans le presse-papiers"
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
+                          isDark
+                            ? "bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-200"
+                            : "bg-white hover:bg-zinc-100 border-zinc-300 text-zinc-800 shadow-xs"
+                        }`}
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copier le résumé</span>
+                      </button>
                     </div>
 
                     {isSummarizing ? (
@@ -7569,67 +7579,6 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
           )}
         </div>
       </div>
-
-      {/* Limit Modal */}
-      {showLimitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-slate-900 border-2 border-indigo-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4 text-white">
-            <div className="flex items-start gap-3.5">
-              <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shrink-0">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-sans font-bold text-lg text-white leading-tight">
-                  Limite d'essai atteinte
-                </h3>
-                <p className="text-xs text-amber-400 mt-0.5 uppercase tracking-wider font-bold">
-                  Clé Google Gemini requise
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-slate-200 leading-relaxed font-sans">
-              <p>
-                Vous avez déjà effectué votre première génération gratuite avec la clé de l'administrateur.
-              </p>
-              <p>
-                Pour éviter d'épuiser les quotas partagés et continuer à rédiger des articles personnalisés de haute précision, veuillez configurer votre propre clé API Gemini 100% gratuite.
-              </p>
-              <div className="bg-slate-950 p-3 rounded-xl border border-indigo-500/30 flex items-center justify-between gap-2 mt-2">
-                <span className="text-xs text-slate-300 font-mono font-semibold">Clé Gemini gratuite</span>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-indigo-300 hover:text-white underline underline-offset-2 flex items-center gap-1"
-                >
-                  Obtenir sur AI Studio ↗
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setShowLimitModal(false);
-                  if (onNavigateToTab) {
-                    onNavigateToTab("keys");
-                  }
-                }}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-sans font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/30 cursor-pointer text-center"
-              >
-                Configurer ma clé API
-              </button>
-              <button
-                onClick={() => setShowLimitModal(false)}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-sans font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* PLANT ENRICHMENT MODAL */}
       {isPlantEnrichModalOpen && selectedArticle && (

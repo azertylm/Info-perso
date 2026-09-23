@@ -168,13 +168,17 @@ const TOPICAL_PHOTO_PATTERNS: Array<{
     credit: "Unsplash • Licence Libre"
   },
 
-  // 11. Climat, Écologie & Incendies
+  // 11. Incendies, Feux, Pompiers & Secours d'urgence
   {
-    keywords: ["incendie", "feu de forêt", "pompier", "forêt", "sécurité civile", "flammes", "canicule", "sécheresse"],
+    keywords: [
+      "incendie", "incendies", "feu", "feux", "feu de forêt", "pompier", "pompiers", 
+      "sécurité civile", "flammes", "fumée", "fumées", "panache", "sinistre", "évacuation", "palavas"
+    ],
     imageUrls: [
-      "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=800&q=80", // Forêt sous la brume
-      "https://images.unsplash.com/photo-1518457607834-6e8d80c183c5?auto=format&fit=crop&w=800&q=80", // Arbres et lumière
-      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80"  // Jeune pousse et environnement
+      "https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=800&q=80", // Véhicule de pompiers et équipe d'intervention
+      "https://images.unsplash.com/photo-1600336153113-d66c79de3e91?auto=format&fit=crop&w=800&q=80", // Équipement et casque de sapeur-pompier
+      "https://images.unsplash.com/photo-1541888946425-d0fbb186f5f7?auto=format&fit=crop&w=800&q=80", // Gyrophare et intervention d'urgence
+      "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80"  // Fumée et ciel en intervention
     ],
     credit: "Unsplash • Licence Libre"
   },

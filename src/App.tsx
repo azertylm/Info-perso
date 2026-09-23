@@ -25,7 +25,8 @@ import {
   Cloud,
   Monitor,
   Tablet,
-  Smartphone
+  Smartphone,
+  ShieldCheck
 } from "lucide-react";
 
 import { ApiKeys, RibInfo, NewsArticle } from "./types";
@@ -59,6 +60,9 @@ import {
   CustomArticleForm
 } from "./components/NeutralBaseAddons";
 
+// ALPHABETTE SUBSCRIPTION SYSTEM
+import AlphabettePricingModal from "./components/AlphabettePricingModal";
+
 // Standard French RIB defaults
 const DEFAULT_RIB: RibInfo = {
   bankName: "Crédit Agricole Toulouse 31",
@@ -89,6 +93,9 @@ export default function App() {
 
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
+
+  // Pricing Modal (ALPHABETTE / Valentin RICHAUD)
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
   // Display Modes: "sobre" | "pro" | "warm" | "cyber" | "fun"
   const [displayMode, setDisplayMode] = useState<"sobre" | "pro" | "warm" | "cyber" | "fun">(() => {
@@ -1178,6 +1185,23 @@ export default function App() {
                 {currentDevice.shortLabel}
               </span>
             </button>
+
+            {/* ABONNEMENTS ALPHABETTE */}
+            <button
+              onClick={() => {
+                setIsPricingModalOpen(true);
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(false, "fuchsia")}
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                Pass & Abonnements
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                15€ / 40€
+              </span>
+            </button>
           </div>
 
           {/* Categories */}
@@ -1366,8 +1390,23 @@ export default function App() {
               isFun ? isDark ? "bg-[#211d32] border-t-3 border-black text-pink-300" : "bg-white border-t-3 border-black text-black" :
               isDark ? "bg-slate-950/40 border-slate-800 text-slate-400" : "bg-white/95 border-slate-200 text-slate-600 shadow-xs"
             }`}>
-              <p>© 2026 InfoPerso. Tous droits réservés. Vos clés de connexion sont stockées de façon sécurisée.</p>
-              <div className="flex items-center gap-3 justify-center sm:justify-end">
+              <div className="text-left">
+                <p className="font-semibold text-zinc-200">
+                  © 2026 ALPHABETTE SASU • Fondé par Valentin RICHAUD à La Grande-Motte
+                </p>
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  Solutions logicielles souveraines, sans pistage ni revente de données • Hébergement sécurisé OVH (alphabette.fr / alphabette.eu)
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 justify-center sm:justify-end">
+                <button
+                  onClick={() => setIsPricingModalOpen(true)}
+                  className="hover:text-amber-400 transition-colors font-medium cursor-pointer flex items-center gap-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Abonnements (15€ / 40€/an)
+                </button>
+                <span className="opacity-40">•</span>
                 <button onClick={() => setActiveTab("keys")} className="hover:text-violet-400 transition-colors font-medium cursor-pointer">
                   Clés API
                 </button>
@@ -1506,6 +1545,14 @@ export default function App() {
           setDisplayMode(mode);
           localStorage.setItem("infoperso_display_mode", mode);
         }}
+      />
+
+      {/* ALPHABETTE SUBSCRIPTION & ACCESS CONTROL MODAL */}
+      <AlphabettePricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        onNotify={triggerToast}
+        isDark={isDark}
       />
     </div>
   );

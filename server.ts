@@ -4,6 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { aiService } from "./server/aiService";
 
 dotenv.config();
 
@@ -11,6 +12,60 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: "10mb" }));
+
+// ============================================================================
+// ALPHABETTE SOUVERAINETÉ & ROUTEUR IA UNIFIÉ (askAI)
+// ============================================================================
+
+// Statut de l'écosystème IA Alphabette (Santé Moteur Local, Mistral Cloud EU, Gemini)
+app.get("/api/ai/status", async (_req, res) => {
+  try {
+    const status = await aiService.getStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Erreur récupération statut IA" });
+  }
+});
+
+// Endpoint d'inférence unifié : askAI
+app.post("/api/ai/ask", async (req, res) => {
+  try {
+    const {
+      prompt,
+      messages,
+      systemInstruction,
+      temperature,
+      maxTokens,
+      responseFormat,
+      providerOverride,
+      enableSearch,
+      apiKeyOverride
+    } = req.body;
+
+    if (!prompt && (!messages || !Array.isArray(messages) || messages.length === 0)) {
+      res.status(400).json({ error: "Le paramètre 'prompt' ou 'messages' est requis." });
+      return;
+    }
+
+    const effectivePrompt = prompt || (messages ? messages[messages.length - 1]?.content : "") || "";
+
+    const result = await aiService.askAI(effectivePrompt, {
+      systemInstruction,
+      messages,
+      temperature,
+      maxTokens,
+      responseFormat,
+      providerOverride,
+      enableSearch,
+      apiKeyOverride
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    console.error("[POST /api/ai/ask error]:", err);
+    res.status(500).json({ error: err.message || "Erreur d'exécution IA unifiée" });
+  }
+});
 
 // Helper to get response from custom LLM APIs via fetch
 async function callExternalApi(url: string, headers: Record<string, string>, body: any) {
@@ -105,7 +160,7 @@ app.post("/api/chat/proxy", async (req, res) => {
     }
   }
 
-  if (!key && provider !== "gemini") {
+  if (!key && provider !== "gemini" && provider !== "hybrid_mistral" && provider !== "local") {
     res.status(400).json({
       error: `Clé API manquante pour ${provider}. Veuillez la configurer dans l'onglet Clés API.`,
     });
@@ -114,189 +169,132 @@ app.post("/api/chat/proxy", async (req, res) => {
 
   try {
     // 2. PROVIDER-SPECIFIC HANDLERS
+    if (provider === "hybrid_mistral" || provider === "local") {
+      const systemMessage = messages.find((m: any) => m.role === "system");
+      const systemInstruction = systemMessage ? systemMessage.content : undefined;
+      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+
+      const result = await aiService.askAI(lastUserMsg, {
+        systemInstruction,
+        messages,
+        temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.2,
+        providerOverride: provider as any,
+        apiKeyOverride: key
+      });
+
+      res.json({
+        content: fixTemporalConsistency(result.content),
+        usage: { promptTokens: 0, completionTokens: 0 },
+        modelUsed: result.modelUsed,
+        providerUsed: result.providerUsed,
+        isSovereign: result.isSovereign,
+        sovereigntyTier: result.sovereigntyTier,
+        fallbackOccurred: result.fallbackOccurred
+      });
+      return;
+    }
+
     if (provider === "gemini") {
-      // Use the official @google/genai SDK
       const actualKey = key || process.env.GEMINI_API_KEY;
       if (!actualKey) {
         throw new Error("Aucune clé API Gemini n'est disponible (ni fournie, ni configurée sur le serveur).");
       }
 
-      const ai = new GoogleGenAI({
-        apiKey: actualKey,
-        httpOptions: {
-          headers: {
-            "User-Agent": "aistudio-build",
-          },
-        },
-      });
-
       const systemMessage = messages.find((m: any) => m.role === "system");
       const systemInstruction = systemMessage ? systemMessage.content : undefined;
-      const contents = messages
-        .filter((m: any) => m.role !== "system")
-        .map((m: any) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        }));
+      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
 
-      // Map display model name to valid Gemini API model ID
-      const targetModel = resolveGeminiModel(model);
+      try {
+        const result = await aiService.askAI(lastUserMsg, {
+          systemInstruction,
+          messages,
+          temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.1,
+          enableSearch: req.body.enableSearch !== false,
+          apiKeyOverride: actualKey,
+          providerOverride: "gemini"
+        });
 
-      // Cascading fallback sequence using official active Gemini models
-      const rawFallbacks = [
-        targetModel,
-        "gemini-3.1-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-3.8-flash",
-        "gemini-flash-latest",
-        "gemini-3.7-flash",
-      ];
-      // Deduplicate fallback models while preserving order
-      const fallbackModels = Array.from(new Set(rawFallbacks));
-
-      let lastError: any = null;
-      let result: any = null;
-      let usedModel = targetModel;
-
-      for (const currentModel of fallbackModels) {
-        try {
-          const reqTemp = typeof req.body.temperature === "number" ? req.body.temperature : 0.1;
-          const geminiConfig: any = {
-            systemInstruction: systemInstruction,
-            temperature: reqTemp,
-            safetySettings: [
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
-            ],
-          };
-
-          // Enable Google Search Grounding by default for up-to-date live factual accuracy
-          let useSearch = req.body.enableSearch !== false;
-
-          if (useSearch) {
-            geminiConfig.tools = [{ googleSearch: {} }];
-            try {
-              result = await ai.models.generateContent({
-                model: currentModel,
-                contents: contents,
-                config: geminiConfig,
-              });
-            } catch (searchErr: any) {
-              // If search grounding fails (e.g. search tool quota 429, tool disabled, or high demand),
-              // immediately retry on the same model WITHOUT the search tool!
-              try {
-                result = await ai.models.generateContent({
-                  model: currentModel,
-                  contents: contents,
-                  config: {
-                    systemInstruction: systemInstruction,
-                    temperature: reqTemp,
-                    safetySettings: geminiConfig.safetySettings,
-                  },
-                });
-              } catch (noToolErr: any) {
-                lastError = noToolErr;
-                const isUnavailable = String(noToolErr?.message || "").includes("503") || String(noToolErr?.status) === "503";
-                if (isUnavailable) {
-                  await new Promise((resolve) => setTimeout(resolve, 350));
-                }
-                continue; // Move to the next fallback model in the pool
-              }
-            }
-          } else {
-            result = await ai.models.generateContent({
-              model: currentModel,
-              contents: contents,
-              config: geminiConfig,
-            });
-          }
-
-          if (result && result.text) {
-            usedModel = currentModel;
-            break; // success! Break loop
-          }
-        } catch (err: any) {
-          lastError = err;
-          // If it's an API key error or unauthorized (403), throw immediately
-          const errMsg = String(err.message || "");
-          if (errMsg.includes("API_KEY") || errMsg.includes("key is invalid") || errMsg.includes("403")) {
-            throw err;
-          }
-          if (errMsg.includes("503") || String(err.status) === "503") {
-            await new Promise((resolve) => setTimeout(resolve, 350));
-          }
-        }
-      }
-
-      let hasText = false;
-      let textContent = "";
-      if (result) {
-        try {
-          textContent = result.text || "";
-          hasText = !!textContent;
-        } catch (textErr) {
-          hasText = false;
-        }
-      }
-
-      // Check if it failed due to safety settings or empty response
-      if (!result || !hasText) {
-        const lastErrMsg = String(lastError?.message || lastError || "");
-        console.log("[Proxy] Model call ended without text, serving fallback:", lastErrMsg);
-
-        // Extract topic for honest messaging
-        const topicMsg = contents[contents.length - 1]?.parts?.[0]?.text || "";
-        let cleanTopic = topicMsg
-          .replace(/^(?:Génère un article|Recherche|Rédige|Donne-moi|Donne moi|Informations sur|Tout savoir sur).*?:\s*/i, "")
-          .replace(/['"«»]/g, "")
-          .trim();
-        if (!cleanTopic || cleanTopic.length > 80) {
-          cleanTopic = "ce sujet";
-        }
-
-        const isJsonRequested = messages && messages.some((m: any) => 
-          typeof m.content === "string" && (
-            m.content.includes("tableau JSON") || 
-            m.content.includes("JSON brut") || 
-            m.content.includes("status = 'no_news'") ||
-            m.content.includes('"status": "ok"')
-          )
-        );
-
-        if (isJsonRequested) {
-          // Transparent no-news response instead of fabricated filler
-          const noNewsResponse = JSON.stringify({
-            status: "no_news",
-            sujet: cleanTopic,
-            raison: `Aucun fait d'actualité récent vérifié n'a pu être extrait automatiquement pour "${cleanTopic}". Veuillez préciser votre recherche avec des termes plus ciblés (ville, nom, date).`,
-            pistes: [`Actualité récente ${cleanTopic}`, `Faits marquants ${cleanTopic}`]
-          });
-
+        if (result && result.content) {
           res.json({
-            content: noNewsResponse,
+            content: fixTemporalConsistency(result.content),
             usage: { promptTokens: 0, completionTokens: 0 },
-            modelUsed: usedModel || "gemini-search"
+            modelUsed: result.modelUsed,
+            providerUsed: result.providerUsed,
+            isSovereign: result.isSovereign,
+            sovereigntyTier: result.sovereigntyTier,
+            fallbackOccurred: result.fallbackOccurred
           });
           return;
         }
+      } catch (aiErr: any) {
+        console.warn("[Proxy Gemini] Incident ou saturation temporaire (503), tentative de secours souverain:", aiErr?.message || aiErr);
+      }
 
-        // Plain text honest response
-        const honestText = `📌 **Recherche d'information : ${cleanTopic}**\n\nAucune dépêche récente vérifiée n'a pu être extraite avec certitude sur ce sujet précis.\n\n💡 **Conseils de recherche :**\n• Précisez le nom de la commune ou du département concerné.\n• Indiquez des mots-clés factuels (ex: décision de justice, point presse préfecture, faits divers).\n• Vérifiez l'orthographe des noms propres.`;
+      // Secours souverain automatique si Gemini subit un pic temporaire de charge (503)
+      try {
+        const sovereignRes = await aiService.askAI(lastUserMsg, {
+          systemInstruction,
+          messages,
+          temperature: 0.2,
+          providerOverride: "hybrid_mistral"
+        });
+        if (sovereignRes && sovereignRes.content) {
+          res.json({
+            content: fixTemporalConsistency(sovereignRes.content),
+            usage: { promptTokens: 0, completionTokens: 0 },
+            modelUsed: sovereignRes.modelUsed,
+            providerUsed: sovereignRes.providerUsed,
+            isSovereign: sovereignRes.isSovereign,
+            sovereigntyTier: sovereignRes.sovereigntyTier,
+            fallbackOccurred: true
+          });
+          return;
+        }
+      } catch (_sovErr) {
+        // Poursuite vers le retour synthétique d'information
+      }
+
+      // En cas d'indisponibilité totale et transitoire de tous les moteurs
+      const topicMsg = lastUserMsg;
+      let cleanTopic = topicMsg
+        .replace(/^(?:Génère un article|Recherche|Rédige|Donne-moi|Donne moi|Informations sur|Tout savoir sur).*?:\s*/i, "")
+        .replace(/['"«»]/g, "")
+        .trim();
+      if (!cleanTopic || cleanTopic.length > 80) {
+        cleanTopic = "ce sujet";
+      }
+
+      const isJsonRequested = messages && messages.some((m: any) => 
+        typeof m.content === "string" && (
+          m.content.includes("tableau JSON") || 
+          m.content.includes("JSON brut") || 
+          m.content.includes("status = 'no_news'") ||
+          m.content.includes('"status": "ok"')
+        )
+      );
+
+      if (isJsonRequested) {
+        const noNewsResponse = JSON.stringify({
+          status: "no_news",
+          sujet: cleanTopic,
+          raison: `Le service d'analyse subit une forte affluence momentanée pour "${cleanTopic}". Veuillez réitérer dans quelques instants.`,
+          pistes: [`Actualité récente ${cleanTopic}`, `Faits marquants ${cleanTopic}`]
+        });
 
         res.json({
-          content: honestText,
+          content: noNewsResponse,
           usage: { promptTokens: 0, completionTokens: 0 },
-          modelUsed: usedModel || "gemini-search"
+          modelUsed: "gemini-fallback"
         });
         return;
       }
 
+      const honestText = `📌 **Information sur ${cleanTopic}**\n\nLe réseau d'analyse IA est actuellement très sollicité. L'information actualisée sera à nouveau disponible dans quelques secondes.\n\n💡 Conseil : vous pouvez également tester le moteur souverain ALPHABETTE (Mistral Cloud / Local) via l'indicateur en haut de l'écran.`;
+
       res.json({
-        content: fixTemporalConsistency(textContent),
+        content: honestText,
         usage: { promptTokens: 0, completionTokens: 0 },
-        modelUsed: usedModel
+        modelUsed: "gemini-fallback"
       });
       return;
     }
@@ -515,11 +513,6 @@ app.post("/api/gemini/highlight", async (req, res) => {
   }
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-    });
-
     const prompt = `Identifie précisément entre 3 et 5 passages textuels clés (des phrases entières ou expressions courtes très significatives) présents de manière identique dans le texte ci-dessous. Pour chaque passage identifié, donne une brève explication (1 à 2 phrases courtes) en français expliquant "Pourquoi c'est important".
     
     Réponds EXCLUSIVEMENT sous la forme d'un tableau JSON d'objets, sans mise en forme markdown additionnelle. Chaque objet du tableau doit obligatoirement avoir les clés exactes suivantes :
@@ -529,40 +522,14 @@ app.post("/api/gemini/highlight", async (req, res) => {
     Texte à analyser :
     ${content}`;
 
-    const modelsToTry = [
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-3.8-flash",
-      "gemini-flash-latest",
-      "gemini-3.7-flash"
-    ];
+    const aiRes = await aiService.askAI(prompt, {
+      responseFormat: "json",
+      temperature: 0.2,
+      apiKeyOverride: key,
+      providerOverride: "gemini"
+    });
 
-    let response = null;
-    let lastErr = null;
-    for (const currentModel of modelsToTry) {
-      try {
-        response = await ai.models.generateContent({
-          model: currentModel,
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.2,
-          },
-        });
-        if (response && response.text) {
-          break;
-        }
-      } catch (err: any) {
-        lastErr = err;
-        console.log(`[Highlight] ${currentModel} status: temporarily unavailable. Trying next model...`);
-      }
-    }
-
-    if (!response) {
-      throw lastErr || new Error("All highlight models failed.");
-    }
-
-    let data = cleanAndParseJson<any[]>(response.text || "[]", []);
+    let data = cleanAndParseJson<any[]>(aiRes.content || "[]", []);
 
     // Ensure array format
     if (!Array.isArray(data)) {
@@ -619,11 +586,6 @@ app.post("/api/gemini/quiz", async (req, res) => {
   }
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-    });
-
     const prompt = `Génère exactement deux questions à choix multiples (QCM) très pertinentes en français pour tester la compréhension de l'article intitulé "${title || "Article d'actualité"}".
     Pour chaque question, fournis exactement 4 options de réponse, l'index de la bonne réponse (un entier entre 0 et 3) et une explication claire et didactique de la bonne réponse.
     
@@ -643,40 +605,14 @@ app.post("/api/gemini/quiz", async (req, res) => {
     Contenu de l'article :
     ${content}`;
 
-    const modelsToTry = [
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-3.8-flash",
-      "gemini-flash-latest",
-      "gemini-3.7-flash"
-    ];
+    const aiRes = await aiService.askAI(prompt, {
+      responseFormat: "json",
+      temperature: 0.3,
+      apiKeyOverride: key,
+      providerOverride: "gemini"
+    });
 
-    let response = null;
-    let lastErr = null;
-    for (const currentModel of modelsToTry) {
-      try {
-        response = await ai.models.generateContent({
-          model: currentModel,
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-          },
-        });
-        if (response && response.text) {
-          break;
-        }
-      } catch (err: any) {
-        lastErr = err;
-        console.log(`[Quiz] ${currentModel} status: temporarily unavailable. Trying next model...`);
-      }
-    }
-
-    if (!response) {
-      throw lastErr || new Error("All quiz models failed.");
-    }
-
-    let data = cleanAndParseJson<any>(response.text || "{}", {});
+    let data = cleanAndParseJson<any>(aiRes.content || "{}", {});
 
     res.json(data.questions && Array.isArray(data.questions) ? data : { questions: [] });
   } catch (_err: any) {
@@ -727,11 +663,6 @@ app.post("/api/gemini/synthesis", async (req, res) => {
   }
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-    });
-
     const articlesText = articles.map((a: any, i: number) => `
     --- ARTICLE ${i + 1} ---
     Titre : ${a.title}
@@ -753,39 +684,13 @@ app.post("/api/gemini/synthesis", async (req, res) => {
     Voici les articles du dossier à synthétiser :
     ${articlesText}`;
 
-    const modelsToTry = [
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-3.8-flash",
-      "gemini-flash-latest",
-      "gemini-3.7-flash"
-    ];
+    const aiRes = await aiService.askAI(prompt, {
+      temperature: 0.4,
+      apiKeyOverride: key,
+      providerOverride: "gemini"
+    });
 
-    let response = null;
-    let lastErr = null;
-    for (const currentModel of modelsToTry) {
-      try {
-        response = await ai.models.generateContent({
-          model: currentModel,
-          contents: prompt,
-          config: {
-            temperature: 0.5,
-          },
-        });
-        if (response && response.text) {
-          break;
-        }
-      } catch (err: any) {
-        lastErr = err;
-        console.log(`[Synthesis] ${currentModel} status: temporarily unavailable. Trying next model...`);
-      }
-    }
-
-    if (!response) {
-      throw lastErr || new Error("All synthesis models failed.");
-    }
-
-    res.json({ synthesis: fixTemporalConsistency(response.text) });
+    res.json({ synthesis: fixTemporalConsistency(aiRes.content), isFallback: aiRes.fallbackOccurred });
   } catch (_err: any) {
     console.log("[Gemini Synthesis] Serving local fallback synthesis.");
     // Graceful fallback markdown synthesis
@@ -841,11 +746,6 @@ app.post("/api/gemini/verify-article", async (req, res) => {
   }
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-    });
-
     const prompt = `Tu es le Rédacteur en Chef et Fact-Checker en chef d'InfoPerso, une plateforme d'information exigeante et éthique.
 Un membre de la communauté propose un article ancré dans l'actualité. Évalue rigoureusement cet article.
 
@@ -876,42 +776,19 @@ Réponds STRICTEMENT sous la forme d'un objet JSON valide sans markdown addition
   "certifiedBadge": "<'🌟 Article d'Excellence' si score >= 85, '✓ Article Vérifié' si score >= 70, ou '⚠️ En cours de révision'>"
 }`;
 
-    const modelsToTry = [
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-3.8-flash",
-      "gemini-flash-latest",
-      "gemini-3.7-flash"
-    ];
+    const aiRes = await aiService.askAI(prompt, {
+      responseFormat: "json",
+      temperature: 0.2,
+      apiKeyOverride: key,
+      providerOverride: "gemini"
+    });
 
-    let response = null;
-    let lastErr = null;
-    for (const currentModel of modelsToTry) {
-      try {
-        response = await ai.models.generateContent({
-          model: currentModel,
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-          },
-        });
-        if (response && response.text) {
-          break;
-        }
-      } catch (err: any) {
-        lastErr = err;
-        console.log(`[Verify Article] ${currentModel} status: temporarily unavailable. Trying next model...`);
-      }
+    const parsed = cleanAndParseJson<any>(aiRes.content || "{}", {});
+    if (parsed && typeof parsed.score === "number") {
+      res.json(parsed);
+      return;
     }
-
-    if (!response || !response.text) {
-      throw lastErr || new Error("All verification models failed.");
-    }
-
-    const cleanJson = response.text.trim().replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    const parsed = JSON.parse(cleanJson);
-    res.json(parsed);
+    throw new Error("Invalid response format");
   } catch (_err: any) {
     console.log("[Gemini Verify Article] Serving fallback validation.");
     res.json({
@@ -950,14 +827,14 @@ app.post("/api/chat/test-key", async (req, res) => {
         httpOptions: { headers: { "User-Agent": "aistudio-build" } },
       });
       
-      const testModels = [
+      const rawTestModels = [
         resolveGeminiModel(model),
-        "gemini-3.1-flash-lite",
-        "gemini-2.5-flash",
         "gemini-3.8-flash",
+        "gemini-3.1-flash-lite",
         "gemini-flash-latest",
-        "gemini-3.7-flash"
+        "gemini-3.1-pro-preview"
       ];
+      const testModels = Array.from(new Set(rawTestModels));
       let testError: any = null;
       let result: any = null;
 
@@ -967,7 +844,9 @@ app.post("/api/chat/test-key", async (req, res) => {
             model: m,
             contents: "Dis 'OK' et rien d'autre.",
           });
-          break; // successfully tested
+          if (result && result.text) {
+            break; // successfully tested
+          }
         } catch (err: any) {
           testError = err;
           // If it's explicitly a key issue, we can break and fail
@@ -1085,35 +964,106 @@ app.post("/api/chat/test-key", async (req, res) => {
   }
 });
 
+// Helper to normalize and autocorrect RSS URLs entered by users
+function normalizeRssUrl(inputUrl: string): string {
+  let u = inputUrl.trim();
+  if (!u.startsWith("http://") && !u.startsWith("https://")) {
+    u = "https://" + u;
+  }
+  // Correct common accidental typo 'wwww.' -> 'www.'
+  u = u.replace(/^(https?:\/\/)+wwww\./i, "$1www.");
+
+  // Autocorrect common misspellings or punycode variants for Le Canard Enchaîné
+  if (/xn--lecannardenchan|xn--lecanardenchan|lecannardenchaine|lecanardenchaine/i.test(u)) {
+    return "https://www.lecanardenchaine.fr/rss/index.xml";
+  }
+
+  // If user pasted the root URL of lecanardenchaine, direct to the official RSS feed
+  try {
+    const parsed = new URL(u);
+    if (parsed.hostname.includes("lecanardenchaine.fr") && (parsed.pathname === "" || parsed.pathname === "/" || parsed.pathname === "/rss")) {
+      return "https://www.lecanardenchaine.fr/rss/index.xml";
+    }
+  } catch {}
+
+  return u;
+}
+
 // RSS / Atom feed parser endpoint
 app.post("/api/rss/fetch", async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== "string") {
-    res.status(400).json({ error: "Paramètre 'url' de flux RSS manquant." });
+    res.status(400).json({ success: false, error: "Paramètre 'url' de flux RSS manquant." });
     return;
   }
 
+  let targetUrl = normalizeRssUrl(url);
+
   try {
-    const response = await fetch(url, {
+    let response = await fetch(targetUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InfoPerso-RSS-Reader/2.0",
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, text/html, */*"
       },
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(10000)
+    }).catch(async (firstErr) => {
+      // If DNS or fetch failed, try fallback with or without 'www.'
+      try {
+        const u = new URL(targetUrl);
+        const altHost = u.hostname.startsWith("www.") ? u.hostname.replace(/^www\./, "") : `www.${u.hostname}`;
+        u.hostname = altHost;
+        return await fetch(u.toString(), {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InfoPerso-RSS-Reader/2.0",
+            Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, text/html, */*"
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+      } catch {
+        throw firstErr;
+      }
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      res.status(400).json({ success: false, error: `Le serveur distant a répondu avec une erreur HTTP ${response.status}` });
+      return;
     }
 
-    const xml = await response.text();
+    let textData = await response.text();
+
+    // Auto-discover RSS feed link if the user provided an HTML webpage instead of direct XML
+    if ((textData.includes("<html") || textData.includes("<!doctype html")) && !textData.includes("<rss") && !textData.includes("<feed")) {
+      const discoveredLinkMatch =
+        textData.match(/<link[^>]+type=["'](?:application\/rss\+xml|application\/atom\+xml)["'][^>]*href=["']([^"']+)["']/i) ||
+        textData.match(/<link[^>]+href=["']([^"']+)["'][^>]*type=["'](?:application\/rss\+xml|application\/atom\+xml)["']/i);
+
+      if (discoveredLinkMatch && discoveredLinkMatch[1]) {
+        let rssHref = discoveredLinkMatch[1].trim();
+        try {
+          rssHref = new URL(rssHref, targetUrl).href;
+          const subRes = await fetch(rssHref, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InfoPerso-RSS-Reader/2.0",
+              Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
+            },
+            signal: AbortSignal.timeout(8000)
+          });
+          if (subRes.ok) {
+            textData = await subRes.text();
+            targetUrl = rssHref;
+          }
+        } catch {}
+      }
+    }
+
+    const xml = textData;
     
     // Parse RSS 2.0 / Atom items
     const items: any[] = [];
     
     // Extract channel/feed title
     const feedTitleMatch = xml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i);
-    const feedTitle = feedTitleMatch ? feedTitleMatch[1].replace(/<[^>]+>/g, "").trim() : "Flux RSS";
+    const feedTitle = feedTitleMatch ? decodeHtmlEntities(feedTitleMatch[1].replace(/<[^>]+>/g, "").trim()) : "Flux RSS";
 
     // RSS items
     const itemRegex = /<item[\s>]([\s\S]*?)<\/item>/gi;
@@ -1125,18 +1075,23 @@ app.post("/api/rss/fetch", async (req, res) => {
       const descM = block.match(/<(?:description|content:encoded)>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:description|content:encoded)>/i);
       const dateM = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
       const catM = block.match(/<category>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/category>/i);
+      const imgM = block.match(/<media:content[^>]+url=["']([^"']+)["']/i) ||
+                   block.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*type=["']image\//i) ||
+                   block.match(/<img[^>]+src=["']([^"']+)["']/i);
 
-      const title = titleM ? titleM[1].replace(/<[^>]+>/g, "").trim() : "Actualité";
-      const link = linkM ? linkM[1].trim() : url;
-      let desc = descM ? descM[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+      const title = titleM ? decodeHtmlEntities(titleM[1].replace(/<[^>]+>/g, "").trim()) : "Actualité";
+      const link = linkM ? linkM[1].trim() : targetUrl;
+      let desc = descM ? decodeHtmlEntities(descM[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()) : "";
       if (desc.length > 500) desc = desc.slice(0, 500) + "...";
+      const imageUrl = imgM && imgM[1]?.startsWith("http") ? imgM[1] : undefined;
 
       items.push({
         title,
         link,
         description: desc || title,
+        imageUrl,
         pubDate: dateM ? dateM[1].trim() : new Date().toISOString(),
-        category: catM ? catM[1].replace(/<[^>]+>/g, "").trim() : "Actualité"
+        category: catM ? decodeHtmlEntities(catM[1].replace(/<[^>]+>/g, "").trim()) : "Actualité"
       });
     }
 
@@ -1149,16 +1104,20 @@ app.post("/api/rss/fetch", async (req, res) => {
         const linkM = block.match(/<link[^>]+href=["']([^"']+)["']/i);
         const summaryM = block.match(/<(?:summary|content)[\s\S]*?>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:summary|content)>/i);
         const updatedM = block.match(/<updated>([\s\S]*?)<\/updated>/i);
+        const imgM = block.match(/<link[^>]+rel=["']enclosure["'][^>]+href=["']([^"']+)["'][^>]*type=["']image\//i) ||
+                     block.match(/<img[^>]+src=["']([^"']+)["']/i);
 
-        const title = titleM ? titleM[1].replace(/<[^>]+>/g, "").trim() : "Actualité";
-        const link = linkM ? linkM[1].trim() : url;
-        let desc = summaryM ? summaryM[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+        const title = titleM ? decodeHtmlEntities(titleM[1].replace(/<[^>]+>/g, "").trim()) : "Actualité";
+        const link = linkM ? linkM[1].trim() : targetUrl;
+        let desc = summaryM ? decodeHtmlEntities(summaryM[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()) : "";
         if (desc.length > 500) desc = desc.slice(0, 500) + "...";
+        const imageUrl = imgM && imgM[1]?.startsWith("http") ? imgM[1] : undefined;
 
         items.push({
           title,
           link,
           description: desc || title,
+          imageUrl,
           pubDate: updatedM ? updatedM[1].trim() : new Date().toISOString(),
           category: "Actualité"
         });
@@ -1168,13 +1127,16 @@ app.post("/api/rss/fetch", async (req, res) => {
     res.json({
       success: true,
       feedTitle,
-      url,
+      url: targetUrl,
       itemsCount: items.length,
       items
     });
   } catch (err: any) {
-    console.error("RSS Fetch Error:", err);
-    res.status(500).json({ success: false, error: err.message || "Impossible de récupérer le flux RSS" });
+    console.warn(`[RSS Reader] Failed to fetch feed ${targetUrl}:`, err?.message || err);
+    res.status(400).json({
+      success: false,
+      error: `Impossible de récupérer le flux RSS (${err.message || "adresse introuvable ou inaccessible"}). Vérifiez l'adresse web.`
+    });
   }
 });
 
@@ -1318,6 +1280,7 @@ const LIVE_FEEDS_CONFIG = [
   { source: "Le Figaro", category: "International", emoji: "🌍", url: "https://www.lefigaro.fr/rss/figaro_actualites.xml" },
   { source: "France Info", category: "Actualité", emoji: "⚡", url: "https://www.francetvinfo.fr/titres.rss" },
   { source: "Le Monde", category: "Actualité", emoji: "📰", url: "https://www.lemonde.fr/rss/une.xml" },
+  { source: "Le Canard Enchaîné", category: "Actualité", emoji: "🦆", url: "https://www.lecanardenchaine.fr/rss/index.xml" },
   { source: "Les Échos", category: "Économie", emoji: "💼", url: "https://services.lesechos.fr/rss/les-echos-economie.xml" },
   { source: "Futura Sciences", category: "Science", emoji: "🔬", url: "https://www.futura-sciences.com/rss/actualites.xml" },
   { source: "Google Actualités", category: "Actualité", emoji: "🌐", url: "https://news.google.com/rss?hl=fr&gl=FR&ceid=FR:fr" },
@@ -1447,7 +1410,7 @@ app.get("/api/rss/live", async (req, res) => {
 
     res.json({ success: true, count: deduplicated.length, articles: deduplicated });
   } catch (err: any) {
-    console.error("Live RSS Aggregation Error:", err);
+    console.warn("Live RSS Aggregation Notice:", err?.message || err);
     res.status(500).json({ success: false, error: err.message || "Erreur de récupération du direct" });
   }
 });
@@ -1540,10 +1503,19 @@ app.get("/api/rss/search", async (req, res) => {
 
     res.json({ success: true, count: items.length, articles: items });
   } catch (err: any) {
-    console.error("RSS Search Error:", err);
+    console.warn("RSS Search Notice:", err?.message || err);
     res.status(500).json({ success: false, error: err.message || "Impossible d'effectuer la recherche en direct" });
   }
 });
+
+function isGoodEditorialPhoto(url?: string): boolean {
+  if (!url || typeof url !== "string") return false;
+  const lower = url.toLowerCase();
+  if (!lower.startsWith("http")) return false;
+  if (lower.includes(".svg") || lower.endsWith(".svg")) return false;
+  if (/(-position|-carte|carte_|map|location_map|plan|flag|drapeau|blason|coat_of_arms|logo|icon|schematic)/i.test(lower)) return false;
+  return true;
+}
 
 // ==========================================
 // ROYALTY-FREE ARTICLE PHOTO SEARCH (0 LOCAL DISK BYTES, 100% LEGAL & FREE)
@@ -1595,10 +1567,11 @@ app.post("/api/article/photo", async (req, res) => {
         const pData = await pRes.json();
         const pages = pData?.query?.pages || {};
         const firstPage: any = Object.values(pages)[0];
-        if (firstPage?.thumbnail?.source) {
+        const src = firstPage?.thumbnail?.source;
+        if (src && isGoodEditorialPhoto(src)) {
           res.json({
             success: true,
-            imageUrl: firstPage.thumbnail.source,
+            imageUrl: src,
             source: "Wikimedia Commons",
             license: "Creative Commons / Domaine Public (Libre de droit)",
             title: firstPage.title
@@ -1622,10 +1595,11 @@ app.post("/api/article/photo", async (req, res) => {
           if (dRes.ok) {
             const dData = await dRes.json();
             const detailPage: any = Object.values(dData?.query?.pages || {})[0];
-            if (detailPage?.thumbnail?.source) {
+            const detailSrc = detailPage?.thumbnail?.source;
+            if (detailSrc && isGoodEditorialPhoto(detailSrc)) {
               res.json({
                 success: true,
-                imageUrl: detailPage.thumbnail.source,
+                imageUrl: detailSrc,
                 source: "Wikimedia Commons",
                 license: "Creative Commons / Domaine Public (Libre de droit)",
                 title: detailPage.title
@@ -1702,11 +1676,22 @@ app.post("/api/article/extract", async (req, res) => {
     else if (hostname.includes("bfmtv.com")) sourceName = "BFMTV";
     else if (hostname.includes("courrierinternational.com")) sourceName = "Courrier International";
     else if (hostname.includes("midilibre.fr")) sourceName = "Midi Libre";
+    else if (hostname.includes("infoccitanie.fr")) sourceName = "InfOccitanie";
+    else if (hostname.includes("actu.fr")) sourceName = "Actu.fr";
+    else if (hostname.includes("20minutes.fr")) sourceName = "20 Minutes";
+    else if (hostname.includes("leparisien.fr")) sourceName = "Le Parisien";
+    else if (hostname.includes("ouest-france.fr")) sourceName = "Ouest-France";
     else if (hostname.includes("techcrunch.com")) sourceName = "TechCrunch";
     else if (hostname.includes("theverge.com")) sourceName = "The Verge";
     else if (hostname.includes("wired.com")) sourceName = "Wired";
     else if (hostname.includes("futura-sciences.com")) sourceName = "Futura Sciences";
     else if (hostname.includes("numerama.com")) sourceName = "Numerama";
+    else {
+      const cleanHost = hostname.replace(/^www\./, "").split(".")[0];
+      if (cleanHost && cleanHost.length > 2) {
+        sourceName = cleanHost.charAt(0).toUpperCase() + cleanHost.slice(1);
+      }
+    }
   } catch {}
 
   // 2. Infer clean title and topic from URL pathname slug
@@ -1732,8 +1717,10 @@ app.post("/api/article/extract", async (req, res) => {
   let summary = "";
   let imageUrl: string | undefined = undefined;
   let paragraphs: string[] = [];
+  let detectedCategory = "Actualité";
+  let extractedRawEditorial = "";
 
-  // TIER 1: Standard Direct HTTP Fetch with Realistic Desktop Browser Headers
+  // TIER 1: Direct HTTP Fetch with Realistic Desktop Browser Headers
   try {
     const response = await fetch(targetUrl, {
       headers: {
@@ -1749,48 +1736,114 @@ app.post("/api/article/extract", async (req, res) => {
         "Sec-Fetch-User": "?1",
         "Upgrade-Insecure-Requests": "1"
       },
-      signal: AbortSignal.timeout(6000)
+      signal: AbortSignal.timeout(7000)
     });
 
     if (response.ok) {
       const html = await response.text();
 
-      // Extract OpenGraph & Meta Title
-      const ogTitleM = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i) ||
-                       html.match(/<meta\s+content=["'](.*?)["']\s+property=["']og:title["']/i);
+      // Detect og:site_name
+      const siteNameM = html.match(/<meta[^>]*property=["']og:site_name["'][^>]*content=["'](.*?)["']/i) ||
+                        html.match(/<meta[^>]*content=["'](.*?)["'][^>]*property=["']og:site_name["']/i);
+      if (siteNameM && siteNameM[1]?.trim()) {
+        sourceName = decodeHtmlEntities(siteNameM[1].trim());
+      }
+
+      // Extract Title
+      const ogTitleM = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["'](.*?)["']/i) ||
+                       html.match(/<meta[^>]*content=["'](.*?)["'][^>]*property=["']og:title["']/i) ||
+                       html.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["'](.*?)["']/i);
       const titleTagM = html.match(/<title>(.*?)<\/title>/i);
       const rawTitle = ogTitleM ? ogTitleM[1] : (titleTagM ? titleTagM[1] : "");
       if (rawTitle) {
         title = decodeHtmlEntities(rawTitle).replace(/ \| .*$/, "").replace(/ - .*$/, "").trim();
       }
 
-      const ogDescM = html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i) ||
-                      html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i);
+      // Extract Summary
+      const ogDescM = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["'](.*?)["']/i) ||
+                      html.match(/<meta[^>]*content=["'](.*?)["'][^>]*property=["']og:description["']/i) ||
+                      html.match(/<meta[^>]*name=["']description["'][^>]*content=["'](.*?)["']/i);
       if (ogDescM) {
-        summary = decodeHtmlEntities(ogDescM[1]);
+        summary = decodeHtmlEntities(ogDescM[1]).trim();
       }
 
-      const ogImageM = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i);
-      if (ogImageM) {
-        imageUrl = ogImageM[1];
-      }
-
-      const paragraphRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
-      let pMatch;
-      while ((pMatch = paragraphRegex.exec(html)) !== null && paragraphs.length < 12) {
-        const cleanP = decodeHtmlEntities(pMatch[1].replace(/<[^>]+>/g, ""));
-        if (cleanP.length > 50 && !cleanP.toLowerCase().includes("cookie") && !cleanP.toLowerCase().includes("abonnez-vous") && !cleanP.toLowerCase().includes("newsletter")) {
-          paragraphs.push(cleanP);
+      // Extract Real Photo (og:image or twitter:image)
+      const ogImageM = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["'](.*?)["']/i) ||
+                       html.match(/<meta[^>]*content=["'](.*?)["'][^>]*property=["']og:image["']/i) ||
+                       html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["'](.*?)["']/i) ||
+                       html.match(/<meta[^>]*content=["'](.*?)["'][^>]*name=["']twitter:image["']/i);
+      if (ogImageM && ogImageM[1]) {
+        let rawImg = ogImageM[1].trim();
+        if (rawImg && !rawImg.startsWith("http")) {
+          try { rawImg = new URL(rawImg, targetUrl).href; } catch {}
+        }
+        if (rawImg.startsWith("http") && !rawImg.toLowerCase().includes(".svg")) {
+          imageUrl = rawImg;
         }
       }
-    } else {
-      console.warn(`Direct fetch for ${targetUrl} returned HTTP ${response.status}. Trying reader fallback.`);
+
+      // Sanitize HTML by removing scripts, styles, iframes, SVGs, navigations, footers, sidebars
+      let cleanHtml = html
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+        .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+        .replace(/<iframe[\s\S]*?<\/iframe>/gi, " ")
+        .replace(/<header[\s\S]*?<\/header>/gi, " ")
+        .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+        .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+        .replace(/<aside[\s\S]*?<\/aside>/gi, " ");
+
+      // Target article container if available
+      const artContainerM = cleanHtml.match(/<article[\s\S]*?<\/article>/i) ||
+                            cleanHtml.match(/<(?:div|section)[^>]*class=["'][^"']*(?:entry-content|post-content|article-content|story-body|article__body|content-area)[^"']*["'][\s\S]*?<\/(?:div|section)>/i) ||
+                            cleanHtml.match(/<main[\s\S]*?<\/main>/i);
+
+      let targetSection = artContainerM ? artContainerM[0] : cleanHtml;
+
+      // Remove sharing widgets and social bars
+      targetSection = targetSection
+        .replace(/<(?:div|section|aside|p|ul|span)[^>]*class=["'][^"']*(?:share|social|partage|newsletter|author-box|related|tags|widgets?|wx-|meteo)[^"']*["'][\s\S]*?<\/(?:div|section|aside|p|ul|span)>/gi, " ")
+        .replace(/<button[\s\S]*?<\/button>/gi, " ");
+
+      // Extract raw clean editorial text
+      extractedRawEditorial = decodeHtmlEntities(
+        targetSection
+          .replace(/<[^>]+>/g, "\n")
+          .split("\n")
+          .map(l => l.trim())
+          .filter(l => l.length > 0)
+          .join("\n")
+      ).slice(0, 4500);
+
+      // Fallback deterministic paragraph extraction
+      const isNoiseLine = (line: string) => {
+        const l = line.toLowerCase();
+        return (
+          l.includes("partager") || l.includes("facebook") || l.includes("twitter") || 
+          l.includes("whatsapp") || l.includes("telegram") || l.includes("pinterest") ||
+          l.includes("copier le lien") || l.includes("ajoutez-nous") || l.includes("suivez-nous") ||
+          l.includes("abonnez-vous") || l.includes("newsletter") || l.includes("cookie") ||
+          l.includes("fil info") || l.includes("météo") || l.includes("à lire aussi") ||
+          l.includes("function(") || l.includes("var ") || l.includes("document.") ||
+          l.startsWith("{") || l.startsWith("[") || l.includes("wx-card")
+        );
+      };
+
+      const candidateLines = extractedRawEditorial
+        .split("\n")
+        .map(l => l.trim())
+        .filter(l => l.length > 40 && !isNoiseLine(l));
+
+      if (candidateLines.length > 0) {
+        paragraphs = candidateLines.slice(0, 8);
+      }
     }
   } catch (directErr) {
     console.warn(`Direct fetch failed for ${targetUrl}:`, directErr);
   }
 
-  // TIER 2: Reader Proxy (r.jina.ai) to bypass WAF / 403 Forbidden blocks
+  // TIER 2: Reader Proxy fallback if direct fetch returned empty
   if (!title || paragraphs.length === 0) {
     try {
       const readerUrl = `https://r.jina.ai/${encodeURI(targetUrl)}`;
@@ -1806,7 +1859,7 @@ app.post("/api/article/extract", async (req, res) => {
         const text = await readerRes.text();
         const isErrorText = (s: string) => {
           const l = s.toLowerCase();
-          return l.includes("introuvable") || l.includes("not found") || l.includes("403") || l.includes("forbidden") || l.includes("access denied") || l.includes("erreur") || l.includes("page non trouvée") || l.includes("just a moment");
+          return l.includes("introuvable") || l.includes("not found") || l.includes("403") || l.includes("forbidden") || l.includes("access denied") || l.includes("erreur");
         };
 
         const titleMatch = text.match(/Title:\s*(.+)/i);
@@ -1820,14 +1873,17 @@ app.post("/api/article/extract", async (req, res) => {
         const lines = text
           .split("\n")
           .map(l => l.trim())
-          .filter(l => l.length > 60 && !l.startsWith("http") && !l.startsWith("!["))
-          .filter(l => !l.toLowerCase().includes("cookie") && !l.toLowerCase().includes("newsletter"))
+          .filter(l => l.length > 50 && !l.startsWith("http") && !l.startsWith("!["))
+          .filter(l => !l.toLowerCase().includes("cookie") && !l.toLowerCase().includes("newsletter") && !l.toLowerCase().includes("partager"))
           .filter(l => !isErrorText(l));
 
-        if (lines.length > 0 && paragraphs.length === 0) {
-          paragraphs = lines.slice(0, 10);
-          if (!summary && paragraphs.length > 0) {
-            summary = paragraphs[0];
+        if (lines.length > 0) {
+          extractedRawEditorial = lines.slice(0, 15).join("\n");
+          if (paragraphs.length === 0) {
+            paragraphs = lines.slice(0, 8);
+            if (!summary && paragraphs.length > 0) {
+              summary = paragraphs[0];
+            }
           }
         }
       }
@@ -1836,49 +1892,64 @@ app.post("/api/article/extract", async (req, res) => {
     }
   }
 
-  // TIER 3: Gemini AI Synthesis from URL & Inferred Metadata
-  if (!title || paragraphs.length === 0) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey) {
-      try {
-        const ai = new GoogleGenAI({
-          apiKey,
-          httpOptions: { headers: { "User-Agent": "aistudio-build" } }
-        });
+  // TIER 3: Gemini AI High-Fidelity Extraction & Synthesis
+  // Passes the raw article text to Gemini to guarantee clean editorial journalism without social junk or widget code
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && (extractedRawEditorial.length > 50 || title)) {
+    try {
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
 
-        const prompt = `Tu es la rédaction de presse InfoPerso. Un lecteur souhaite consulter l'article d'actualité suivant :
+      const prompt = `Tu es le moteur de lecture et d'analyse journalistique InfoPerso.
+Un lecteur consulte l'article suivant :
 URL source : ${targetUrl}
 Média d'origine : ${sourceName}
-Sujet détecté : ${inferredTopic}
+Titre détecté : ${title || inferredTopic}
+Description détectée : ${summary}
 
-Rédige un article d'information complet, neutre et factuel sur ce sujet.
+Contenu brut extrait de la page web :
+"""
+${extractedRawEditorial.slice(0, 3500) || inferredTopic}
+"""
+
+Instructions strictes :
+1. Extrais et restitue FIDÈLEMENT l'article journalistique réel (les faits vérifiés, lieux, heures, interventions, témoignages).
+2. ÉLIMINE TOTALEMENT :
+   - Les boutons et mentions de réseaux sociaux ("Partager", "Facebook", "X", "WhatsApp", "Ajoutez-nous en favori", etc.)
+   - Les widgets météo, alertes trafic, cours boursiers, scripts, données JSON ou codes informatiques
+   - Les barres latérales, "FIL INFO", "À lire aussi", liens d'articles tiers
+   - Les bandeaux de cookies, newsletters ou abonnements
+3. Rédige un titre clair et percutant, un résumé précis en 2-3 phrases, et les paragraphes complets de l'article en français irréprochable.
+
 Réponds STRICTEMENT avec cet objet JSON :
 {
   "title": "Titre journalistique clair et percutant",
   "summary": "Résumé de 2-3 phrases sur les faits essentiels",
+  "category": "Actualité",
   "paragraphs": [
     "Paragraphe 1 : Contexte et faits récents.",
-    "Paragraphe 2 : Réactions, chiffres et données clés.",
-    "Paragraphe 3 : Perspectives et enjeux à moyen terme."
+    "Paragraphe 2 : Détails des interventions et conséquences."
   ]
 }`;
 
-        const aiRes = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          config: { responseMimeType: "application/json" }
-        });
+      const aiRes = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: { responseMimeType: "application/json" }
+      });
 
-        const jsonText = aiRes.text || "{}";
-        const parsed = JSON.parse(jsonText);
-        if (parsed.title) title = parsed.title;
-        if (parsed.summary) summary = parsed.summary;
-        if (Array.isArray(parsed.paragraphs) && parsed.paragraphs.length > 0) {
-          paragraphs = parsed.paragraphs;
-        }
-      } catch (aiErr) {
-        console.warn("AI synthesis fallback notice:", aiErr);
+      const jsonText = aiRes.text || "{}";
+      const parsed = JSON.parse(jsonText);
+      if (parsed.title) title = parsed.title;
+      if (parsed.summary) summary = parsed.summary;
+      if (parsed.category) detectedCategory = parsed.category;
+      if (Array.isArray(parsed.paragraphs) && parsed.paragraphs.length > 0) {
+        paragraphs = parsed.paragraphs;
       }
+    } catch (aiErr) {
+      console.warn("AI extraction fallback notice:", aiErr);
     }
   }
 
@@ -1903,17 +1974,18 @@ Réponds STRICTEMENT avec cet objet JSON :
     id,
     title,
     source: sourceName,
-    category: "Actualité",
+    category: detectedCategory || "Actualité",
     time: "À l'instant",
     score: 98,
     emoji: "📰",
-    tags: [sourceName, "Presse", "Vérifié"],
+    tags: [sourceName, "Presse", "Vérifié", detectedCategory],
     summary,
     content,
     imageUrl,
     featured: true,
     originalUrl: targetUrl,
     isCustomGenerated: true,
+    isLive: true,
     createdAt: id
   };
 
