@@ -75,6 +75,9 @@ const LOCAL_TRANSLATIONS: Record<Language, {
       { id: "lang", keys: ["Alt", "L"], desc: "Faire défiler la langue (FR, EN, ES, ZH, etc.)", actionLabel: "Changer Langue" },
       { id: "new", keys: ["Alt", "N"], desc: "Ouvrir/Fermer le tiroir de publication cible d'article", actionLabel: "Publier Article" },
       { id: "profile", keys: ["Alt", "P"], desc: "Afficher le Score de Curiosité & les Badges", actionLabel: "Tiroir Profil" },
+      { id: "vault", keys: ["Alt", "Z"], desc: "Ouvrir le Coffre-Fort Numérique Zero-Knowledge", actionLabel: "Coffre ZK" },
+      { id: "simulator", keys: ["Alt", "B"], desc: "Simulateur de Rentabilité & Point Mort Artisan", actionLabel: "Simulateur" },
+      { id: "workshop", keys: ["Alt", "O"], desc: "L'Œil de l'Atelier (Interventions & photos offline)", actionLabel: "Atelier" },
       { id: "spotlight", keys: ["Ctrl/Cmd", "K"], desc: "Ouvrir le Spotlight Command Center (Recherche globale)", actionLabel: "Spotlight Center" },
     ]
   },
@@ -105,6 +108,9 @@ const LOCAL_TRANSLATIONS: Record<Language, {
       { id: "lang", keys: ["Alt", "L"], desc: "Cycle active language (FR, EN, ES, ZH, etc.)", actionLabel: "Change Language" },
       { id: "new", keys: ["Alt", "N"], desc: "Open/Close custom article publication drawer", actionLabel: "Publish Article" },
       { id: "profile", keys: ["Alt", "P"], desc: "Display Curiosity Score & Badges drawer", actionLabel: "Profile Drawer" },
+      { id: "vault", keys: ["Alt", "Z"], desc: "Open Zero-Knowledge Digital Vault", actionLabel: "ZK Vault" },
+      { id: "simulator", keys: ["Alt", "B"], desc: "Profitability & Break-even Simulator", actionLabel: "Simulator" },
+      { id: "workshop", keys: ["Alt", "O"], desc: "Workshop Log (Offline field interventions)", actionLabel: "Workshop" },
       { id: "spotlight", keys: ["Ctrl/Cmd", "K"], desc: "Open the Spotlight Command Center (Global search)", actionLabel: "Spotlight Center" },
     ]
   },

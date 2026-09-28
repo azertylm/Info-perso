@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "L'Œil de l'Atelier — ALPHABETTE",
+  "short_name": "Atelier",
+  "description": "Suite souveraine artisanale : interventions hors-ligne, coffre-fort zero-knowledge et commande vocale d'atelier.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#1e3a8a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

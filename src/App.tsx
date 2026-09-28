@@ -26,7 +26,13 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  ShieldCheck
+  ShieldCheck,
+  FolderLock,
+  Calculator,
+  TrendingUp,
+  Wrench,
+  Lock,
+  ExternalLink
 } from "lucide-react";
 
 import { ApiKeys, RibInfo, NewsArticle } from "./types";
@@ -38,6 +44,9 @@ import CommunitySpace from "./components/CommunitySpace";
 import UserAuth from "./components/UserAuth";
 import UserProfileDrawer from "./components/UserProfileDrawer";
 import ShortcutsGuide from "./components/ShortcutsGuide";
+import { ZeroKnowledgeVaultModal } from "./components/ZeroKnowledgeVaultModal";
+import { ArtisanProfitabilitySimulator } from "./components/ArtisanProfitabilitySimulator";
+import { ArtisanWorkshopModal } from "./components/ArtisanWorkshopModal";
 import { auth, onAuthStateChanged } from "./lib/firebase";
 import { SubscriptionStatus, listenToSubscription } from "./lib/subscriptionService";
 import { 
@@ -85,7 +94,7 @@ const DEFAULT_KEYS: ApiKeys = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"flux" | "chat" | "donations" | "keys" | "communaute" | "auth" | "shortcuts">("flux");
+  const [activeTab, setActiveTab] = useState<"flux" | "chat" | "donations" | "keys" | "communaute" | "auth" | "shortcuts" | "simulateur">("flux");
   const [apiKeys, setApiKeys] = useState<ApiKeys>(DEFAULT_KEYS);
   const [ribInfo, setRibInfo] = useState<RibInfo>(DEFAULT_RIB);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -96,6 +105,10 @@ export default function App() {
 
   // Pricing Modal (ALPHABETTE / Valentin RICHAUD)
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+
+  // Zero-Knowledge Vault & Workshop Modals
+  const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [isWorkshopModalOpen, setIsWorkshopModalOpen] = useState(false);
 
   // Display Modes: "sobre" | "pro" | "warm" | "cyber" | "fun"
   const [displayMode, setDisplayMode] = useState<"sobre" | "pro" | "warm" | "cyber" | "fun">(() => {
@@ -298,6 +311,18 @@ export default function App() {
           e.preventDefault();
           setSpotlightOpen(prev => !prev);
           triggerToast(language === "fr" ? "🔍 Centre de Commandes Spotlight (Alt + G)" : "🔍 Spotlight Command Center (Alt + G)");
+        } else if (key === "z") {
+          e.preventDefault();
+          setIsVaultModalOpen(prev => !prev);
+          triggerToast(language === "fr" ? "🔒 Coffre-fort Zero-Knowledge (Alt + Z)" : "🔒 Zero-Knowledge Vault (Alt + Z)");
+        } else if (key === "b") {
+          e.preventDefault();
+          setActiveTab("simulateur");
+          triggerToast(language === "fr" ? "📊 Simulateur de Rentabilité Financière (Alt + B)" : "📊 Profitability Simulator (Alt + B)");
+        } else if (key === "o") {
+          e.preventDefault();
+          setIsWorkshopModalOpen(prev => !prev);
+          triggerToast(language === "fr" ? "🛠️ L'Œil de l'Atelier Chantier (Alt + O)" : "🛠️ Workshop Interventions (Alt + O)");
         }
       }
     };
@@ -879,8 +904,12 @@ export default function App() {
     }
   };
 
+  const [refreshFluxTrigger, setRefreshFluxTrigger] = useState(0);
+
   const handleRefreshFlux = () => {
-    triggerToast("Actualisation des flux terminés — 3 nouveaux articles trouvés ↻");
+    setActiveTab("flux");
+    setRefreshFluxTrigger((c) => c + 1);
+    triggerToast("🔄 Récupération et placement des 20 nouveaux articles en tête de liste...");
   };
 
   const TAG_COLORS_MAP: Record<string, { active: string; inactive: string }> = {
@@ -998,6 +1027,30 @@ export default function App() {
 
         {/* Top actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* ZERO-KNOWLEDGE VAULT BUTTON (Infos Perso / ALPHABETTE) */}
+          <button
+            onClick={() => setIsVaultModalOpen(true)}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg border text-xs font-bold transition-all cursor-pointer bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20"
+            title="Coffre-Fort Numérique Zero-Knowledge (PBKDF2 100k, AES-256-GCM, auto-lock 5 min) - Alt + Z"
+          >
+            <FolderLock className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden lg:inline">Coffre ZK</span>
+          </button>
+
+          {/* SIMULATEUR RENTABILITÉ BUTTON */}
+          <button
+            onClick={() => setActiveTab("simulateur")}
+            className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "simulateur"
+                ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+            }`}
+            title="Simulateur de Rentabilité Financière & Point Mort (Artisan / Pass Alphabette) - Alt + B"
+          >
+            <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden lg:inline">Rentabilité</span>
+          </button>
+
           {/* USER ACCOUNT & MULTI-DEVICE SYNC BUTTON */}
           <button
             onClick={() => setActiveTab("auth")}
@@ -1186,6 +1239,57 @@ export default function App() {
               </span>
             </button>
 
+            {/* SIMULATEUR RENTABILITÉ FINANCIÈRE */}
+            <button
+              onClick={() => {
+                setActiveTab("simulateur");
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(activeTab === "simulateur", "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-emerald-400" />
+                Simulateur de rentabilité
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Point Mort
+              </span>
+            </button>
+
+            {/* COFFRE-FORT ZERO-KNOWLEDGE */}
+            <button
+              onClick={() => {
+                setIsVaultModalOpen(true);
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(false, "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <FolderLock className="w-5 h-5 text-indigo-400" />
+                Coffre Zero-Knowledge
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                AES-256
+              </span>
+            </button>
+
+            {/* L'OEIL DE L'ATELIER */}
+            <button
+              onClick={() => {
+                setIsWorkshopModalOpen(true);
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(false, "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-amber-400" />
+                L'Œil de l'Atelier
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                Chantiers
+              </span>
+            </button>
+
             {/* ABONNEMENTS ALPHABETTE */}
             <button
               onClick={() => {
@@ -1196,10 +1300,10 @@ export default function App() {
             >
               <span className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-400" />
-                Pass & Abonnements
+                Abonnements Suite
               </span>
               <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                15€ / 40€
+                39€ / 59€
               </span>
             </button>
           </div>
@@ -1264,6 +1368,18 @@ export default function App() {
               <RefreshCw className={`w-3.5 h-3.5 animate-spin-slow ${isFun ? "text-black font-black" : isCyber ? "text-[#00ffcc]" : isSobre ? isDark ? "text-black" : "text-zinc-950" : isWarm ? isDark ? "text-[#251f1c]" : "text-amber-955" : isDark ? "text-cyan-400" : "text-indigo-600"}`} />
               Actualiser le flux
             </button>
+
+            {/* Standardized Suite Link */}
+            <div className="pt-2 text-center">
+              <a
+                href="http://alphabette.fr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>Découvrir toutes les applications sur alphabette.fr ↗</span>
+              </a>
+            </div>
           </div>
         </aside>
 
@@ -1276,6 +1392,7 @@ export default function App() {
           {activeTab === "flux" && (
             <div className="space-y-6">
               <NewsFeed
+                refreshFluxTrigger={refreshFluxTrigger}
                 apiKeys={apiKeys}
                 savedIds={savedIds}
                 readIds={readIds}
@@ -1302,7 +1419,30 @@ export default function App() {
           )}
 
           {activeTab === "chat" && (
-            <MultiChat apiKeys={apiKeys} onNotify={triggerToast} themeMode={themeMode} />
+            <MultiChat
+              apiKeys={apiKeys}
+              onNotify={triggerToast}
+              themeMode={themeMode}
+              displayMode={displayMode}
+              onNavigateToTab={setActiveTab}
+              onOpenVault={() => setIsVaultModalOpen(true)}
+              onOpenWorkshop={() => setIsWorkshopModalOpen(true)}
+              onOpenPricing={() => setIsPricingModalOpen(true)}
+              onSetTheme={(t) => {
+                setThemeMode(t);
+                localStorage.setItem("infoperso_theme_mode", t);
+              }}
+              onSetDisplayMode={(m) => {
+                setDisplayMode(m);
+                localStorage.setItem("infoperso_display_mode", m);
+              }}
+              onFilterCategory={(cat) => {
+                setActiveTab("flux");
+                setActiveFilter(cat);
+                setActiveTag(null);
+              }}
+              appName={customTitle || "Info Perso"}
+            />
           )}
 
           {activeTab === "keys" && (
@@ -1381,6 +1521,12 @@ export default function App() {
             />
           )}
 
+          {activeTab === "simulateur" && (
+            <div className="py-2 max-w-5xl mx-auto space-y-6">
+              <ArtisanProfitabilitySimulator />
+            </div>
+          )}
+
           {/* PROFESSIONAL FOOTER inside scrollable main container */}
           {activeTab !== "chat" && (
             <footer className={`mt-12 py-6 px-4 text-center text-xs font-sans flex flex-col sm:flex-row items-center justify-between gap-3 border-t shrink-0 ${
@@ -1390,13 +1536,24 @@ export default function App() {
               isFun ? isDark ? "bg-[#211d32] border-t-3 border-black text-pink-300" : "bg-white border-t-3 border-black text-black" :
               isDark ? "bg-slate-950/40 border-slate-800 text-slate-400" : "bg-white/95 border-slate-200 text-slate-600 shadow-xs"
             }`}>
-              <div className="text-left">
+              <div className="text-left space-y-1">
                 <p className="font-semibold text-zinc-200">
                   © 2026 ALPHABETTE SASU • Fondé par Valentin RICHAUD à La Grande-Motte
                 </p>
-                <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Solutions logicielles souveraines, sans pistage ni revente de données • Hébergement sécurisé OVH (alphabette.fr / alphabette.eu)
+                <p className="text-[11px] text-zinc-500">
+                  Solutions logicielles souveraines, sans pistage ni revente de données • Moteur Mistral AI souverain (France/Europe)
                 </p>
+                <div className="pt-0.5">
+                  <a
+                    href="http://alphabette.fr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors"
+                  >
+                    <span>Découvrir toutes les applications de la suite sur http://alphabette.fr</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 justify-center sm:justify-end">
                 <button
@@ -1404,11 +1561,27 @@ export default function App() {
                   className="hover:text-amber-400 transition-colors font-medium cursor-pointer flex items-center gap-1"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Abonnements (15€ / 40€/an)
+                  Abonnements Suite (39€ / 59€ / 99€ / 199€)
+                </button>
+                <span className="opacity-40">•</span>
+                <button
+                  onClick={() => setActiveTab("simulateur")}
+                  className="hover:text-emerald-400 transition-colors font-medium cursor-pointer flex items-center gap-1"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                  Simulateur Rentabilité
+                </button>
+                <span className="opacity-40">•</span>
+                <button
+                  onClick={() => setIsVaultModalOpen(true)}
+                  className="hover:text-indigo-400 transition-colors font-medium cursor-pointer flex items-center gap-1"
+                >
+                  <FolderLock className="w-3.5 h-3.5 text-indigo-400" />
+                  Coffre ZK
                 </button>
                 <span className="opacity-40">•</span>
                 <button onClick={() => setActiveTab("keys")} className="hover:text-violet-400 transition-colors font-medium cursor-pointer">
-                  Clés API
+                  Clés API Mistral
                 </button>
                 <span className="opacity-40">•</span>
                 <button onClick={() => setActiveTab("donations")} className="hover:text-rose-400 transition-colors flex items-center gap-1 font-medium cursor-pointer">
@@ -1545,6 +1718,8 @@ export default function App() {
           setDisplayMode(mode);
           localStorage.setItem("infoperso_display_mode", mode);
         }}
+        onOpenVault={() => setIsVaultModalOpen(true)}
+        onOpenWorkshop={() => setIsWorkshopModalOpen(true)}
       />
 
       {/* ALPHABETTE SUBSCRIPTION & ACCESS CONTROL MODAL */}
@@ -1553,6 +1728,18 @@ export default function App() {
         onClose={() => setIsPricingModalOpen(false)}
         onNotify={triggerToast}
         isDark={isDark}
+      />
+
+      {/* ZERO-KNOWLEDGE VAULT MODAL (Infos Perso / ALPHABETTE) */}
+      <ZeroKnowledgeVaultModal
+        isOpen={isVaultModalOpen}
+        onClose={() => setIsVaultModalOpen(false)}
+      />
+
+      {/* L'OEIL DE L'ATELIER (Artisan Interventions Offline & Synchro) */}
+      <ArtisanWorkshopModal
+        isOpen={isWorkshopModalOpen}
+        onClose={() => setIsWorkshopModalOpen(false)}
       />
     </div>
   );

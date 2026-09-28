@@ -900,6 +900,7 @@ interface NewsFeedProps {
   };
   onAwardCuriosityPoints?: (points: number, reason: string, category?: string, actionType?: "read" | "share" | "quiz") => void;
   isEasyMode?: boolean;
+  refreshFluxTrigger?: number;
 }
 
 export default function NewsFeed({
@@ -920,7 +921,8 @@ export default function NewsFeed({
   unlockedBadges = [],
   passiveSignalsSettings = { trackReadingTime: true, trackScrollDepth: true, trackReReading: true, trackCategoryWeights: true },
   onAwardCuriosityPoints = () => {},
-  isEasyMode = false
+  isEasyMode = false,
+  refreshFluxTrigger = 0
 }: NewsFeedProps) {
   const isSobre = displayMode === "sobre";
   const isWarm = displayMode === "warm";
@@ -1876,23 +1878,37 @@ export default function NewsFeed({
     }
     finalNewArticles = finalNewArticles.map(sanitizeArticleTemporalConsistency);
 
+    const priorityTime = Date.now();
+    // Guarantee the 20 new articles are stamped with the newest priority timestamps
+    const top20New = finalNewArticles.slice(0, 20).map((art, idx) => ({
+      ...art,
+      createdAt: priorityTime + 10000000 - idx * 1000,
+      time: "À l'instant",
+      isNewTop20: true,
+      featured: true
+    }));
+
     // Preserve any existing bookmarked articles
     const savedArticles = articles.filter(art => savedIds.has(art.id));
-    const newTitles = new Set(finalNewArticles.map(a => a.title.trim().toLowerCase()));
+    const newTitles = new Set(top20New.map(a => a.title.trim().toLowerCase()));
     const uniqueSaved = savedArticles.filter(a => !newTitles.has(a.title.trim().toLowerCase()));
 
-    const fullFeed = [...finalNewArticles, ...uniqueSaved];
+    const remaining = articles
+      .filter(a => !top20New.some(n => n.id === a.id || n.title.trim().toLowerCase() === a.title.trim().toLowerCase()))
+      .map(a => ({ ...a, featured: false, isNewTop20: false }));
+
+    const fullFeed = [...top20New, ...uniqueSaved, ...remaining.filter(a => !uniqueSaved.some(s => s.id === a.id))];
     setArticles(fullFeed);
     localStorage.setItem("infoperso_articles", JSON.stringify(fullFeed));
-    localStorage.setItem("infoperso_last_updated", Date.now().toString());
+    localStorage.setItem("infoperso_last_updated", nowTime.toString());
 
-    onNotify(`✨ 20 articles d'actualité récents et vérifiés ont été générés et chargés !`);
+    onNotify(`✨ Les 20 nouveaux articles ont été placés en premier dans la liste !`);
     setIsBulkGenerating(false);
   };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [minScore, setMinScore] = useState(40); // lowered default minimum score so users can see matches below 60 too
-  const [sortBy, setSortBy] = useState<"score" | "date" | "time">("score");
+  const [minScore, setMinScore] = useState(40);
+  const [sortBy, setSortBy] = useState<"score" | "date" | "time">("time");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   // Mode Photographie ("En photo") - Persisté localement, activé par défaut
   const [photoMode, setPhotoMode] = useState<boolean>(() => {
@@ -2323,28 +2339,51 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       if (res.ok && res.data?.success && Array.isArray(res.data.articles)) {
         const incoming = res.data.articles;
         setLiveRssCount(incoming.length);
-        setArticles((prev) => {
-          const existingIds = new Set(prev.map((a) => a.id).filter(id => id !== null && id !== undefined));
-          const existingTitles = new Set(prev.map((a) => a.title.trim().toLowerCase().slice(0, 35)));
-          const fresh: NewsArticle[] = [];
+        const nowTime = Date.now();
 
-          for (let i = 0; i < incoming.length; i++) {
-            const item = incoming[i];
-            let safeId = (typeof item.id === "number" && !isNaN(item.id) && item.id > 0) ? item.id : null;
-            if (safeId === null || existingIds.has(safeId)) {
-              safeId = Date.now() + i + 1000 + Math.floor(Math.random() * 5000);
-            }
-            const cleanTitle = item.title.trim().toLowerCase().slice(0, 35);
-            if (!existingIds.has(safeId) && !existingTitles.has(cleanTitle)) {
-              existingIds.add(safeId);
-              existingTitles.add(cleanTitle);
-              fresh.push({ ...item, id: safeId });
-            }
+        // 1. Extraire les 20 articles les plus récents et leur garantir la priorité absolue en tête
+        const top20New: NewsArticle[] = [];
+        const seenNewTitles = new Set<string>();
+
+        for (let i = 0; i < incoming.length && top20New.length < 20; i++) {
+          const item = incoming[i];
+          const cleanTitle = item.title.trim().toLowerCase().slice(0, 35);
+          if (!seenNewTitles.has(cleanTitle)) {
+            seenNewTitles.add(cleanTitle);
+            const safeId = (typeof item.id === "number" && !isNaN(item.id) && item.id > 0)
+              ? item.id
+              : nowTime + i + 1000;
+            top20New.push({
+              ...item,
+              id: safeId,
+              isNewTop20: true,
+              createdAt: nowTime + 10000000 - top20New.length * 1000,
+              time: "À l'instant",
+              featured: true,
+              tags: Array.from(new Set(["Direct Live", "Nouveau", ...(item.tags || [])]))
+            });
           }
-          return [...fresh, ...prev];
+        }
+
+        setArticles((prev) => {
+          const top20Ids = new Set(top20New.map((a) => a.id));
+          const top20Titles = new Set(top20New.map((a) => a.title.trim().toLowerCase().slice(0, 35)));
+
+          // Retirer les doublons de la liste précédente et dé-marquer les anciens articles à la une
+          const cleanedPrev = prev
+            .filter((a) => !top20Ids.has(a.id) && !top20Titles.has(a.title.trim().toLowerCase().slice(0, 35)))
+            .map((a) => ({ ...a, featured: false, isNewTop20: false }));
+
+          const fullFeed = [...top20New, ...cleanedPrev];
+          try {
+            localStorage.setItem("infoperso_articles", JSON.stringify(fullFeed));
+            localStorage.setItem("infoperso_last_updated", nowTime.toString());
+          } catch {}
+          return fullFeed;
         });
+
         if (showToast) {
-          onNotify(`🔴 ${incoming.length} dépêches en direct synchronisées (Le Figaro, France Info, Le Monde...)`);
+          onNotify(`🔥 Les 20 nouveaux articles ont été placés en premier dans la liste !`);
         }
       }
     } catch (err) {
@@ -2353,6 +2392,13 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       setIsLoadingLiveRss(false);
     }
   };
+
+  // Déclenchement automatique de l'actualisation quand le bouton général est pressé
+  useEffect(() => {
+    if (refreshFluxTrigger && refreshFluxTrigger > 0) {
+      handleFetchLiveRss(true, true);
+    }
+  }, [refreshFluxTrigger]);
 
   // Search breaking news in live RSS / Google News France
   const handleSearchLiveNews = async (query: string) => {
@@ -2428,8 +2474,8 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     };
     loadSharedArticle();
 
-    // Also fetch fresh Live RSS in the background on startup
-    handleFetchLiveRss(false, false);
+    // Also fetch fresh Live RSS in the background on startup and place 20 new articles at the top
+    handleFetchLiveRss(true, false);
 
     return () => {
       isCancelled = true;
@@ -3599,7 +3645,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       return true;
     })
     .sort((a, b) => {
-      // 1. Custom generated articles from "sur mesure" ALWAYS rank first in priority articles (#1 at the very top)
+      // 1. Articles personnalisés sur mesure prioritaires au sommet absolu
       const aCustom = (a as any).isCustomGenerated ? 1 : 0;
       const bCustom = (b as any).isCustomGenerated ? 1 : 0;
       if (aCustom !== bCustom) return bCustom - aCustom;
@@ -3607,17 +3653,27 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         return ((b as any).createdAt || b.id) - ((a as any).createdAt || a.id);
       }
 
-      // 2. Otherwise sort by score or date/time
-      if (sortBy === "score") {
-        if (b.score !== a.score) return b.score - a.score;
-        return ((b as any).createdAt || b.id) - ((a as any).createdAt || a.id);
+      // 2. Les 20 nouveaux articles récents (isNewTop20) ont la priorité absolue en tête de liste
+      const aNew = (a as any).isNewTop20 ? 1 : 0;
+      const bNew = (b as any).isNewTop20 ? 1 : 0;
+      if (aNew !== bNew) return bNew - aNew;
+
+      const aTime = (a as any).createdAt || (typeof a.id === "number" ? a.id : 0);
+      const bTime = (b as any).createdAt || (typeof b.id === "number" ? b.id : 0);
+
+      // 3. Tri chronologique par défaut : les plus récents en premier
+      if (sortBy === "time" || sortBy === "date") {
+        return bTime - aTime;
       }
-      // Date sort (newest first)
-      return ((b as any).createdAt || b.id) - ((a as any).createdAt || a.id);
+
+      // 4. Tri par score : départagé par score puis par récence
+      if (b.score !== a.score) return b.score - a.score;
+      return bTime - aTime;
     });
 
-  const featuredArticles = filteredArticles.filter((a) => a.featured);
-  const regularArticles = filteredArticles.filter((a) => !a.featured);
+  // Les 20 nouveaux articles sont systématiquement placés en premier dans la liste (indices 0 à 19)
+  const featuredArticles = filteredArticles.slice(0, 20);
+  const regularArticles = filteredArticles.slice(20);
 
   // Generate live AI summary for current article
   const handleGenerateSummary = async (article: NewsArticle) => {
@@ -5166,14 +5222,20 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
             </div>
           )}
 
-          {/* 1. FEATURED ARTICLES GRID */}
+          {/* 1. LES 20 NOUVEAUX ARTICLES MIS EN PREMIER DANS LA LISTE */}
           {featuredArticles.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Star className={`w-4 h-4 ${isFun ? "text-yellow-500 fill-yellow-400 animate-bounce" : isCyber ? "text-[#00ffcc]" : isSobre ? "text-zinc-900" : isWarm ? "text-amber-800" : "text-amber-400 fill-amber-400/20"}`} />
-                <h3 className={`font-bold text-[10px] tracking-widest uppercase ${isSobre ? "text-zinc-900" : isWarm ? "text-amber-950 font-serif" : isCyber ? "text-cyan-400 font-mono" : isFun ? "text-black font-black" : "text-slate-400 font-sans"}`}>
-                  Articles Recommandés prioritaires
-                </h3>
+              <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+                <div className="flex items-center gap-2">
+                  <Flame className={`w-4 h-4 ${isFun ? "text-yellow-500 fill-yellow-400 animate-bounce" : isCyber ? "text-[#00ffcc]" : isSobre ? "text-zinc-900" : isWarm ? "text-amber-800" : "text-amber-400 fill-amber-400/20"}`} />
+                  <h3 className={`font-bold text-[11px] sm:text-xs tracking-wider uppercase ${isSobre ? "text-zinc-900 font-black" : isWarm ? "text-amber-950 font-serif font-black" : isCyber ? "text-cyan-400 font-mono" : isFun ? "text-black font-black" : "text-white font-extrabold"}`}>
+                    Les 20 Nouveaux Articles (En tête de liste)
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center gap-1 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  {Math.min(featuredArticles.length, 20)} nouveaux en direct
+                </span>
               </div>
 
               <div className={`grid gap-3 sm:gap-4 ${selectedArticle ? "grid-cols-1" : (viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}`}>
@@ -5233,6 +5295,11 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                               >
                                 <Bookmark className={`w-3.5 h-3.5 ${isSaved ? "fill-amber-400" : ""}`} />
                               </button>
+
+                              {/* Badge Numéroté de Récence Prioritaire (1 à 20) */}
+                              <span className="text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-600/90 text-white flex items-center gap-1 shadow-xs border border-emerald-400/40" title={`Article #${idx + 1} sur 20 mis en tête de liste`}>
+                                #{idx + 1}
+                              </span>
 
                               {isCurrentActive && (
                                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-600 text-white flex items-center gap-1 shadow-xs">
@@ -5379,14 +5446,16 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
             </div>
           )}
 
-          {/* 2. REGULAR FLUX */}
+          {/* 2. ARTICLES PRÉCÉDENTS ET ARCHIVES */}
           <div className="space-y-3 pt-4">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-cyan-400" />
-              <h3 className="font-sans font-bold text-[10px] tracking-widest uppercase text-slate-400">
-                Tout le flux d'informations ({filteredArticles.length} au total)
-              </h3>
-            </div>
+            {regularArticles.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-sans font-bold text-[10px] tracking-widest uppercase text-slate-400">
+                  Articles précédents et archives ({regularArticles.length} au total)
+                </h3>
+              </div>
+            )}
 
             {filteredArticles.length === 0 ? (
               <div className={`rounded-xl p-8 border text-center space-y-4 transition-all duration-300 ${

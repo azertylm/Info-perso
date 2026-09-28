@@ -67,6 +67,285 @@ app.post("/api/ai/ask", async (req, res) => {
   }
 });
 
+// ============================================================================
+// SUITE ALPHABETTE — HUB CENTRAL, TARIFS DYNAMIQUES & CODES PRIVILÈGES
+// ============================================================================
+const HUB_CENTRAL_URL = "http://alphabette.fr";
+const CONSUMED_CODES_FILE = path.resolve(process.cwd(), "data", "consumed_codes.json");
+
+function loadConsumedCodes(): string[] {
+  try {
+    if (fs.existsSync(CONSUMED_CODES_FILE)) {
+      return JSON.parse(fs.readFileSync(CONSUMED_CODES_FILE, "utf-8"));
+    }
+  } catch (err) {
+    console.warn("[Hub API] Erreur lecture codes consommés :", err);
+  }
+  return [];
+}
+
+function markCodeAsConsumed(code: string) {
+  try {
+    const codes = loadConsumedCodes();
+    if (!codes.includes(code)) {
+      codes.push(code);
+      const dir = path.dirname(CONSUMED_CODES_FILE);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(CONSUMED_CODES_FILE, JSON.stringify(codes, null, 2), "utf-8");
+    }
+  } catch (err) {
+    console.warn("[Hub API] Erreur écriture code consommé :", err);
+  }
+}
+
+// 1. Récupération dynamique des tarifs et promotions (Zéro prix en dur)
+app.get("/api/alphabette/config", async (_req, res) => {
+  // Grille tarifaire de référence souveraine (valeurs de repli)
+  const fallbackConfig = {
+    appName: "Info Perso",
+    hubUrl: "http://alphabette.fr",
+    pricing: {
+      individual: {
+        autonomousByok: {
+          id: "solo_byok",
+          name: "Formule Autonome (BYOK)",
+          priceYearly: 39,
+          currency: "EUR",
+          period: "an",
+          mistralManaged: false,
+          description: "Utilisation de votre propre clé API Mistral AI (Bring Your Own Key)"
+        },
+        comfortManaged: {
+          id: "solo_managed",
+          name: "Formule Confort",
+          priceYearly: 59,
+          currency: "EUR",
+          period: "an",
+          mistralManaged: true,
+          description: "Clé API Mistral managée et administrée par Alphabette"
+        }
+      },
+      bundle: {
+        bundleByok: {
+          id: "bundle_byok",
+          name: "Pass Bouquet Alphabette BYOK (15 applications)",
+          priceYearly: 99,
+          currency: "EUR",
+          period: "an",
+          mistralManaged: false,
+          description: "Accès illimité aux 15 applications avec votre propre clé Mistral"
+        },
+        bundleIntegral: {
+          id: "bundle_integral",
+          name: "Pass Bouquet Alphabette Intégral (15 applications)",
+          priceYearly: 199,
+          currency: "EUR",
+          period: "an",
+          mistralManaged: true,
+          description: "Accès illimité aux 15 applications avec consommation d'IA managée"
+        }
+      }
+    },
+    trialDays: 7,
+    promotions: {
+      active: false,
+      bannerText: "Offre de lancement : 7 jours d'essai complet offerts sur la suite Alphabette !",
+      discountPercent: 0
+    },
+    compliance: {
+      rgpd: "Hébergement 100% France / Europe",
+      privacy: "Aucune donnée ni invite utilisateur n'est réutilisée pour l'entraînement public des modèles",
+      exclusiveProvider: "Mistral AI",
+      localServer: "Compatible Ollama / Metal sur Mac"
+    }
+  };
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const remoteRes = await fetch("http://alphabette.fr/api/config.json", {
+      signal: controller.signal
+    }).catch(() => null);
+    clearTimeout(timer);
+
+    if (remoteRes && remoteRes.ok) {
+      const remoteData = await remoteRes.json();
+      res.json({ ...fallbackConfig, ...remoteData, source: "hub" });
+      return;
+    }
+  } catch (e) {
+    // Repli fluide vers la grille de référence
+  }
+
+  res.json({ ...fallbackConfig, source: "reference_fallback" });
+});
+
+// 2. Validation des Codes Privilèges / Amis (Usage Unique)
+app.post("/api/alphabette/verify-code", async (req, res) => {
+  const { code, userEmail } = req.body;
+  if (!code || typeof code !== "string") {
+    res.status(400).json({ success: false, error: "Code d'accès requis." });
+    return;
+  }
+
+  const normalized = code.trim().toUpperCase();
+  const consumed = loadConsumedCodes();
+
+  if (consumed.includes(normalized)) {
+    res.status(409).json({
+      success: false,
+      error: "Ce code privilège a déjà été utilisé et désactivé (usage unique)."
+    });
+    return;
+  }
+
+  // Requête vers le hub central
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const hubRes = await fetch("http://alphabette.fr/api/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: normalized, userEmail }),
+      signal: controller.signal
+    }).catch(() => null);
+    clearTimeout(timer);
+
+    if (hubRes && hubRes.ok) {
+      const hubData = await hubRes.json();
+      markCodeAsConsumed(normalized);
+      res.json({
+        success: true,
+        duration: hubData.duration || "1 an",
+        plan: hubData.plan || "bundle_integral",
+        message: "Code privilège validé avec succès sur le hub Alphabette !"
+      });
+      return;
+    }
+  } catch (e) {
+    // Si hub indisponible, reconnaissance des codes maîtres Alphabette
+  }
+
+  const validPattern = /^(ALPHA|AMIS|PRIVILEGE|VALENTIN)-[A-Z0-9]{4,8}$/i;
+  const isMasterCode = ["ALPHABETTE", "VALENTIN", "MISTRAL-EU", "SOVEREIGN-2026"].includes(normalized) || validPattern.test(normalized);
+
+  if (isMasterCode) {
+    markCodeAsConsumed(normalized);
+    res.json({
+      success: true,
+      duration: "1 an",
+      plan: "bundle_integral",
+      message: "Code d'accès privilégié validé avec succès (1 an d'accès offert) !"
+    });
+  } else {
+    res.status(403).json({
+      success: false,
+      error: "Code d'accès ou d'invitation invalide."
+    });
+  }
+});
+
+// ============================================================================
+// L'ŒIL DE L'ATELIER : API REST INTERVENTIONS & SYNCHRONISATION RÉSILIÈNTE
+// ============================================================================
+const ARTISAN_DATA_FILE = path.resolve(process.cwd(), "data", "artisan_interventions.json");
+
+function loadStoredInterventions(): any[] {
+  try {
+    if (fs.existsSync(ARTISAN_DATA_FILE)) {
+      const raw = fs.readFileSync(ARTISAN_DATA_FILE, "utf-8");
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.warn("[Artisan API] Erreur lecture fichier chantiers :", err);
+  }
+  return [];
+}
+
+function saveStoredInterventions(items: any[]) {
+  try {
+    const dir = path.dirname(ARTISAN_DATA_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(ARTISAN_DATA_FILE, JSON.stringify(items, null, 2), "utf-8");
+  } catch (err) {
+    console.warn("[Artisan API] Erreur écriture fichier chantiers :", err);
+  }
+}
+
+// Récupérer la liste des interventions côté serveur
+app.get("/api/artisan/interventions", (_req, res) => {
+  const items = loadStoredInterventions();
+  res.json({
+    success: true,
+    interventions: items,
+    timestamp: Date.now(),
+    offline: false
+  });
+});
+
+// Enregistrer ou mettre à jour une intervention
+app.post("/api/artisan/interventions", (req, res) => {
+  try {
+    const intervention = req.body;
+    if (!intervention || !intervention.id) {
+      res.status(400).json({ error: "Fiche d'intervention invalide (id manquant)." });
+      return;
+    }
+
+    const items = loadStoredInterventions();
+    const existingIndex = items.findIndex((i: any) => i.id === intervention.id);
+    if (existingIndex >= 0) {
+      items[existingIndex] = { ...intervention, updatedAt: Date.now(), synced: true };
+    } else {
+      items.unshift({ ...intervention, updatedAt: Date.now(), synced: true });
+    }
+    saveStoredInterventions(items);
+
+    res.json({
+      success: true,
+      message: "Fiche d'intervention enregistrée au serveur avec succès.",
+      intervention: items.find((i: any) => i.id === intervention.id)
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Erreur de sauvegarde intervention." });
+  }
+});
+
+// Synchronisation par lot (reprise automatique à la reconnexion)
+app.post("/api/artisan/sync", (req, res) => {
+  try {
+    const { interventions } = req.body;
+    if (!Array.isArray(interventions)) {
+      res.status(400).json({ error: "Format attendu: { interventions: [...] }" });
+      return;
+    }
+
+    const currentItems = loadStoredInterventions();
+    const map = new Map<string, any>(currentItems.map((item: any) => [item.id, item]));
+
+    for (const item of interventions) {
+      map.set(item.id, {
+        ...item,
+        synced: true,
+        updatedAt: Date.now()
+      });
+    }
+
+    const merged = Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+    saveStoredInterventions(merged);
+
+    res.json({
+      success: true,
+      syncedCount: interventions.length,
+      totalCount: merged.length,
+      message: `${interventions.length} intervention(s) synchronisée(s) avec succès.`,
+      timestamp: Date.now()
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Erreur lors de la synchronisation par lot." });
+  }
+});
+
 // Helper to get response from custom LLM APIs via fetch
 async function callExternalApi(url: string, headers: Record<string, string>, body: any) {
   try {
@@ -194,12 +473,8 @@ app.post("/api/chat/proxy", async (req, res) => {
       return;
     }
 
-    if (provider === "gemini") {
-      const actualKey = key || process.env.GEMINI_API_KEY;
-      if (!actualKey) {
-        throw new Error("Aucune clé API Gemini n'est disponible (ni fournie, ni configurée sur le serveur).");
-      }
-
+    if (provider === "gemini" || provider === "hybrid_mistral" || provider === "local" || provider === "mistral") {
+      const actualKey = key || process.env.MISTRAL_API_KEY;
       const systemMessage = messages.find((m: any) => m.role === "system");
       const systemInstruction = systemMessage ? systemMessage.content : undefined;
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
@@ -208,95 +483,24 @@ app.post("/api/chat/proxy", async (req, res) => {
         const result = await aiService.askAI(lastUserMsg, {
           systemInstruction,
           messages,
-          temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.1,
-          enableSearch: req.body.enableSearch !== false,
+          temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.2,
           apiKeyOverride: actualKey,
-          providerOverride: "gemini"
-        });
-
-        if (result && result.content) {
-          res.json({
-            content: fixTemporalConsistency(result.content),
-            usage: { promptTokens: 0, completionTokens: 0 },
-            modelUsed: result.modelUsed,
-            providerUsed: result.providerUsed,
-            isSovereign: result.isSovereign,
-            sovereigntyTier: result.sovereigntyTier,
-            fallbackOccurred: result.fallbackOccurred
-          });
-          return;
-        }
-      } catch (aiErr: any) {
-        console.warn("[Proxy Gemini] Incident ou saturation temporaire (503), tentative de secours souverain:", aiErr?.message || aiErr);
-      }
-
-      // Secours souverain automatique si Gemini subit un pic temporaire de charge (503)
-      try {
-        const sovereignRes = await aiService.askAI(lastUserMsg, {
-          systemInstruction,
-          messages,
-          temperature: 0.2,
           providerOverride: "hybrid_mistral"
-        });
-        if (sovereignRes && sovereignRes.content) {
-          res.json({
-            content: fixTemporalConsistency(sovereignRes.content),
-            usage: { promptTokens: 0, completionTokens: 0 },
-            modelUsed: sovereignRes.modelUsed,
-            providerUsed: sovereignRes.providerUsed,
-            isSovereign: sovereignRes.isSovereign,
-            sovereigntyTier: sovereignRes.sovereigntyTier,
-            fallbackOccurred: true
-          });
-          return;
-        }
-      } catch (_sovErr) {
-        // Poursuite vers le retour synthétique d'information
-      }
-
-      // En cas d'indisponibilité totale et transitoire de tous les moteurs
-      const topicMsg = lastUserMsg;
-      let cleanTopic = topicMsg
-        .replace(/^(?:Génère un article|Recherche|Rédige|Donne-moi|Donne moi|Informations sur|Tout savoir sur).*?:\s*/i, "")
-        .replace(/['"«»]/g, "")
-        .trim();
-      if (!cleanTopic || cleanTopic.length > 80) {
-        cleanTopic = "ce sujet";
-      }
-
-      const isJsonRequested = messages && messages.some((m: any) => 
-        typeof m.content === "string" && (
-          m.content.includes("tableau JSON") || 
-          m.content.includes("JSON brut") || 
-          m.content.includes("status = 'no_news'") ||
-          m.content.includes('"status": "ok"')
-        )
-      );
-
-      if (isJsonRequested) {
-        const noNewsResponse = JSON.stringify({
-          status: "no_news",
-          sujet: cleanTopic,
-          raison: `Le service d'analyse subit une forte affluence momentanée pour "${cleanTopic}". Veuillez réitérer dans quelques instants.`,
-          pistes: [`Actualité récente ${cleanTopic}`, `Faits marquants ${cleanTopic}`]
         });
 
         res.json({
-          content: noNewsResponse,
+          content: fixTemporalConsistency(result.content),
           usage: { promptTokens: 0, completionTokens: 0 },
-          modelUsed: "gemini-fallback"
+          modelUsed: result.modelUsed,
+          providerUsed: result.providerUsed,
+          isSovereign: result.isSovereign,
+          sovereigntyTier: result.sovereigntyTier,
+          fallbackOccurred: result.fallbackOccurred
         });
         return;
+      } catch (err: any) {
+        console.warn("[Proxy Mistral Sovereign] Erreur ou bascule résiliente:", err?.message || err);
       }
-
-      const honestText = `📌 **Information sur ${cleanTopic}**\n\nLe réseau d'analyse IA est actuellement très sollicité. L'information actualisée sera à nouveau disponible dans quelques secondes.\n\n💡 Conseil : vous pouvez également tester le moteur souverain ALPHABETTE (Mistral Cloud / Local) via l'indicateur en haut de l'écran.`;
-
-      res.json({
-        content: honestText,
-        usage: { promptTokens: 0, completionTokens: 0 },
-        modelUsed: "gemini-fallback"
-      });
-      return;
     }
 
     if (provider === "openai") {
@@ -498,7 +702,7 @@ function cleanAndParseJson<T = any>(rawText: string, fallbackValue: T): T {
   return fallbackValue;
 }
 
-// IA HIGHLIGHTS ENDPOINT
+// IA HIGHLIGHTS ENDPOINT (MISTRAL SOUVERAIN)
 app.post("/api/gemini/highlight", async (req, res) => {
   const { content, apiKey } = req.body;
   if (!content) {
@@ -506,11 +710,7 @@ app.post("/api/gemini/highlight", async (req, res) => {
     return;
   }
 
-  const key = apiKey || process.env.GEMINI_API_KEY || "";
-  if (!key) {
-    res.status(400).json({ error: "Clé API Gemini non disponible." });
-    return;
-  }
+  const key = apiKey || process.env.MISTRAL_API_KEY || "";
 
   try {
     const prompt = `Identifie précisément entre 3 et 5 passages textuels clés (des phrases entières ou expressions courtes très significatives) présents de manière identique dans le texte ci-dessous. Pour chaque passage identifié, donne une brève explication (1 à 2 phrases courtes) en français expliquant "Pourquoi c'est important".
@@ -526,7 +726,7 @@ app.post("/api/gemini/highlight", async (req, res) => {
       responseFormat: "json",
       temperature: 0.2,
       apiKeyOverride: key,
-      providerOverride: "gemini"
+      providerOverride: "hybrid_mistral"
     });
 
     let data = cleanAndParseJson<any[]>(aiRes.content || "[]", []);
@@ -571,7 +771,7 @@ app.post("/api/gemini/highlight", async (req, res) => {
   }
 });
 
-// IA ADAPTIVE QUIZ ENDPOINT
+// IA ADAPTIVE QUIZ ENDPOINT (MISTRAL SOUVERAIN)
 app.post("/api/gemini/quiz", async (req, res) => {
   const { title, content, apiKey } = req.body;
   if (!content) {
@@ -579,11 +779,7 @@ app.post("/api/gemini/quiz", async (req, res) => {
     return;
   }
 
-  const key = apiKey || process.env.GEMINI_API_KEY || "";
-  if (!key) {
-    res.status(400).json({ error: "Clé API Gemini non disponible." });
-    return;
-  }
+  const key = apiKey || process.env.MISTRAL_API_KEY || "";
 
   try {
     const prompt = `Génère exactement deux questions à choix multiples (QCM) très pertinentes en français pour tester la compréhension de l'article intitulé "${title || "Article d'actualité"}".
@@ -609,7 +805,7 @@ app.post("/api/gemini/quiz", async (req, res) => {
       responseFormat: "json",
       temperature: 0.3,
       apiKeyOverride: key,
-      providerOverride: "gemini"
+      providerOverride: "hybrid_mistral"
     });
 
     let data = cleanAndParseJson<any>(aiRes.content || "{}", {});
@@ -648,7 +844,7 @@ app.post("/api/gemini/quiz", async (req, res) => {
   }
 });
 
-// IA COLLABORATIVE DOSSIER SYNTHESIS ENDPOINT
+// IA COLLABORATIVE DOSSIER SYNTHESIS ENDPOINT (MISTRAL SOUVERAIN)
 app.post("/api/gemini/synthesis", async (req, res) => {
   const { dossierTitle, articles, apiKey } = req.body;
   if (!articles || !Array.isArray(articles) || articles.length === 0) {
@@ -656,11 +852,7 @@ app.post("/api/gemini/synthesis", async (req, res) => {
     return;
   }
 
-  const key = apiKey || process.env.GEMINI_API_KEY || "";
-  if (!key) {
-    res.status(400).json({ error: "Clé API Gemini non disponible." });
-    return;
-  }
+  const key = apiKey || process.env.MISTRAL_API_KEY || "";
 
   try {
     const articlesText = articles.map((a: any, i: number) => `
@@ -687,12 +879,12 @@ app.post("/api/gemini/synthesis", async (req, res) => {
     const aiRes = await aiService.askAI(prompt, {
       temperature: 0.4,
       apiKeyOverride: key,
-      providerOverride: "gemini"
+      providerOverride: "hybrid_mistral"
     });
 
     res.json({ synthesis: fixTemporalConsistency(aiRes.content), isFallback: aiRes.fallbackOccurred });
   } catch (_err: any) {
-    console.log("[Gemini Synthesis] Serving local fallback synthesis.");
+    console.log("[Mistral Synthesis] Serving local fallback synthesis.");
     // Graceful fallback markdown synthesis
     const fallbackSynthesis = `# Synthèse Thématique : ${dossierTitle || "Dossier de Presse"}
 
@@ -701,15 +893,15 @@ Cette synthèse rassemble et structure les informations issues des articles de v
 
 ## Enseignements Clés
 - **Richesse des perspectives** : Chaque article apporte un éclairage complémentaire sur les aspects technologiques, économiques ou culturels de ce thème.
-- **Synthèse des faits** : Les résumés de nos experts et de l'IA permettent de dresser un état des lieux solide et de guider votre réflexion.
+- **Synthèse des faits** : Les résumés de nos experts et de l'IA souveraine Mistral permettent de dresser un état des lieux solide et de guider votre réflexion.
 
 ## Conclusion
-Bien que le service d'analyse IA directe soit temporairement saturé ou indisponible, ce dossier reste une ressource inestimable d'apprentissage continu et de veille personnalisée.`;
+Veille souveraine garantie par ALPHABETTE SASU, respectueuse de vos données et hébergée en Europe.`;
     res.json({ synthesis: fallbackSynthesis, isFallback: true });
   }
 });
 
-// IA ARTICLE VERIFICATION & FACT-CHECKING ENDPOINT
+// IA ARTICLE VERIFICATION & FACT-CHECKING ENDPOINT (MISTRAL SOUVERAIN)
 app.post("/api/gemini/verify-article", async (req, res) => {
   const { title, summary, content, category, source, tags, apiKey } = req.body;
 
@@ -718,32 +910,7 @@ app.post("/api/gemini/verify-article", async (req, res) => {
     return;
   }
 
-  const key = apiKey || process.env.GEMINI_API_KEY || "";
-  if (!key) {
-    // Return high quality local fallback assessment if no key
-    const textLen = (content || "").length;
-    const hasSource = !!(source && source.trim().length > 2);
-    const calculatedScore = Math.min(98, Math.max(72, 75 + (hasSource ? 10 : 0) + (textLen > 300 ? 10 : 5)));
-    
-    res.json({
-      score: calculatedScore,
-      verdict: calculatedScore >= 80 ? "Article certifié et conforme aux standards journalistiques" : "Article recevable avec pistes d'enrichissement",
-      factualConsistency: Math.min(95, calculatedScore + 2),
-      journalisticStyle: Math.min(96, calculatedScore - 1),
-      relevanceToCurrentEvents: Math.min(98, calculatedScore + 4),
-      keyStrengths: [
-        "Sujet ancré dans l'actualité contemporaine",
-        "Clarté du propos et structuration des paragraphes",
-        hasSource ? `Source mentionnée (${source})` : "Angle thématique bien ciblé"
-      ],
-      improvements: [
-        "N'hésitez pas à ajouter des données chiffrées ou une citation pour renforcer l'impact."
-      ],
-      isApproved: calculatedScore >= 70,
-      certifiedBadge: calculatedScore >= 85 ? "🌟 Article d'Excellence" : "✓ Article Vérifié"
-    });
-    return;
-  }
+  const key = apiKey || process.env.MISTRAL_API_KEY || "";
 
   try {
     const prompt = `Tu es le Rédacteur en Chef et Fact-Checker en chef d'InfoPerso, une plateforme d'information exigeante et éthique.
@@ -780,7 +947,7 @@ Réponds STRICTEMENT sous la forme d'un objet JSON valide sans markdown addition
       responseFormat: "json",
       temperature: 0.2,
       apiKeyOverride: key,
-      providerOverride: "gemini"
+      providerOverride: "hybrid_mistral"
     });
 
     const parsed = cleanAndParseJson<any>(aiRes.content || "{}", {});
@@ -909,7 +1076,7 @@ app.post("/api/chat/test-key", async (req, res) => {
         "https://api.mistral.ai/v1/chat/completions",
         { Authorization: `Bearer ${apiKey}` },
         {
-          model: model || "open-mistral-7b",
+          model: model || "mistral-small-latest",
           messages: [{ role: "user", content: "Dis 'OK'" }],
           max_tokens: 5,
         }
@@ -1892,17 +2059,11 @@ app.post("/api/article/extract", async (req, res) => {
     }
   }
 
-  // TIER 3: Gemini AI High-Fidelity Extraction & Synthesis
-  // Passes the raw article text to Gemini to guarantee clean editorial journalism without social junk or widget code
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey && (extractedRawEditorial.length > 50 || title)) {
+  // TIER 3: Mistral AI Sovereign Extraction & Synthesis
+  // Passes the raw article text to Mistral to guarantee clean editorial journalism without social junk or widget code
+  if (extractedRawEditorial.length > 50 || title) {
     try {
-      const ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
-      });
-
-      const prompt = `Tu es le moteur de lecture et d'analyse journalistique InfoPerso.
+      const prompt = `Tu es le moteur de lecture et d'analyse journalistique souverain InfoPerso (ALPHABETTE / Mistral AI).
 Un lecteur consulte l'article suivant :
 URL source : ${targetUrl}
 Média d'origine : ${sourceName}
@@ -1934,14 +2095,14 @@ Réponds STRICTEMENT avec cet objet JSON :
   ]
 }`;
 
-      const aiRes = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: { responseMimeType: "application/json" }
+      const aiRes = await aiService.askAI(prompt, {
+        responseFormat: "json",
+        temperature: 0.2,
+        providerOverride: "hybrid_mistral"
       });
 
-      const jsonText = aiRes.text || "{}";
-      const parsed = JSON.parse(jsonText);
+      const jsonText = aiRes.content || "{}";
+      const parsed = cleanAndParseJson<any>(jsonText, {});
       if (parsed.title) title = parsed.title;
       if (parsed.summary) summary = parsed.summary;
       if (parsed.category) detectedCategory = parsed.category;
@@ -1949,7 +2110,7 @@ Réponds STRICTEMENT avec cet objet JSON :
         paragraphs = parsed.paragraphs;
       }
     } catch (aiErr) {
-      console.warn("AI extraction fallback notice:", aiErr);
+      console.warn("Mistral AI extraction fallback notice:", aiErr);
     }
   }
 

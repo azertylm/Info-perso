@@ -1,12 +1,13 @@
 /**
  * ============================================================================
- * ALPHABETTE - Client AI Service Abstraction
- * Éditeur : ALPHABETTE (fondé par Valentin RICHAUD)
+ * ALPHABETTE - Client AI Service Abstraction (Exclusivité Mistral AI)
+ * Éditeur : ALPHABETTE SASU (fondé par Valentin RICHAUD)
  * Rôle : Couche d'abstraction unifiée pour les composants de l'application
+ * Conformité : Hébergement France / Europe, RGPD strict, zéro revente de données.
  * ============================================================================
  */
 
-export type AiProviderMode = "gemini" | "hybrid_mistral" | "local" | "mistral";
+export type AiProviderMode = "hybrid_mistral" | "local" | "mistral";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -26,11 +27,11 @@ export interface AskAiOptions {
 
 export interface AiExecutionResult {
   content: string;
-  providerUsed: "local_ollama" | "local_vllm" | "mistral_cloud" | "gemini";
+  providerUsed: "local_ollama" | "local_vllm" | "mistral_cloud" | "sovereign_synthesizer";
   modelUsed: string;
   latencyMs: number;
   isSovereign: boolean;
-  sovereigntyTier: "Local On-Premise" | "Cloud Européen (Mistral)" | "Cloud Prototypage (Gemini)";
+  sovereigntyTier: "Local On-Premise (Metal/Mac)" | "Cloud Européen (Mistral)" | "Moteur Résilient Autonome";
   fallbackOccurred: boolean;
   fallbackReason?: string;
   executionChain?: Array<{
@@ -48,18 +49,18 @@ export interface AiSystemStatus {
     domains: string[];
     hosting: string;
     dataEthics: string;
+    exclusiveProvider: string;
   };
   activeProviderMode: AiProviderMode;
   isConfigured: {
-    gemini: boolean;
     mistralCloud: boolean;
     localServer: boolean;
+    byokSupported: boolean;
   };
   endpoints: {
     localUrl: string;
     localModel: string;
     mistralCloudModel: string;
-    geminiDefaultModel: string;
   };
   localHealth: {
     online: boolean;
@@ -77,11 +78,11 @@ const RUNTIME_PROVIDER_KEY = "alphabette_runtime_ai_provider";
 export function getStoredAiProvider(): AiProviderMode {
   try {
     const saved = localStorage.getItem(RUNTIME_PROVIDER_KEY) as AiProviderMode;
-    if (["gemini", "hybrid_mistral", "local", "mistral"].includes(saved)) {
+    if (["hybrid_mistral", "local", "mistral"].includes(saved)) {
       return saved;
     }
   } catch {}
-  return "gemini";
+  return "hybrid_mistral";
 }
 
 /**
@@ -94,11 +95,31 @@ export function setStoredAiProvider(provider: AiProviderMode): void {
 }
 
 /**
+ * Retrieve user's BYOK Mistral API key from local storage if available
+ */
+export function getStoredMistralKey(): string {
+  try {
+    // 1. Direct key
+    const direct = localStorage.getItem("alphabette_mistral_api_key");
+    if (direct) return direct.trim();
+
+    // 2. infoperso_keys object
+    const rawKeys = localStorage.getItem("infoperso_keys");
+    if (rawKeys) {
+      const parsed = JSON.parse(rawKeys);
+      if (parsed.mistral) return String(parsed.mistral).trim();
+    }
+  } catch {}
+  return "";
+}
+
+/**
  * Unified Client API: askAI
- * Le code métier appelle cette fonction unifiée sans dépendre d'un fournisseur en dur.
+ * Le code métier appelle cette fonction unifiée sans dépendre d'un fournisseur tiers.
  */
 export async function askAI(prompt: string, options: AskAiOptions = {}): Promise<AiExecutionResult> {
   const providerOverride = options.providerOverride || getStoredAiProvider();
+  const apiKeyOverride = options.apiKeyOverride || getStoredMistralKey();
 
   const response = await fetch("/api/ai/ask", {
     method: "POST",
@@ -106,6 +127,7 @@ export async function askAI(prompt: string, options: AskAiOptions = {}): Promise
     body: JSON.stringify({
       prompt,
       ...options,
+      apiKeyOverride: apiKeyOverride || undefined,
       providerOverride
     })
   });

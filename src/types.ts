@@ -1,4 +1,4 @@
-export type Provider = "gemini" | "openai" | "anthropic" | "mistral" | "deepseek" | "kimi";
+export type Provider = "mistral" | "local" | "gemini" | "openai" | "anthropic" | "deepseek" | "kimi";
 
 export interface ModelConfig {
   id: string;
@@ -90,6 +90,7 @@ export interface NewsArticle {
   isCustomGenerated?: boolean;
   isSerendipitous?: boolean;
   isLive?: boolean;
+  isNewTop20?: boolean;
   rawRssLink?: string;
 }
 
@@ -139,39 +140,84 @@ export interface QuizQuestion {
   explanation: string;
 }
 
-// Full Available Models definition
+// Types Suite ALPHABETTE Hub & Tarifs Dynamiques
+export interface AlphabettePricingItem {
+  id: string;
+  name: string;
+  priceYearly: number;
+  currency: string;
+  period: string;
+  mistralManaged: boolean;
+  description: string;
+}
+
+export interface AlphabetteSuiteConfig {
+  appName: string;
+  hubUrl: string;
+  pricing: {
+    individual: {
+      autonomousByok: AlphabettePricingItem;
+      comfortManaged: AlphabettePricingItem;
+    };
+    bundle: {
+      bundleByok: AlphabettePricingItem;
+      bundleIntegral: AlphabettePricingItem;
+    };
+  };
+  trialDays: number;
+  promotions: {
+    active: boolean;
+    bannerText: string;
+    discountPercent: number;
+  };
+  compliance: {
+    rgpd: string;
+    privacy: string;
+    exclusiveProvider: string;
+    localServer: string;
+  };
+}
+
+// Modèles Mistral AI exclusifs conformes aux instructions souveraines ALPHABETTE
 export const AVAILABLE_MODELS: ModelConfig[] = [
-  // Gemini
   {
-    id: "gemini-3.8-flash",
-    name: "Gemini 3.8 Flash",
-    provider: "gemini",
-    description: "Le modèle par excellence pour les tâches rapides, la synthèse et le chat d'actualité en temps réel.",
-    contextWindow: "1M tokens",
-    strength: "Vitesse et analyse en temps réel",
+    id: "mistral-small-latest",
+    name: "Mistral Small (Cloud EU)",
+    provider: "mistral",
+    description: "Modèle souverain européen rapide et économique, idéal pour la synthèse de flux et l'analyse d'actualités.",
+    contextWindow: "32k tokens",
+    strength: "Souveraineté RGPD, rapidité & synthèse",
   },
   {
-    id: "gemini-3.1-flash-lite",
-    name: "Gemini 3.1 Flash-Lite",
-    provider: "gemini",
-    description: "Un modèle extrêmement rapide et économe pour des résumés instantanés.",
-    contextWindow: "1M tokens",
-    strength: "Latence minimale et légèreté",
+    id: "mistral-large-latest",
+    name: "Mistral Large (Cloud EU)",
+    provider: "mistral",
+    description: "Fleuron de l'IA européenne : raisonnement complexe, esprit critique et précision linguistique optimale.",
+    contextWindow: "128k tokens",
+    strength: "Raisonnement avancé & synthèse souveraine",
   },
   {
-    id: "gemini-flash-latest",
-    name: "Gemini Flash (Latest)",
-    provider: "gemini",
-    description: "Le modèle d'actualité standard pour une polyvalence accrue.",
-    contextWindow: "1M tokens",
-    strength: "Traitement multitâche fluide",
+    id: "open-mistral-nemo",
+    name: "Mistral NeMo 12B (Cloud EU)",
+    provider: "mistral",
+    description: "Modèle open-weight développé avec NVIDIA, offrant une excellente efficacité et concision.",
+    contextWindow: "128k tokens",
+    strength: "Efficacité & polyvalence B2B",
   },
   {
-    id: "gemini-3.1-pro-preview",
-    name: "Gemini 3.1 Pro (Preview)",
-    provider: "gemini",
-    description: "Le modèle le plus performant pour le raisonnement complexe et l'analyse approfondie.",
-    contextWindow: "2M tokens",
-    strength: "Raisonnement avancé et précision",
+    id: "codestral-latest",
+    name: "Codestral (Mistral AI)",
+    provider: "mistral",
+    description: "Spécialisé dans la logique, les structures de données strictes et les calculs de rentabilité.",
+    contextWindow: "256k tokens",
+    strength: "Raisonnement logique & structuration",
+  },
+  {
+    id: "local-mistral",
+    name: "Moteur Local (Ollama / Metal Mac)",
+    provider: "local",
+    description: "Exécution 100% on-premise hors-ligne via Ollama ou Metal sur Mac. Zéro coût, zéro transfert hors de votre machine.",
+    contextWindow: "32k tokens",
+    strength: "100% Hors-ligne & Confidentialité totale",
   },
 ];
