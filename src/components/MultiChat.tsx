@@ -22,7 +22,8 @@ import {
   Calculator,
   Compass,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Key
 } from "lucide-react";
 import { AVAILABLE_MODELS, ChatMessage, ApiKeys, Provider } from "../types";
 import { safeFetchJson } from "../lib/apiHelper";
@@ -38,6 +39,7 @@ interface MultiChatProps {
   onOpenVault?: () => void;
   onOpenWorkshop?: () => void;
   onOpenPricing?: () => void;
+  onOpenApiKeyModal?: () => void;
   onSetTheme?: (theme: "light" | "dark") => void;
   onSetDisplayMode?: (mode: any) => void;
   onFilterCategory?: (category: string) => void;
@@ -60,6 +62,7 @@ export default function MultiChat({
   onOpenVault,
   onOpenWorkshop,
   onOpenPricing,
+  onOpenApiKeyModal,
   onSetTheme,
   onSetDisplayMode,
   onFilterCategory,
@@ -726,6 +729,22 @@ export default function MultiChat({
                 </option>
               ))}
             </select>
+
+            {onOpenApiKeyModal && (
+              <button
+                type="button"
+                onClick={onOpenApiKeyModal}
+                className="w-full mt-2 py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-between border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 cursor-pointer transition-all"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Clé API Mistral</span>
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-indigo-500/20 text-indigo-300">
+                  {apiKeys.mistral ? "BYOK Actif" : "Secours Inclus"}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* PALETTE D'ACTIONS PILOTABLES */}

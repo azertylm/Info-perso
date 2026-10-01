@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Wrench,
   Lock,
+  Key,
   ExternalLink
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ import { ApiKeys, RibInfo, NewsArticle } from "./types";
 import NewsFeed from "./components/NewsFeed";
 import MultiChat from "./components/MultiChat";
 import KeysConfig from "./components/KeysConfig";
+import ApiKeyQuickModal from "./components/ApiKeyQuickModal";
 import DonationSection from "./components/DonationSection";
 import CommunitySpace from "./components/CommunitySpace";
 import UserAuth from "./components/UserAuth";
@@ -105,6 +107,9 @@ export default function App() {
 
   // Pricing Modal (ALPHABETTE / Valentin RICHAUD)
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+
+  // Quick API Key Modal (Mistral BYOK / Sovereign Backup)
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
   // Zero-Knowledge Vault & Workshop Modals
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -1118,6 +1123,28 @@ export default function App() {
             </span>
           </button>
 
+          {/* MISTRAL API KEY & SOVEREIGN STATUS BUTTON */}
+          <button
+            onClick={() => setIsApiKeyModalOpen(true)}
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 landscape:py-0.5 rounded-lg cursor-pointer transition-all border text-xs font-bold ${
+              apiKeys.mistral
+                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
+                : "bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/40 hover:bg-indigo-500/25"
+            }`}
+            title="Gérer votre clé API Mistral ou consulter le statut du relais de secours souverain"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">
+              {apiKeys.mistral ? "Clé Mistral" : "Clé API : Prêt"}
+            </span>
+            <span className="sm:hidden">Clé</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                apiKeys.mistral ? "bg-emerald-500" : "bg-indigo-400 animate-pulse"
+              }`}
+            />
+          </button>
+
           {/* FULLSCREEN TOGGLE BUTTON */}
           <button
             onClick={toggleFullscreen}
@@ -1306,6 +1333,23 @@ export default function App() {
                 39€ / 59€
               </span>
             </button>
+
+            {/* CONFIGURATION CLÉ API MISTRAL & SOUVERAINETÉ */}
+            <button
+              onClick={() => {
+                setIsApiKeyModalOpen(true);
+                setSidebarOpen(false);
+              }}
+              className={getNavButtonClass(false, "cyan")}
+            >
+              <span className="flex items-center gap-2">
+                <Key className="w-5 h-5 text-indigo-400" />
+                Clé API Mistral & Secours
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                {apiKeys.mistral ? "BYOK Actif" : "Prêt 100%"}
+              </span>
+            </button>
           </div>
 
           {/* Categories */}
@@ -1414,6 +1458,7 @@ export default function App() {
                 passiveSignalsSettings={passiveSignalsSettings}
                 onAwardCuriosityPoints={handleAwardCuriosityPoints}
                 isEasyMode={isEasyMode}
+                onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
               />
             </div>
           )}
@@ -1424,6 +1469,7 @@ export default function App() {
               onNotify={triggerToast}
               themeMode={themeMode}
               displayMode={displayMode}
+              onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
               onNavigateToTab={setActiveTab}
               onOpenVault={() => setIsVaultModalOpen(true)}
               onOpenWorkshop={() => setIsWorkshopModalOpen(true)}
@@ -1728,6 +1774,17 @@ export default function App() {
         onClose={() => setIsPricingModalOpen(false)}
         onNotify={triggerToast}
         isDark={isDark}
+      />
+
+      {/* QUICK API KEY & SOVEREIGN STATUS MODAL */}
+      <ApiKeyQuickModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        keys={apiKeys}
+        onKeysChange={handleKeysChange}
+        onNotify={triggerToast}
+        displayMode={displayMode}
+        themeMode={themeMode}
       />
 
       {/* ZERO-KNOWLEDGE VAULT MODAL (Infos Perso / ALPHABETTE) */}

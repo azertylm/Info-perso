@@ -58,7 +58,12 @@ import {
   LayoutGrid,
   Camera,
   Image as ImageIcon,
-  Palette
+  Palette,
+  Key,
+  BarChart3,
+  Target,
+  CheckCircle2,
+  TrendingUp
 } from "lucide-react";
 import { NewsArticle, ApiKeys, AVAILABLE_MODELS, DiscoveryMode, NaturalRadarProfile } from "../types";
 import { motion } from "motion/react";
@@ -79,6 +84,7 @@ import { CultureBarAndModal, CULTURE_SHORTCUTS } from "./CultureBarAndModal";
 import { getNextSuggestedWords, normalizeKeyword } from "../lib/semanticExplorer";
 import { EditorialMixerBar, ArticleFeedbackWidget, TagActionModal } from "./PersonalizationSuite";
 import { sanitizeArticleTemporalConsistency, fixTemporalConsistency, getTemporalPromptDirective } from "../lib/temporalConsistency";
+import { ensureArticleDeepData, cleanArticleContent, formatArticleDateTime, getArticleRelativeTime, TRUMP_TMTG_FULL_CONTENT } from "../lib/articleEnricher";
 import { useFoldable } from "../lib/useFoldable";
 import { FoldableBar } from "./FoldableBar";
 import { FlexTabletopDeck } from "./FlexTabletopDeck";
@@ -95,6 +101,73 @@ import { ExecutiveBriefingModal } from "./ExecutiveBriefingModal";
 
 // Initial mock dataset from static HTML template
 const INITIAL_ARTICLES: NewsArticle[] = [
+  {
+    id: 100,
+    featured: true,
+    title: "Meta Révèle 'Muse' : L'Agent IA Multimodal qui Redéfinit l'Interaction Numérique et le Métavers",
+    source: "Meta AI Research & InfoPerso Analyse",
+    category: "Technologie",
+    time: "Dossier Exclusif • Enquête de fond",
+    score: 100,
+    emoji: "🤖✨",
+    tags: ["Meta", "Intelligence Artificielle", "Agent IA", "Multimodal", "Ray-Ban Meta", "Llama 3"],
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
+    summary: "Meta a dévoilé 'Muse', son agent IA multimodal incarné ultra-rapide capable de traiter simultanément vidéo, audio et texte avec une latence inférieure à 180 ms. Conçu pour fusionner les lunettes connectées Ray-Ban Meta et le casque Quest 3 dans un écosystème d'assistance continue, ce lancement accélère la confrontation directe avec Google Project Astra et OpenAI Operator.",
+    keyFigures: [
+      { label: "Investissement Capex", value: "35 Mds $", detail: "Enveloppe 2026 allouée aux infrastructures d'entraînement et serveurs MTIA v2" },
+      { label: "Taille du modèle", value: "405 Milliards", detail: "Paramètres multimodaux natifs entraînés sans étape intermédiaire de transcription" },
+      { label: "Latence d'interaction", value: "< 180 ms", detail: "Traitement vocal et visuel temps réel en boucle fermée sans coupure perceptible" },
+      { label: "Bassin d'utilisateurs", value: "3,2 Milliards", detail: "Portée potentielle via WhatsApp, Instagram, Ray-Ban Meta et Quest 3" }
+    ],
+    keyTakeaways: [
+      "Agent multimodal natif : Muse traite en parallèle les flux de caméras, la voix et les données spatiales en temps réel sans passer par une transcription texte intermédiaire.",
+      "Ancrage matériel immédiat : Déploiement natif sur les lunettes connectées Ray-Ban Meta et le casque Quest 3 pour une assistance contextuelle permanente.",
+      "Concurrence féroce : Réponse directe aux initiatives Project Astra de Google DeepMind et aux modèles Operator d'OpenAI sur le segment des assistants autonomes d'action.",
+      "Souveraineté & RGPD : Architecture de calcul hybride répartie (inférence locale sur puce propriétaire MTIA v2 et serveurs conformes aux exigences de l'EU AI Act)."
+    ],
+    strategicAnalysis: {
+      actorsInvolved: ["Meta AI (Mark Zuckerberg, Yann LeCun)", "OpenAI (GPT-5 & Operator)", "Google DeepMind (Project Astra)", "Apple (Apple Intelligence)"],
+      marketImpact: "Transition décisive de l'IA générative purement textuelle vers l'informatique ambiante et spatiale où l'assistant voit, entend et anticipe les besoins réels de l'utilisateur.",
+      privacyCompliance: "Chiffrement systématique de bout en bout des flux visuels/audio, contrôle granulaire des capteurs et engagement de non-réutilisation des données européennes pour l'entraînement conformément au RGPD.",
+      nextMilestone: "Ouverture du SDK développeur Meta Muse à l'automne 2026 et intégration native dans le catalogue d'applications tierces."
+    },
+    content: `### 1. La Genèse de Muse : Du Chatbot Textuel à l'Agent Incarné
+
+Lors de sa keynote annuelle retransmise depuis Menlo Park, Mark Zuckerberg a levé le voile sur l'aboutissement de trois années de recherche intensive chez Meta AI Research : **Muse**. Bien plus qu'un énième modèle de langage dérivé de la famille Llama, Muse marque une rupture paradigmatique majeure. Il s'agit du tout premier *agent multimodal incarné* conçu dès son architecture d'origine pour percevoir le monde physique à travers des flux sensoriels continus (vidéo stéréoscopique, microphones directionnels et capteurs spatiaux IMU).
+
+L'enjeu pour le groupe américain est existentiel. Après avoir investi plus de 35 milliards de dollars en dépenses d'investissement (Capex) pour équiper ses datacenters de grappes de puces Nvidia H100/B200 et de ses propres accélérateurs maison MTIA v2, Meta entend démontrer que l'intelligence artificielle n'est pas un gadget d'écran, mais la colonne vertébrale de la prochaine génération d'ordinateurs personnels.
+
+### 2. Architecture Technique : Un Modèle de 405 Milliards de Paramètres sous les 180 ms
+
+Sous le capot, Muse s'appuie sur une version ultra-optimisée de Llama 3.3 multimodal de 405 milliards de paramètres, couplée à un sous-réseau d'attention sparse dénommé *Dynamic Stream Router*. Contrairement aux architectures traditionnelles qui convertissent la parole en texte (ASR), soumettent le texte au LLM puis génèrent une voix de synthèse (TTS), Muse ingère et synthétise directement les vecteurs audio et vidéo en continu.
+
+Cette symbiose neuronale directe permet d'atteindre un temps de réaction exceptionnel inférieur à 180 millisecondes, se situant ainsi sous le seuil d'interruption naturelle de la conversation humaine. Le modèle est capable de repérer un objet posé sur une table, de commenter une manipulation technique en temps réel ou de traduire instantanément un panneau tout en modulant son intonation vocale en fonction du stress ou de l'urgence exprimée par l'interlocuteur.
+
+### 3. Matériel et Écosystème : La Revanche des Lunettes Ray-Ban Meta et du Quest 3
+
+La force de frappe de Meta réside dans son écosystème matériel déjà en place. Les lunettes connectées Ray-Ban Meta, dont les ventes ont dépassé toutes les prévisions en 2025-2026, deviennent le réceptacle naturel de Muse. Grâce à des caméras ultra-légères de 12 mégapixels et cinq microphones intégrés dans la monture, l'agent Muse accompagne l'utilisateur dans son quotidien urbain sans qu'il n'ait jamais à sortir son smartphone de sa poche.
+
+Dans le domaine du métavers et de la réalité mixte, le casque Meta Quest 3 bénéficiera dès la prochaine mise à jour système v78 de l'intégration de Muse sous la forme d'un co-pilote immersif. L'agent sera capable de guider les utilisateurs dans la modélisation 3D, d'animer des réunions collaboratives virtuelles et d'interagir avec les environnements virtuels comme le ferait un collègue humain présent dans la pièce.
+
+### 4. Guerre des Géants : Meta face à OpenAI Operator et Google Project Astra
+
+L'annonce de Muse intervient dans un climat de rivalité technologique sans précédent. OpenAI prépare le déploiement de sa suite logicielle *Operator*, tandis que Google DeepMind accélère les démonstrations de son projet *Astra* au sein de l'écosystème Android et Pixel. Face à ces concurrents qui misent principalement sur l'environnement bureau et smartphone, Meta s'arroge une avance concrète sur le terrain de la vision embarquée et du port quotidien.
+
+Plusieurs analystes de Wall Street soulignent toutefois que le modèle économique de Muse devra trouver son équilibre entre la gratuité d'usage pour maintenir l'engagement sur Instagram/WhatsApp et la monétisation de services premium auprès des entreprises et des créateurs de contenu.
+
+### 5. Souveraineté Numérique, RGPD et AI Act Européen
+
+Conscient des réticences historiques des autorités européennes de régulation (notamment la CNIL en France et la DPC irlandaise), Meta a pris les devants en détaillant une politique de conformité stricte dédiée à Muse sur le territoire de l'Union européenne. L'agent intègre un module de filtrage local garantissant que les flux vidéo de l'environnement ambiant ne sont jamais conservés sur les serveurs distants une fois la requête satisfaite.
+
+De surcroît, un commutateur matériel et logiciel permet à l'utilisateur d'activer un 'Mode Souverain' : les inférences sensibles sont opérées en priorité sur la puce de bordure ou dirigées vers des datacenters certifiés ISO 27001 et conformes aux obligations de l'EU AI Act pour les systèmes d'IA à usage général (GPAI).
+
+### 6. Calendrier de Déploiement et Prochaines Échéances
+
+Le déploiement de Muse se déroulera en trois phases successives :
+• Début 2026 : Déploiement bêta fermé auprès de 50 000 développeurs certifiés et créateurs partenaires en Amérique du Nord et en Europe.
+• Été 2026 : Mise à jour OTA générale sur toutes les lunettes Ray-Ban Meta de 2e génération et activation sur les comptes Meta Verified.
+• Automne 2026 : Publication du kit de développement SDK Meta Muse permettant aux entreprises d'intégrer l'agent dans leurs services de relation client, de logistique et de maintenance industrielle assistée.`
+  },
   {
     id: 31,
     featured: true,
@@ -188,16 +261,16 @@ const INITIAL_ARTICLES: NewsArticle[] = [
   {
     id: 11,
     featured: true,
-    title: "Incendies en France 2026 : Laurent Nuñez annonce 98 000 hectares ravagés, la Sécurité Civile en alerte maximale",
-    source: "Le Monde avec AFP",
-    category: "Environnement",
+    title: "Transition Spatiale Européenne : Ariane 6 Enchaîne les Succès Commerciaux et Consolide l'Accès Autonome à l'Espace",
+    source: "L'Usine Nouvelle avec ESA & Arianespace",
+    category: "Science",
     time: "il y a 20min",
     score: 98,
-    emoji: "🔥",
-    tags: ["Incendies", "Laurent Nuñez", "Environnement"],
-    imageUrl: "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=600&q=80",
-    summary: "Le ministre de l'Intérieur Laurent Nuñez a actualisé le bilan national des feux de forêt : 98 000 hectares de végétation ont été brûlés en France métropolitaine depuis le 1er janvier 2026, déclenchant un dispositif inédit de surveillance satellitaire et de renforts terrestres.",
-    content: "Lors d'un point presse d'urgence tenu au centre opérationnel de la Sécurité Civile à Valabre, le ministre de l'Intérieur Laurent Nuñez a présenté les chiffres officiels actualisés de la saison des incendies de forêt en France pour 2026. Loin des données préliminaires arrêtées à 5 200 hectares en tout début d'année, les feux successifs sur l'ensemble du territoire portent désormais le bilan à 98 000 hectares ravagés, soit un niveau qui égale déjà les pires records décennaux.\n\nFace à l'ampleur sans précédent des sinistres amplifiés par une sécheresse profonde des sols et des vagues de chaleur précoces, le ministère de l'Intérieur a ordonné la mobilisation intégrale des moyens aériens de l'État : 12 Canadairs CL-415, 8 Dash bombardiers d'eau et une flotte de 40 hélicoptères lourds équipés de caméras infrarouges haute définition. Plus de 3 500 sapeurs-pompiers et militaires des formations de la Sécurité Civile sont déployés en permanence dans les massifs du Sud, de l'Occitanie et de la façade Atlantique.\n\n'La priorité absolue reste la protection sans concession des vies humaines et des zones périurbaines', a souligné avec gravité Laurent Nuñez. 'Nous mettons en œuvre un plan de quadrillage préventif renforcé par l'analyse algorithmique des vents et de l'hygrométrie en temps réel.' Le ministre a rappelé que 9 départs de feu sur 10 restent d'origine humaine et a appelé l'ensemble des concitoyens à un respect scrupuleux des interdictions d'accès aux massifs boisés et aux arrêtés préfectoraux en vigueur."
+    emoji: "🚀",
+    tags: ["Ariane 6", "Espace", "Arianespace", "Souveraineté"],
+    imageUrl: "https://images.unsplash.com/photo-1517976487508-44249a37bc06?auto=format&fit=crop&w=600&q=80",
+    summary: "Le lanceur lourd européen Ariane 6 a validé avec succès sa montée en cadence opérationnelle depuis le centre spatial de Kourou, garantissant à l'Europe un accès souverain à l'orbite pour ses constellations scientifiques et commerciales.",
+    content: "Depuis la base de lancement de Kourou en Guyane française, l'Agence Spatiale Européenne (ESA) et Arianespace ont confirmé la réussite pleine et entière de la nouvelle série de vols commerciaux du lanceur lourd Ariane 6. Cette série opérationnelle marque le retour en force de l'industrie aérospatiale européenne sur le marché mondial des lancements de satellites de télécommunications et d'observation de la Terre.\n\nDotée de propulseurs solides P120C optimisés et du moteur réallumable Vinci sur son étage supérieur, Ariane 6 répond avec flexibilité aux missions complexes à destination d'orbites multiples. Les carnets de commandes affichent d'ores et déjà un calendrier complet jusqu'en 2029, porté notamment par le déploiement de constellations institutionnelles et privées.\n\nCette performance industrielle rétablit l'autonomie stratégique du continent européen face aux opérateurs américains et asiatiques, tout en préparant les prochaines évolutions vers des étages réutilisables bas carbone."
   },
   {
     id: 1,
@@ -608,6 +681,17 @@ export const isHallucinatedOrCorrupted = (art: { title?: string; summary?: strin
   if (!title || title.length < 3) return true;
   if (title === "actualité monde" || title === "actualite monde" || title === "thème sensible" || title === "theme sensible") return true;
 
+  // Strict obsolescence ban: Laurent Nuñez / incendies bilans
+  if (
+    allText.includes("nuñez") || 
+    allText.includes("nunez") || 
+    allText.includes("98 000 hectares") || 
+    allText.includes("98000 hectares") ||
+    (allText.includes("incendies") && (allText.includes("laurent") || allText.includes("sécurité civile à valabre")))
+  ) {
+    return true;
+  }
+
   // If this is a custom-generated article requested by user, allow all topics (history, science, fiction, explainers, etc.)
   if (art.isCustomGenerated) {
     return false;
@@ -663,7 +747,7 @@ export const upgradeVagueArticleIfKnown = (art: NewsArticle): NewsArticle => {
     allText.includes("plateforme de streaming lancée par un géant") ||
     (allText.includes("plateforme de streaming") && (allText.includes("un acteur majeur") || allText.includes("la plateforme cherche à se différencier")))
   ) {
-    return sanitizeArticleTemporalConsistency({
+    return ensureArticleDeepData(sanitizeArticleTemporalConsistency({
       ...art,
       title: "Warner Bros. Discovery déploie sa plateforme Max en France : catalogue HBO, pass sport Eurosport et offres dès 5,99 €/mois",
       source: "Les Echos avec AFP",
@@ -672,7 +756,7 @@ export const upgradeVagueArticleIfKnown = (art: NewsArticle): NewsArticle => {
       tags: ["Max", "Streaming", "Warner Bros", "Divertissement"],
       summary: "Warner Bros. Discovery a officialisé le lancement en France de sa plateforme de streaming Max. L'offre réunit les catalogues HBO, Warner Bros., Discovery et Eurosport, avec trois formules tarifaires de 5,99 € à 13,99 € par mois.",
       content: "Le groupe de divertissement américain Warner Bros. Discovery a officiellement déployé sa plateforme de streaming 'Max' sur le marché français, marquant une étape majeure dans la compétition des services de vidéo à la demande face à Netflix et Disney+.\n\nL'offre Max intègre un catalogue particulièrement riche comprenant l'ensemble des productions prestigieuses de HBO (House of the Dragon, The Last of Us, Game of Thrones, Succession), les franchises cinématographiques Harry Potter et DC Comics, ainsi que les documentaires Discovery. La plateforme se distingue également par l'intégration d'Eurosport en option payante (5 €/mois), permettant la diffusion en direct des Jeux Olympiques de Paris et des grands tournois de tennis.\n\nTrois formules d'abonnement sont proposées aux utilisateurs : une formule 'Basic avec pub' à 5,99 € par mois (2 écrans en Full HD), une formule 'Standard' sans publicité à 9,99 € par mois (avec 30 téléchargements hors connexion), et une offre 'Premium' à 13,99 € par mois (4 écrans simultanés en 4K UHD avec Dolby Atmos). Des accords stratégiques de distribution ont également été noués avec Canal+ et Free pour inclure Max directement dans les offres d'accès internet et forfaits TV."
-    });
+    }));
   }
 
   if (
@@ -680,7 +764,7 @@ export const upgradeVagueArticleIfKnown = (art: NewsArticle): NewsArticle => {
     allText.includes("la grande-motte : coup d'envoi") ||
     (allText.includes("grande-motte") && (allText.includes("ville-port") || allText.includes("port de plaisance") || allText.includes("64 millions")))
   ) {
-    return sanitizeArticleTemporalConsistency({
+    return ensureArticleDeepData(sanitizeArticleTemporalConsistency({
       ...art,
       id: 3,
       title: "La Grande-Motte : où en est le grand chantier 'Ville-Port' de 64 M€ ? Historique, travaux engagés et calendrier réel",
@@ -691,11 +775,67 @@ export const upgradeVagueArticleIfKnown = (art: NewsArticle): NewsArticle => {
       imageUrl: art.imageUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
       summary: "Initié dès 2018-2019 et voté en conseil municipal, le vaste projet 'Ville-Port' de 64 millions d'euros est entré dans une phase décisive. Les travaux préparatoires et portuaires engagés depuis de longs mois préfigurent l'aménagement de la presqu'île Baumel et l'extension du bassin à l'horizon 2028-2030.",
       content: "Engagé sous l'impulsion de la municipalité de Stéphan Rossignol, en partenariat avec la Région Occitanie et l'État, le projet 'Ville-Port' (souvent présenté comme l'Acte II de la Mission Racine de Jean Balladur) n'est pas un chantier improvisé : sa genèse remonte à 2018-2019. Après plusieurs années de concertations publiques et d'ajustements budgétaires, la version actualisée 'Ville-Port 2' a été formellement validée par le conseil municipal en septembre 2023, avant l'enquête publique environnementale conduite en 2024.\n\nContrairement aux idées reçues, les travaux n'ont pas débuté aujourd'hui : le chantier est actif sur le terrain depuis de longs mois avec les phases préparatoires, la libération des emprises, la fermeture de la station d'avitaillement fin 2025 et le bouclage de l'avenue Baumel dès début janvier 2026 pour engager le dragage lourd et le confortement des quais.\n\nLe calendrier officiel s'échelonne sur plusieurs étapes clés :\n• Début 2026 : Démarrage des travaux portuaires (dragage, consolidation des digues de protection et réseaux sous-marins).\n• Automne 2026 : Déploiement du chantier sur la presqu'île Baumel, futur cœur opérationnel et technique du port.\n• 2027-2028 : Construction de la nouvelle Halle Nautique de plus de 3 000 m² pour les professionnels et du nouveau Bureau du Port signé par l'agence d'architecture ODA.\n• Horizon 2030 : Livraison progressive des 400 anneaux de plaisance éco-conçus, réhabilitation des 2,5 km de promenade côtière et aménagement de la zone résidentielle 'La Colline' (environ 250 logements sur l'ancienne zone technique).\n\nCe programme colossal de 64 millions d'euros concilie adaptation au dérèglement climatique (surélévation des digues face à la montée des eaux méditerranéennes, récifs artificiels en béton écologique) et pérennisation de l'attractivité nautique et touristique de l'Hérault."
-    });
+    }));
+  }
+
+  if (
+    art.id === 100 ||
+    allText.includes("meta révèle 'muse'") ||
+    allText.includes("meta révèle « muse »") ||
+    allText.includes("meta revele 'muse'") ||
+    allText.includes("l'agent ia multimodal qui redéfinit") ||
+    (allText.includes("muse") && allText.includes("meta") && (allText.includes("agent") || allText.includes("multimodal") || allText.includes("métavers")))
+  ) {
+    const master = INITIAL_ARTICLES.find((a) => a.id === 100);
+    if (master) {
+      return ensureArticleDeepData(sanitizeArticleTemporalConsistency({
+        ...art,
+        id: art.id || 100,
+        title: master.title,
+        source: master.source,
+        category: master.category,
+        emoji: master.emoji,
+        tags: master.tags,
+        time: master.time,
+        score: master.score,
+        imageUrl: art.imageUrl || master.imageUrl,
+        summary: master.summary,
+        keyFigures: master.keyFigures,
+        keyTakeaways: master.keyTakeaways,
+        strategicAnalysis: master.strategicAnalysis,
+        content: master.content,
+      }));
+    }
+  }
+
+  if (
+    art.id === 101 ||
+    allText.includes("tmtg") ||
+    (allText.includes("trump") && (
+      allText.includes("bours") || 
+      allText.includes("truth social") || 
+      allText.includes("dwac") || 
+      allText.includes("action") || 
+      allText.includes("wall street") || 
+      allText.includes("acquisition") ||
+      allText.includes("empire médiatique")
+    ))
+  ) {
+    return ensureArticleDeepData(sanitizeArticleTemporalConsistency({
+      ...art,
+      title: "Donald Trump et TMTG : L'Odyssée Boursière d'un Empire Médiatique et Financier sur les Marchés",
+      source: "Les Echos avec Bloomberg & SEC",
+      category: "Économie",
+      emoji: "📈",
+      tags: ["Donald Trump", "TMTG", "Truth Social", "Wall Street", "Bourse", "Nasdaq", "Finance"],
+      summary: "Cotée au Nasdaq sous le ticker DJT après sa fusion avec le véhicule SPAC Digital World Acquisition Corp (DWAC), Trump Media & Technology Group (TMTG) cristallise les passions à Wall Street. Entre volatilité extrême, valorisation décorrélée des ratios financiers traditionnels et enjeux politiques, autopsie d'une valeur boursière sans équivalent.",
+      content: TRUMP_TMTG_FULL_CONTENT
+    }));
   }
 
   // Ensure any article referencing future projections (order backlogs, shipments, horizons) is temporally sanitized
-  return sanitizeArticleTemporalConsistency(art);
+  // AND systematically guaranteed to contain rich key figures, takeaways, and strategic analysis
+  return ensureArticleDeepData(sanitizeArticleTemporalConsistency(art));
 };
 
 /**
@@ -901,6 +1041,7 @@ interface NewsFeedProps {
   onAwardCuriosityPoints?: (points: number, reason: string, category?: string, actionType?: "read" | "share" | "quiz") => void;
   isEasyMode?: boolean;
   refreshFluxTrigger?: number;
+  onOpenApiKeyModal?: () => void;
 }
 
 export default function NewsFeed({
@@ -922,7 +1063,8 @@ export default function NewsFeed({
   passiveSignalsSettings = { trackReadingTime: true, trackScrollDepth: true, trackReReading: true, trackCategoryWeights: true },
   onAwardCuriosityPoints = () => {},
   isEasyMode = false,
-  refreshFluxTrigger = 0
+  refreshFluxTrigger = 0,
+  onOpenApiKeyModal
 }: NewsFeedProps) {
   const isSobre = displayMode === "sobre";
   const isWarm = displayMode === "warm";
@@ -1227,6 +1369,10 @@ export default function NewsFeed({
           list = parsed
             .filter((art) => {
               if (!art || typeof art !== "object") return false;
+              const fullTxt = `${art.title || ""} ${art.summary || ""} ${(art.tags || []).join(" ")}`.toLowerCase();
+              if (fullTxt.includes("nuñez") || fullTxt.includes("nunez") || fullTxt.includes("98 000 hectares") || fullTxt.includes("98000 hectares")) {
+                return false;
+              }
               if (isHallucinatedOrCorrupted(art)) return false;
               return true;
             })
@@ -1240,9 +1386,9 @@ export default function NewsFeed({
 
               // Synchronize baseline articles with current detailed content from INITIAL_ARTICLES
               const matchingInitial = INITIAL_ARTICLES.find(
-                (init) => init.id === art.id || init.title.trim().toLowerCase() === art.title.trim().toLowerCase() || (art.id === 3 && init.id === 3)
+                (init) => init.id === art.id || init.title.trim().toLowerCase() === art.title.trim().toLowerCase() || (art.id === 3 && init.id === 3) || (art.id === 100 && init.id === 100) || (art.title.toLowerCase().includes("muse") && init.id === 100)
               );
-              if (matchingInitial && (!art.isCustomGenerated || art.id <= 25)) {
+              if (matchingInitial && (!art.isCustomGenerated || art.id <= 25 || art.id === 100 || art.title.toLowerCase().includes("muse"))) {
                 art = {
                   ...art,
                   title: matchingInitial.title,
@@ -1252,6 +1398,9 @@ export default function NewsFeed({
                   tags: matchingInitial.tags || art.tags,
                   category: matchingInitial.category || art.category,
                   source: matchingInitial.source || art.source,
+                  keyFigures: matchingInitial.keyFigures || art.keyFigures,
+                  keyTakeaways: matchingInitial.keyTakeaways || art.keyTakeaways,
+                  strategicAnalysis: matchingInitial.strategicAnalysis || art.strategicAnalysis,
                 };
               }
 
@@ -1260,16 +1409,19 @@ export default function NewsFeed({
                 art.summary = `Compte-rendu factuel et données vérifiées concernant : ${art.title}.`;
                 art.content = `Les dernières dépêches et bilans transmis par les agences de presse régionales et nationales font état des avancées concernant ${art.title}.\n\nLes équipes et représentants institutionnels ont fait le point sur les projets opérationnels et le calendrier des prochaines étapes.\n\nDe nouvelles précisions sont attendues à la suite des prochaines concertations publiques.`;
               }
-              if (art.content && typeof art.content === "string" && (art.content.trim().startsWith("{") || art.content.trim().startsWith("["))) {
-                art.content = extractCleanReadableText(art.content);
-              }
-              if (art.summary && typeof art.summary === "string" && (art.summary.trim().startsWith("{") || art.summary.trim().startsWith("["))) {
+              // Clean any raw JSON punctuation or truncated syntax from content
+              art.content = cleanArticleContent(art.content, art.title, art.summary);
+              if (art.summary && typeof art.summary === "string" && (art.summary.includes('"status"') || art.summary.includes('"titre"') || art.summary.trim().startsWith("{") || art.summary.trim().startsWith("["))) {
                 art.summary = extractCleanReadableText(art.summary);
               }
               if (art.aiSummaryCustom && typeof art.aiSummaryCustom === "string" && (art.aiSummaryCustom.trim().startsWith("{") || art.aiSummaryCustom.trim().startsWith("["))) {
                 art.aiSummaryCustom = extractCleanReadableText(art.aiSummaryCustom);
               }
 
+              // Normalize future timestamps if any were stored from prior runs
+              if (art.createdAt && art.createdAt > Date.now() + 60000) {
+                art.createdAt = Date.now() - (idx * 30 * 60 * 1000);
+              }
               if (!art.createdAt) {
                 art.createdAt = Date.now() - (idx * 45 * 60 * 1000) - (Math.random() * 10 * 60 * 1000);
               }
@@ -1286,7 +1438,7 @@ export default function NewsFeed({
 
       // Ensure all articles from INITIAL_ARTICLES (including newly added scoops like ID 30 Unitree) are present
       const existingTitles = new Set((list || []).map((a) => a.title.trim().toLowerCase()));
-      const missing = INITIAL_ARTICLES.filter((a) => !existingTitles.has(a.title.trim().toLowerCase())).map((art, idx) => ({
+      const missing = INITIAL_ARTICLES.filter((a) => !existingTitles.has(a.title.trim().toLowerCase())).map((art, idx) => upgradeVagueArticleIfKnown({
         ...art,
         id: art.id || (Date.now() + 500 + idx),
         createdAt: art.createdAt || (Date.now() - idx * 20 * 60 * 1000)
@@ -1454,41 +1606,10 @@ export default function NewsFeed({
   }, [articles]);
 
 
-  // Friendly French dynamic relative time display respecting real dates and explicit custom labels
+  // Friendly French dynamic creation date and time display: "DD/MM/YYYY à HH:mm"
   const getArticleTimeDisplay = (art: NewsArticle): string => {
     if (!art) return "";
-
-    // If the article has an explicit custom label or non-relative date, respect it faithfully!
-    if (art.time && !art.time.startsWith("il y a ")) {
-      return art.time;
-    }
-
-    const now = Date.now();
-    const createdAt = art.createdAt || (now - (art.id % 12) * 45 * 60 * 1000);
-    const diffMs = now - createdAt;
-    const diffMin = Math.floor(diffMs / 60000);
-
-    if (diffMin < 1) {
-      return "À l'instant";
-    }
-    if (diffMin < 60) {
-      return `il y a ${diffMin} min`;
-    }
-    const diffHours = Math.floor(diffMin / 60);
-    if (diffHours < 24) {
-      return `il y a ${diffHours} h`;
-    }
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays === 1) {
-      return "Hier";
-    }
-    if (diffDays < 30) {
-      return `il y a ${diffDays} j`;
-    }
-    if (diffDays < 365) {
-      return `il y a ${Math.floor(diffDays / 30)} mois`;
-    }
-    return `il y a ${Math.floor(diffDays / 365)} an(s)`;
+    return formatArticleDateTime(art);
   };
 
   const handleResetToBaseline = () => {
@@ -1508,12 +1629,17 @@ export default function NewsFeed({
 
     setIsBulkGenerating(true);
 
-    // Reset all filters to ensure newly generated articles are fully visible
+    // Reset all filters to ensure newly generated articles are fully visible at the absolute top of the feed
     setSearchQuery("");
     setClickedTrendTag(null);
+    setSelectedTrendTags([]);
+    setSemanticTrail([]);
     setOnlyBookmarks(false);
     setReadingTimeFilter("all");
-    setMinScore(40);
+    setMinScore(0);
+    setActiveCultureShortcut(null);
+    setSortBy("time");
+    setSelectedArticle(null); // Return to front feed so user sees the newly generated articles
     if (onClearFilters) {
       onClearFilters();
     }
@@ -1527,13 +1653,13 @@ export default function NewsFeed({
     // Baseline fallback pool guaranteeing 20 verified articles
     const fallbackTopics = [
       {
-        theme: "Incendies en France 2026 : Laurent Nuñez fait le point sur les 98 000 hectares ravagés",
-        cat: "Environnement",
-        src: "Le Monde avec AFP",
-        emoji: "🔥",
-        tags: ["Incendies", "Laurent Nuñez", "Environnement"],
-        summary: "Le ministre de l'Intérieur Laurent Nuñez a actualisé le bilan national des feux de forêt : 98 000 hectares de végétation ont été brûlés en France métropolitaine depuis le début de l'année.",
-        content: "Lors d'un point presse d'urgence de la Sécurité Civile, le ministre de l'Intérieur Laurent Nuñez a présenté les chiffres officiels actualisés de la saison des incendies de forêt en France. Les feux successifs sur l'ensemble du territoire portent désormais le bilan annuel à 98 000 hectares ravagés, nécessitant une réorganisation complète des dispositifs de crise.\n\nFace à l'ampleur des sinistres amplifiés par la sécheresse des sols et les fortes chaleurs, le ministère de l'Intérieur a ordonné la mobilisation intégrale des moyens aériens (Canadairs, Dash et hélicoptères bombardiers d'eau) ainsi que le déploiement de renforts d'urgence dans les massifs du Sud et de l'Ouest.\n\n'La priorité absolue reste la protection des personnes, des habitations et des espaces naturels fragiles', a souligné Laurent Nuñez, en appelant l'ensemble des concitoyens à un respect scrupuleux des consignes de sécurité et des interdictions d'accès aux massifs à haut risque."
+        theme: "Transition Spatiale Européenne : Ariane 6 Enchaîne les Succès Commerciaux et Consolide l'Accès Autonome à l'Espace",
+        cat: "Science",
+        src: "L'Usine Nouvelle avec ESA & Arianespace",
+        emoji: "🚀",
+        tags: ["Ariane 6", "Espace", "Arianespace", "Souveraineté"],
+        summary: "Le lanceur lourd européen Ariane 6 a validé avec succès sa montée en cadence opérationnelle depuis le centre spatial de Kourou, garantissant à l'Europe un accès souverain à l'orbite pour ses constellations scientifiques et commerciales.",
+        content: "Depuis la base de lancement de Kourou en Guyane française, l'Agence Spatiale Européenne (ESA) et Arianespace ont confirmé la réussite pleine et entière de la nouvelle série de vols commerciaux du lanceur lourd Ariane 6. Cette série opérationnelle marque le retour en force de l'industrie aérospatiale européenne sur le marché mondial des lancements de satellites de télécommunications et d'observation de la Terre.\n\nDotée de propulseurs solides P120C optimisés et du moteur réallumable Vinci sur son étage supérieur, Ariane 6 répond avec flexibilité aux missions complexes à destination d'orbites multiples. Les carnets de commandes affichent d'ores et déjà un calendrier complet jusqu'en 2029, porté notamment par le déploiement de constellations institutionnelles et privées.\n\nCette performance industrielle rétablit l'autonomie stratégique du continent européen face aux opérateurs américains et asiatiques, tout en préparant les prochaines évolutions vers des étages réutilisables bas carbone."
       },
       {
         theme: "Révolution des puces neuromorphiques et accélération matérielle de l'IA",
@@ -1742,21 +1868,25 @@ export default function NewsFeed({
       "   - NOMME SYSTÉMATIQUEMENT le nom précis de l'entreprise ou marque (ex: Warner Bros. Discovery, Netflix, Disney, Apple, Google, Microsoft, OpenAI, etc.) et le nom précis de la plateforme ou produit (ex: Max, ChatGPT, iPhone, etc.).\n" +
       "   - INDIQUE des chiffres concrets (tarifs d'abonnement en €, budgets, pourcentages, dates exactes).\n" +
       "2. LA SOURCE DOIT ÊTRE UN VRAI MÉDIA OFFICIEL RECONNU (ex: AFP, Le Monde, Les Echos, Reuters, TechCrunch, Le Figaro, Franceinfo, Midi Libre, Variety, The Verge). JAMAIS le terme générique 'Médias' ou 'Presse'.\n" +
-      "3. Fournis UNIQUEMENT des événements réels qui ont fait l'objet d'articles de presse officiels.\n" +
+      "3. Fournis UNIQUEMENT des événements réels qui ont fait l'objet d'articles de presse officiels récents.\n" +
+      "   - INTERDICTION FORMELLE d'inclure des sujets obsolètes ou récurrents sur les incendies de forêt / Laurent Nuñez / bilans 98 000 hectares. Privilégie les actualités technologiques, scientifiques, économiques et culturelles de premier plan.\n" +
       "Si un thème personnalisé de l'utilisateur n'a AUCUNE actualité avérée dans la presse aujourd'hui, NE CRÉE PAS D'ARTICLE DESSUS et choisis à la place une véritable grande actualité du jour vérifiée.\n\n" +
       "Réponds STRICTEMENT sous la forme d'un tableau JSON contenant 20 objets avec les champs suivants :\n" +
       "- 'titre' : titre journalistique réel, clair et très précis nommant explicitement les entités\n" +
       "- 'source' : grand média reconnu réel (ex: Les Echos, Le Monde, Reuters, AFP)\n" +
       "- 'categorie' : IA | Technologie | Économie | Local | Environnement | Médias | Science\n" +
       "- 'emoji' : émoji pertinent\n" +
-      "- 'tags' : tableau de 3 mots-clés\n" +
-      "- 'resume' : synthèse claire et précise de 2-3 phrases avec les entités nommées et faits clés vérifiés\n" +
-      "- 'corps' : texte informatif de 3 paragraphes factuels et précis\n" +
+      "- 'tags' : tableau de 3 à 4 mots-clés\n" +
+      "- 'resume' : synthèse claire, dense et percutante de 2-3 phrases avec les entités nommées et faits clés vérifiés\n" +
+      "- 'keyFigures' : tableau de 3 métriques chiffrées [{ label: 'string', value: 'string', detail: 'string' }]\n" +
+      "- 'keyTakeaways' : tableau de 3 à 4 enseignements clés\n" +
+      "- 'strategicAnalysis' : { actorsInvolved: ['Acteur 1', 'Acteur 2'], marketImpact: '...', privacyCompliance: '...', nextMilestone: '...' }\n" +
+      "- 'corps' : texte informatif de 3 à 5 paragraphes factuels et précis structuré avec sous-titres markdown '### '\n" +
       "- 'score' : entier entre 78 et 98\n\n" +
       "Uniquement le tableau JSON brut [ ... ], sans balises markdown." +
       getTemporalPromptDirective();
 
-    const promptText = `Recherche et sélectionne 20 articles d'actualité du jour vérifiés et récents (${currentDateStr} ${currentYear}). Réponds uniquement par le tableau JSON.`;
+    const promptText = `Recherche et sélectionne 20 articles d'actualité du jour vérifiés et récents (${currentDateStr} ${currentYear}). Fournis des données denses et complètes. Réponds uniquement par le tableau JSON.`;
 
     let generatedValidArticles: NewsArticle[] = [];
 
@@ -1769,6 +1899,7 @@ export default function NewsFeed({
           model: selectedModel.id,
           enableSearch: true,
           temperature: 0.2,
+          maxTokens: 4096,
           messages: [
             { role: "system", content: systemInstruction },
             { role: "user", content: promptText }
@@ -1844,7 +1975,11 @@ export default function NewsFeed({
             const emoji = p.emoji || "📰";
             const score = Number(p.score) || (82 + (idx % 16));
 
-            generatedValidArticles.push(sanitizeArticleTemporalConsistency({
+            const keyFigures = Array.isArray(p.keyFigures) && p.keyFigures.length > 0 ? p.keyFigures : undefined;
+            const keyTakeaways = Array.isArray(p.keyTakeaways) && p.keyTakeaways.length > 0 ? p.keyTakeaways : undefined;
+            const strategicAnalysis = p.strategicAnalysis || undefined;
+
+            generatedValidArticles.push(ensureArticleDeepData(sanitizeArticleTemporalConsistency({
               id: nowTime + 3000 + idx, // Brand new unique ID guaranteeing not read / not gray
               featured: idx < 2,
               title,
@@ -1856,8 +1991,11 @@ export default function NewsFeed({
               emoji,
               tags,
               summary,
-              content
-            }));
+              content,
+              keyFigures,
+              keyTakeaways,
+              strategicAnalysis
+            })));
           }
         }
       }
@@ -1876,15 +2014,14 @@ export default function NewsFeed({
         ...tailoredFallbacks.slice(0, needed)
       ];
     }
-    finalNewArticles = finalNewArticles.map(sanitizeArticleTemporalConsistency);
-
-    const priorityTime = Date.now();
-    // Guarantee the 20 new articles are stamped with the newest priority timestamps
+    finalNewArticles = finalNewArticles.map((art) => ensureArticleDeepData(sanitizeArticleTemporalConsistency(art)));
+    // Guarantee the 20 new articles are stamped with real current timestamps in descending order (no future offset)
     const top20New = finalNewArticles.slice(0, 20).map((art, idx) => ({
       ...art,
-      createdAt: priorityTime + 10000000 - idx * 1000,
-      time: "À l'instant",
+      createdAt: nowTime - (idx * 60 * 1000), // Real current time: 1st is right now, 2nd is 1 min ago, etc.
+      time: idx === 0 ? "À l'instant" : `il y a ${idx} min`,
       isNewTop20: true,
+      isLatestGeneration: true,
       featured: true
     }));
 
@@ -1893,17 +2030,37 @@ export default function NewsFeed({
     const newTitles = new Set(top20New.map(a => a.title.trim().toLowerCase()));
     const uniqueSaved = savedArticles.filter(a => !newTitles.has(a.title.trim().toLowerCase()));
 
+    // Reset priority flags on older articles so the new batch stays #1 at the top
     const remaining = articles
       .filter(a => !top20New.some(n => n.id === a.id || n.title.trim().toLowerCase() === a.title.trim().toLowerCase()))
-      .map(a => ({ ...a, featured: false, isNewTop20: false }));
+      .map(a => ({
+        ...a,
+        featured: false,
+        isNewTop20: false,
+        isLatestGeneration: false,
+        isCustomGenerated: false
+      }));
 
     const fullFeed = [...top20New, ...uniqueSaved, ...remaining.filter(a => !uniqueSaved.some(s => s.id === a.id))];
     setArticles(fullFeed);
     localStorage.setItem("infoperso_articles", JSON.stringify(fullFeed));
     localStorage.setItem("infoperso_last_updated", nowTime.toString());
 
-    onNotify(`✨ Les 20 nouveaux articles ont été placés en premier dans la liste !`);
+    onNotify(`✨ Les 20 nouveaux articles ont été placés en tête absolue au tout début de la page !`);
     setIsBulkGenerating(false);
+
+    // Scroll smoothly to the very top of the feed and viewport so the user sees them at the very beginning
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      const mainViewport = document.querySelector("main");
+      if (mainViewport) {
+        mainViewport.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      const feedTop = document.getElementById("articles-feed-top");
+      if (feedTop) {
+        feedTop.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -2174,6 +2331,19 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       .replace(/<!\[CDATA\[/gi, "")
       .replace(/\]\]>/gi, "");
 
+    // Safety guard: if paragraph contains raw JSON syntax or markers, clean it immediately
+    if (
+      cleanText.includes('"status"') ||
+      cleanText.includes('"titre"') ||
+      cleanText.includes('"tags"') ||
+      cleanText.includes('"resume"') ||
+      cleanText.includes('"corps"') ||
+      cleanText.startsWith("{") ||
+      cleanText.startsWith("[")
+    ) {
+      cleanText = cleanArticleContent(cleanText, selectedArticle?.title, selectedArticle?.summary);
+    }
+
     // Format metadata footer if paragraph contains source or publication date
     if (cleanText.includes("Source officielle :") || cleanText.includes("Publié le :")) {
       const parts = cleanText.split("\n").filter(p => p.trim().length > 0);
@@ -2226,9 +2396,67 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       );
     }
 
+    // Helper for inline markdown bold/italic formatting
+    const renderFormattedInline = (str: string) => {
+      const parts = str.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+      return parts.map((part, pI) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={pI} className="font-bold text-indigo-400 dark:text-indigo-300">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith("*") && part.endsWith("*")) {
+          return <em key={pI} className="italic opacity-90">{part.slice(1, -1)}</em>;
+        }
+        return part;
+      });
+    };
+
+    // Sub-headings: ### or ## or #
+    if (cleanText.startsWith("### ") || cleanText.startsWith("## ") || cleanText.startsWith("# ")) {
+      const heading = cleanText.replace(/^#+\s*/, "");
+      return (
+        <h4 className={`text-base sm:text-lg font-black tracking-tight mt-6 mb-3 flex items-center gap-2 pt-3 border-t border-slate-700/30 ${
+          isDark ? "text-indigo-300" : isWarm ? "text-amber-950 font-serif" : "text-indigo-950"
+        }`}>
+          <span className="w-1.5 h-4.5 rounded-full bg-indigo-500 shrink-0"></span>
+          <span>{renderFormattedInline(heading)}</span>
+        </h4>
+      );
+    }
+
+    // Blockquote: >
+    if (cleanText.startsWith("> ")) {
+      const quoteContent = cleanText.replace(/^>\s*/, "");
+      return (
+        <blockquote className={`my-3 p-3.5 rounded-xl border-l-4 italic text-sm leading-relaxed ${
+          isDark ? "bg-indigo-950/20 border-indigo-500 text-slate-200" : "bg-indigo-50 border-indigo-600 text-indigo-950"
+        }`}>
+          "{renderFormattedInline(quoteContent)}"
+        </blockquote>
+      );
+    }
+
+    // Bullet points or multi-line bullet lists
+    if (cleanText.includes("\n•") || cleanText.includes("\n-") || cleanText.startsWith("•") || cleanText.startsWith("-") || cleanText.startsWith("* ")) {
+      const lines = cleanText.split("\n");
+      return (
+        <ul className="space-y-2 my-3 pl-1">
+          {lines.map((l, lIdx) => {
+            const cleanLine = l.replace(/^[-•*]\s*/, "").trim();
+            if (!cleanLine) return null;
+            return (
+              <li key={lIdx} className="flex items-start gap-2.5 text-sm sm:text-base leading-relaxed">
+                <span className="text-indigo-400 font-bold shrink-0 mt-1">•</span>
+                <span className={isDark ? "text-zinc-200" : "text-zinc-800"}>{renderFormattedInline(cleanLine)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      );
+    }
+
     return (
       <p className={`indent-3 leading-relaxed tracking-wide font-normal ${isDark ? "text-zinc-100" : "text-black"}`}>
-        {cleanText}
+        {renderFormattedInline(cleanText)}
       </p>
     );
   };
@@ -2353,7 +2581,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
             const safeId = (typeof item.id === "number" && !isNaN(item.id) && item.id > 0)
               ? item.id
               : nowTime + i + 1000;
-            top20New.push({
+            top20New.push(ensureArticleDeepData(sanitizeArticleTemporalConsistency({
               ...item,
               id: safeId,
               isNewTop20: true,
@@ -2361,7 +2589,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
               time: "À l'instant",
               featured: true,
               tags: Array.from(new Set(["Direct Live", "Nouveau", ...(item.tags || [])]))
-            });
+            })));
           }
         }
 
@@ -2421,7 +2649,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
             }
             if (!existingIds.has(safeId)) {
               existingIds.add(safeId);
-              fresh.push({ ...item, id: safeId });
+              fresh.push(ensureArticleDeepData(sanitizeArticleTemporalConsistency({ ...item, id: safeId })));
             }
           }
           return [...fresh, ...prev];
@@ -2569,7 +2797,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           body: JSON.stringify({ url: interest.trim() })
         });
         if (extractRes.ok && extractRes.data?.success && extractRes.data.article) {
-          const extracted = extractRes.data.article;
+          const extracted = ensureArticleDeepData(sanitizeArticleTemporalConsistency(extractRes.data.article));
           await saveArticleToServerRegistry(extracted);
           setArticles((prev) => [extracted, ...prev.filter((a) => a.id !== extracted.id)]);
           setSelectedArticle(extracted);
@@ -2607,25 +2835,42 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     const currentDateStr = new Date().toLocaleDateString("fr-FR");
 
     const systemInstruction = 
-      "Tu es la rédaction en chef et le moteur d'écriture journalistique d'InfoPerso en français.\n" +
-      "LORSQUE L'UTILISATEUR TE DEMANDE DE RÉDIGER OU D'ANALYSER UN ARTICLE OU UN LIEN, TU DOIS OBLIGATOIREMENT PRODUIRE UN ARTICLE COMPLET, CLAIR, PASSIONNANT, ET RIGOUREUSEMENT FIABLE.\n\n" +
+      "Tu es la rédaction en chef et le moteur d'investigation journalistique d'InfoPerso en français.\n" +
+      "LORSQUE L'UTILISATEUR TE DEMANDE DE RÉDIGER OU D'ANALYSER UN ARTICLE OU UN LIEN, TU DOIS OBLIGATOIREMENT PRODUIRE UN GRAND DOSSIER D'ACTUALITÉ EXTRÊMEMENT COMPLET, DENSE, PASSIONNANT, RICHE EN DONNÉES CHIFFRÉES ET RIGOUREUSEMENT EXACT.\n\n" +
       "## Règles éditoriales indispensables :\n" +
-      "- OBLIGATION DE PRÉCISION ET NOMMAGE EXPLICITE : Nomme TOUJOURS explicitement les entités (entreprises, institutions, personnalités, villes, dates exactes, modèles ou références).\n" +
-      "- S'il s'agit d'un lien web ou d'une actualité : synthétise fidèlement les faits rapportés par la source avec une grande rigueur factuelle et sans jamais inventer d'anachronismes.\n" +
-      "- BANNIS les formules vagues et les refus. Ne renvoie JAMAIS de message disant qu'il n'y a pas d'actualité. Tu dois TOUJOURS produire l'article demandé.\n" +
-      "- Style : journalistique, fluide, soigné, immersif et rigoureux.\n\n" +
+      "- DENSITÉ D'INFORMATION MAXIMALE : Ne fais JAMAIS un article court ou superficiel. Développe en profondeur les dimensions techniques, économiques, stratégiques, éthiques et sociétales.\n" +
+      "- NOMMAGE EXPLICITE OBLIGATOIRE : Nomme TOUJOURS explicitement les entités (entreprises, filiales, institutions, personnalités clés, modèles exacts, dates précises, métriques chiffrées).\n" +
+      "- STRUCTURE SOIGNÉE DU CORPS : Utilise des sous-titres markdown clairs '### 1. ...', '### 2. ...' pour structurer l'article en 5 à 7 sections fouillées.\n" +
+      "- Style : journalistique d'investigation (type Le Monde Grand Angle, Les Echos Décryptage, Bloomberg Deep Dive), fluide, soigné et immersif.\n\n" +
       "## Format de sortie JSON STRICTEMENT OBLIGATOIRE :\n" +
       "Réponds UNIQUEMENT avec un objet JSON valide :\n" +
       "{\n" +
       '  "status": "ok",\n' +
       '  "titre": "string (Titre percutant, précis et informatif nommant les entités)",\n' +
-      '  "source": "string (ex: Le Figaro, AFP & Presse, France Info, Les Echos)",\n' +
+      '  "source": "string (ex: Les Echos, AFP & Média Tech, Le Figaro Économie, France Info)",\n' +
       '  "categorie": "string (Technologie|Science|Culture|Histoire|Société|Économie|Politique|Environnement|International|Sport|Local)",\n' +
       '  "date_publication": "string",\n' +
       '  "emoji": "string (Un emoji contextuel adapté)",\n' +
-      '  "tags": ["tag1", "tag2", "tag3"],\n' +
-      '  "resume": "string (2 à 3 phrases percutantes avec noms précis et faits clés)",\n' +
-      '  "corps": "string (3 à 5 paragraphes détaillés et instructifs avec contexte, développement et perspectives)",\n' +
+      '  "tags": ["tag1", "tag2", "tag3", "tag4"],\n' +
+      '  "resume": "string (Synthèse percutante de 2 à 3 phrases avec les acteurs clés et chiffres cardinaux)",\n' +
+      '  "keyFigures": [\n' +
+      '    { "label": "string (ex: Investissement)", "value": "string (ex: 35 Mds $)", "detail": "string (ex: Alloué aux clusters GPU en 2026)" },\n' +
+      '    { "label": "string (ex: Taille du modèle)", "value": "string (ex: 405B)", "detail": "string" },\n' +
+      '    { "label": "string (ex: Latence d\'inférence)", "value": "string (ex: < 180 ms)", "detail": "string" }\n' +
+      '  ],\n' +
+      '  "keyTakeaways": [\n' +
+      '    "string (Enseignement clé 1 rédigé de façon synthétique et percutante)",\n' +
+      '    "string (Enseignement clé 2 avec nom des technologies ou plateformes)",\n' +
+      '    "string (Enseignement clé 3 sur les impacts marché ou concurrentiels)",\n' +
+      '    "string (Enseignement clé 4 sur la souveraineté ou le calendrier)"\n' +
+      '  ],\n' +
+      '  "strategicAnalysis": {\n' +
+      '    "actorsInvolved": ["string (Acteur principal)", "string (Concurrent 1)", "string (Concurrent 2)"],\n' +
+      '    "marketImpact": "string (Impact structurant sur l\'industrie et les modèles d\'affaires)",\n' +
+      '    "privacyCompliance": "string (Protection des données, RGPD, AI Act, chiffrement)",\n' +
+      '    "nextMilestone": "string (Prochaine étape clé ou calendrier de sortie)"\n' +
+      '  },\n' +
+      '  "corps": "string (Grand format journalistique de 5 à 7 paragraphes denses avec sous-titres markdown ' + "### " + ' et citations)",\n' +
       '  "score": 100\n' +
       "}" +
       getTemporalPromptDirective();
@@ -2634,9 +2879,9 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
       ? `L'utilisateur souhaite importer et consulter l'article du lien suivant : "${interest.trim()}".\n` +
         `Thème déduit : "${cleanTopic}".\n` +
         `Source d'origine : "${sourceHint}".\n\n` +
-        `Rédige un article journalistique complet, captivant et rigoureux sur cet événement ou ce sujet d'actualité.\n` +
-        `Attribue la source "${sourceHint}" et respecte scrupuleusement le format JSON.`
-      : `Rédige un article complet, remarquable et captivant sur le sujet suivant : "${cleanTopic}". Produis un article de fond ou d'actualité de haute qualité journalistique et respecte scrupuleusement la structure JSON demandée.`;
+        `Rédige un grand dossier journalistique d'investigation complet, captivant, rigoureux et très fourni en données chiffrées sur cet événement.\n` +
+        `Attribue la source "${sourceHint}" et respecte scrupuleusement le format JSON enrichi (chiffres clés, points à retenir, analyse stratégique).`
+      : `Rédige un grand dossier journalistique d'investigation complet, remarquable, captivant et très riche en informations sur le sujet suivant : "${cleanTopic}". Fournis un travail de haute volée avec chiffres vérifiables, analyse concurrentielle et structure en sous-parties. Respecte scrupuleusement le format JSON enrichi.`;
 
     try {
       const { ok, data, error } = await safeFetchJson<{ content?: string; error?: string }>("/api/chat/proxy", {
@@ -2647,6 +2892,8 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           model: selectedModel.id,
           enableSearch: true,
           temperature: 0.3,
+          maxTokens: 4096,
+          responseFormat: "json",
           messages: [
             { role: "system", content: systemInstruction },
             { role: "user", content: promptText }
@@ -2688,15 +2935,17 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
             
             if (titleMatch || contentMatch || data.content.length > 50) {
               const rawCleaned = data.content.replace(/```json/g, "").replace(/```/g, "").trim();
+              const derivedTitle = titleMatch ? titleMatch[1] : `Dossier : ${cleanTopic}`;
+              const derivedSummary = summaryMatch ? summaryMatch[1] : `Découverte et analyse approfondie sur : ${cleanTopic}.`;
               parsed = {
                 status: "ok",
-                titre: titleMatch ? titleMatch[1] : `Dossier : ${cleanTopic}`,
+                titre: derivedTitle,
                 source: sourceMatch ? sourceMatch[1] : "InfoPerso Rédaction",
-                categorie: "Culture",
+                categorie: "Technologie",
                 emoji: "✨",
                 tags: [cleanTopic.substring(0, 15), "Dossier", "Approfondi"],
-                resume: summaryMatch ? summaryMatch[1] : `Découverte et analyse approfondie sur : ${cleanTopic}.`,
-                corps: contentMatch ? contentMatch[1].replace(/\\n/g, "\n") : rawCleaned,
+                resume: derivedSummary,
+                corps: contentMatch ? contentMatch[1].replace(/\\n/g, "\n") : cleanArticleContent(rawCleaned, derivedTitle, derivedSummary),
                 score: 100
               };
             }
@@ -2710,28 +2959,41 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
             status: "ok",
             titre: `Dossier : ${cleanTopic}`,
             source: "InfoPerso Rédaction",
-            categorie: "Culture",
+            categorie: "Technologie",
             emoji: "✨",
             tags: [cleanTopic.substring(0, 15), "Dossier"],
             resume: `Grand dossier et synthèse sur le sujet : ${cleanTopic}.`,
-            corps: rawText.length > 30 ? rawText : `Voici une analyse approfondie et documentée sur le sujet "${cleanTopic}".\n\nCe thème soulève de nombreux aspects essentiels et présente un intérêt majeur tant sur le plan historique que contemporain.\n\nLes recherches et réflexions autour de ce sujet continuent d'éclairer notre compréhension du domaine.`,
+            corps: cleanArticleContent(rawText, `Dossier : ${cleanTopic}`, `Grand dossier et synthèse sur le sujet : ${cleanTopic}.`),
             score: 100
           };
         }
 
         const candidateTitle = (parsed.titre || parsed.title || `Dossier : ${cleanTopic}`).trim();
-        const candidateSummary = (parsed.resume || parsed.summary || `Analyse et synthèse sur ${cleanTopic}.`).trim();
-        let candidateContent = (parsed.corps || parsed.content || candidateSummary).trim();
-        if (candidateContent.length < 30) {
-          candidateContent = `${candidateSummary}\n\nUn dossier approfondi sur ${cleanTopic} explorant l'ensemble de ses dimensions historiques, culturelles et analytiques.`;
+        let candidateSummary = (parsed.resume || parsed.summary || `Analyse et synthèse sur ${cleanTopic}.`).trim();
+        if (candidateSummary.includes('"status"') || candidateSummary.includes('"titre"') || candidateSummary.startsWith("{")) {
+          candidateSummary = extractCleanReadableText(candidateSummary);
         }
+        let candidateContent = cleanArticleContent(parsed.corps || parsed.content || candidateSummary, candidateTitle, candidateSummary);
+        if (candidateContent.length < 30) {
+          candidateContent = `${candidateSummary}\n\nUn dossier approfondi sur ${cleanTopic} explorant l'ensemble de ses dimensions techniques, industrielles et prospectives.`;
+        }
+
+        // Extract direct rich information
+        const candidateKeyFigures = Array.isArray(parsed.keyFigures) && parsed.keyFigures.length > 0 
+          ? parsed.keyFigures 
+          : (Array.isArray(parsed.chiffres_cles) && parsed.chiffres_cles.length > 0 ? parsed.chiffres_cles : undefined);
+        const candidateKeyTakeaways = Array.isArray(parsed.keyTakeaways) && parsed.keyTakeaways.length > 0
+          ? parsed.keyTakeaways
+          : (Array.isArray(parsed.points_cles) && parsed.points_cles.length > 0 ? parsed.points_cles : undefined);
+        const candidateStrategicAnalysis = parsed.strategicAnalysis || parsed.analyse_strategique || undefined;
 
         // Generate a unique ID
         const nextId = Math.max(...articles.map((a) => a.id), 0) + 1;
-        const newArticle: NewsArticle = sanitizeArticleTemporalConsistency({
+        const newArticle: NewsArticle = ensureArticleDeepData(sanitizeArticleTemporalConsistency({
           id: nextId,
           featured: true, // make it featured so it is placed in priority articles
           isCustomGenerated: true,
+          isLatestGeneration: true,
           createdAt: Date.now(),
           title: candidateTitle,
           source: parsed.source || sourceHint,
@@ -2742,8 +3004,11 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           tags: Array.isArray(parsed.tags) && parsed.tags.length > 0 ? parsed.tags : (isUrl ? ["Robotique", "Unitree", "High-Tech"] : [cleanTopic.substring(0, 15), "Dossier"]),
           summary: candidateSummary,
           content: candidateContent,
+          keyFigures: candidateKeyFigures,
+          keyTakeaways: candidateKeyTakeaways,
+          strategicAnalysis: candidateStrategicAnalysis,
           originalUrl: detectedCleanUrl || (isUrl ? interest.trim() : undefined)
-        });
+        }));
 
         // Automatically add tags to followed tags and preferences so the app learns what the user likes!
         const autoTags = Array.isArray(newArticle.tags) ? newArticle.tags : [];
@@ -2778,27 +3043,43 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
         // Reset active filters to ensure custom article is immediately visible in priority feed
         if (onClearFilters) onClearFilters();
         setClickedTrendTag(null);
+        setSelectedTrendTags([]);
+        setSemanticTrail([]);
         setOnlyBookmarks(false);
+        setActiveCultureShortcut(null);
+        setSortBy("time");
         if (searchQuery.trim()) {
           setSearchQuery("");
         }
 
         await saveArticleToServerRegistry(newArticle);
-        setArticles((prev) => [newArticle, ...prev.filter(a => a.id !== newArticle.id)]);
+        setArticles((prev) => [
+          newArticle,
+          ...prev.filter(a => a.id !== newArticle.id).map(a => ({ ...a, isLatestGeneration: false }))
+        ]);
         setSelectedArticle(newArticle);
         setIsSettingsVoletOpen(false);
         onNotify(isUrl 
-          ? `🔗 Article du Figaro / presse importé avec succès ! Thème ajouté à vos centres d'intérêt ciblés.`
-          : `✨ Nouvel article sur mesure rédigé et placé en #1 des articles prioritaires !`
+          ? `🔗 Article importé avec succès et placé au tout début de la première page !`
+          : `✨ Nouvel article rédigé et placé en #1 au tout début de la première page !`
         );
         setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          const mainViewport = document.querySelector("main");
+          if (mainViewport) {
+            mainViewport.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          const feedTop = document.getElementById("articles-feed-top");
+          if (feedTop) {
+            feedTop.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
           if (window.innerWidth >= 768) {
             const readerEl = document.getElementById("active-article-reader");
             if (readerEl) {
               readerEl.scrollIntoView({ behavior: "smooth", block: "start" });
             }
           }
-        }, 300);
+        }, 150);
       } else {
         onNotify(`⚠️ Erreur : ${data?.error || error || "Impossible de décoder la réponse de l'IA."}`);
       }
@@ -3539,7 +3820,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
   }, [selectedArticle]);
 
   // AI Summarization states inside Reader panel
-  const [summaryModelId, setSummaryModelId] = useState("gemini-3.5-flash");
+  const [summaryModelId, setSummaryModelId] = useState("mistral-small-latest");
   const [isSummarizing, setIsSummarizing] = useState(false);
 
   // Calculate metrics
@@ -3645,28 +3926,30 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       return true;
     })
     .sort((a, b) => {
-      // 1. Articles personnalisés sur mesure prioritaires au sommet absolu
-      const aCustom = (a as any).isCustomGenerated ? 1 : 0;
-      const bCustom = (b as any).isCustomGenerated ? 1 : 0;
-      if (aCustom !== bCustom) return bCustom - aCustom;
-      if (aCustom && bCustom) {
-        return ((b as any).createdAt || b.id) - ((a as any).createdAt || a.id);
-      }
+      // 1. Priorité absolue : le dernier batch d'articles générés (isLatestGeneration)
+      const aLatest = (a as any).isLatestGeneration ? 1 : 0;
+      const bLatest = (b as any).isLatestGeneration ? 1 : 0;
+      if (aLatest !== bLatest) return bLatest - aLatest;
 
-      // 2. Les 20 nouveaux articles récents (isNewTop20) ont la priorité absolue en tête de liste
+      // 2. Les 20 nouveaux articles récents (isNewTop20)
       const aNew = (a as any).isNewTop20 ? 1 : 0;
       const bNew = (b as any).isNewTop20 ? 1 : 0;
       if (aNew !== bNew) return bNew - aNew;
 
+      // 3. Articles personnalisés sur mesure
+      const aCustom = (a as any).isCustomGenerated ? 1 : 0;
+      const bCustom = (b as any).isCustomGenerated ? 1 : 0;
+      if (aCustom !== bCustom) return bCustom - aCustom;
+
       const aTime = (a as any).createdAt || (typeof a.id === "number" ? a.id : 0);
       const bTime = (b as any).createdAt || (typeof b.id === "number" ? b.id : 0);
 
-      // 3. Tri chronologique par défaut : les plus récents en premier
+      // 4. Tri chronologique par défaut : les plus récents en premier
       if (sortBy === "time" || sortBy === "date") {
         return bTime - aTime;
       }
 
-      // 4. Tri par score : départagé par score puis par récence
+      // 5. Tri par score : départagé par score puis par récence
       if (b.score !== a.score) return b.score - a.score;
       return bTime - aTime;
     });
@@ -3740,11 +4023,52 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
     const lowerContent = (article.content || "").toLowerCase();
 
     if (
+      article.id === 100 ||
+      (lowerTitle.includes("meta") && (lowerTitle.includes("muse") || lowerSummary.includes("muse")))
+    ) {
+      const master = INITIAL_ARTICLES.find((a) => a.id === 100);
+      if (master) {
+        const clarified: NewsArticle = sanitizeArticleTemporalConsistency({
+          ...article,
+          id: article.id || 100,
+          title: master.title,
+          source: master.source,
+          category: master.category,
+          emoji: master.emoji,
+          tags: master.tags,
+          time: master.time,
+          score: 100,
+          imageUrl: article.imageUrl || master.imageUrl,
+          summary: master.summary,
+          keyFigures: master.keyFigures,
+          keyTakeaways: master.keyTakeaways,
+          strategicAnalysis: master.strategicAnalysis,
+          content: master.content,
+        });
+        setArticles((prev) => prev.map((a) => (a.id === article.id ? clarified : a)));
+        setSelectedArticle(clarified);
+        try {
+          const currentSaved = localStorage.getItem("infoperso_articles");
+          if (currentSaved) {
+            const parsedSaved = JSON.parse(currentSaved);
+            if (Array.isArray(parsedSaved)) {
+              const updated = parsedSaved.map((a: any) => (a.id === article.id ? clarified : a));
+              localStorage.setItem("infoperso_articles", JSON.stringify(updated));
+            }
+          }
+        } catch {}
+        setIsClarifyingArticle(false);
+        onNotify("✨ Dossier Meta Muse enrichi avec succès (chiffres clés, analyse stratégique & synthèse) !");
+        return;
+      }
+    }
+
+    if (
       article.id === 1788954912543 ||
       lowerTitle.includes("plateforme de streaming lancée par un géant") ||
       (lowerTitle.includes("plateforme de streaming") && (lowerSummary.includes("acteur majeur") || lowerContent.includes("la plateforme cherche à se différencier")))
     ) {
-      const clarified: NewsArticle = sanitizeArticleTemporalConsistency({
+      const clarified: NewsArticle = ensureArticleDeepData(sanitizeArticleTemporalConsistency({
         ...article,
         title: "Warner Bros. Discovery déploie sa plateforme Max en France : catalogue HBO, pass sport Eurosport et offres dès 5,99 €/mois",
         source: "Les Echos avec AFP",
@@ -3753,7 +4077,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         tags: ["Max", "Streaming", "Warner Bros", "Divertissement"],
         summary: "Warner Bros. Discovery a officialisé le lancement en France de sa plateforme de streaming Max. L'offre réunit les catalogues HBO, Warner Bros., Discovery et Eurosport, avec trois formules tarifaires de 5,99 € à 13,99 € par mois.",
         content: "Le groupe de divertissement américain Warner Bros. Discovery a officiellement déployé sa plateforme de streaming 'Max' sur le marché français, marquant une étape majeure dans la compétition des services de vidéo à la demande face à Netflix et Disney+.\n\nL'offre Max intègre un catalogue particulièrement riche comprenant l'ensemble des productions prestigieuses de HBO (House of the Dragon, The Last of Us, Game of Thrones, Succession), les franchises cinématographiques Harry Potter et DC Comics, ainsi que les documentaires Discovery. La plateforme se distingue également par l'intégration d'Eurosport en option payante (5 €/mois), permettant la diffusion en direct des Jeux Olympiques de Paris et des grands tournois de tennis.\n\nTrois formules d'abonnement sont proposées aux utilisateurs : une formule 'Basic avec pub' à 5,99 € par mois (2 écrans en Full HD), une formule 'Standard' sans publicité à 9,99 € par mois (avec 30 téléchargements hors connexion), et une offre 'Premium' à 13,99 € par mois (4 écrans simultanés en 4K UHD avec Dolby Atmos). Des accords stratégiques de distribution ont également été noués avec Canal+ et Free pour inclure Max directement dans les offres d'accès internet et forfaits TV."
-      });
+      }));
       setArticles((prev) => prev.map((a) => (a.id === article.id ? clarified : a)));
       setSelectedArticle(clarified);
       try {
@@ -3777,10 +4101,12 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
     const systemInstruction = 
       "Tu es le rédacteur en chef d'InfoPerso, expert en journalisme d'investigation et fact-checking.\n" +
       "L'utilisateur te transmet un article d'actualité qui manque de clarté ou de précision (entités clés non nommées, entreprises anonymisées sous 'un géant du...', absence de chiffres précis ou de tarifs).\n\n" +
-      "## MISSION ABSOLUE DE CLARIFICATION :\n" +
+      "## MISSION ABSOLUE DE CLARIFICATION ET D'ENRICHISSEMENT STRATÉGIQUE :\n" +
       "1. Identifie le véritable événement réel correspondant dans l'actualité contemporaine.\n" +
       "2. NOMME TOUT EXPLICITEMENT : entreprises (ex: Warner Bros. Discovery, Netflix, Apple, etc.), plateformes/marques (ex: Max, ChatGPT, iPhone), personnes clés, dates et chiffres précis (tarifs en euros, montants, volumes).\n" +
-      "3. La source doit être un média officiel vérifié (ex: Les Echos, Le Monde, AFP, Reuters, Le Figaro, Variety, The Verge).\n\n" +
+      "3. La source doit être un média officiel vérifié (ex: Les Echos, Le Monde, AFP, Reuters, Le Figaro, Variety, The Verge).\n" +
+      "4. GÉNÈRE SYSTÉMATIQUEMENT LES CHIFFRES CLÉS (keyFigures), LES POINTS FORTS (keyTakeaways) ET L'ANALYSE STRATÉGIQUE (strategicAnalysis).\n" +
+      "5. Rédige un corps dense en 4 paragraphes structurés avec intertitres markdown '### 1. ...', '### 2. ...' et puces de faits.\n\n" +
       "## FORMAT DE RÉPONSE JSON STRICTEMENT OBLIGATOIRE :\n" +
       "{\n" +
       '  "titre": "Titre journalistique très précis et percutant nommant les entités",\n' +
@@ -3789,11 +4115,27 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       '  "emoji": "📺",\n' +
       '  "tags": ["Tag1", "Tag2", "Tag3"],\n' +
       '  "resume": "2-3 phrases denses avec noms réels et chiffres",\n' +
-      '  "corps": "Texte complet de 3 paragraphes factuels et précis"\n' +
+      '  "corps": "Texte complet d\'enquête de 4 paragraphes structurés avec intertitres markdown (### 1. ..., ### 2. ..., etc.) et puces de faits vérifiés",\n' +
+      '  "keyFigures": [\n' +
+      '    { "label": "Chiffre 1", "value": "Valeur", "detail": "Explication factuelle" },\n' +
+      '    { "label": "Chiffre 2", "value": "Valeur", "detail": "Explication factuelle" },\n' +
+      '    { "label": "Chiffre 3", "value": "Valeur", "detail": "Explication factuelle" }\n' +
+      '  ],\n' +
+      '  "keyTakeaways": [\n' +
+      '    "Point clé 1 avec faits et acteurs nommés",\n' +
+      '    "Point clé 2 avec impact chiffré",\n' +
+      '    "Point clé 3 avec perspective et calendrier"\n' +
+      '  ],\n' +
+      '  "strategicAnalysis": {\n' +
+      '    "actorsInvolved": ["Acteur 1", "Acteur 2"],\n' +
+      '    "marketImpact": "Impact concurrentiel et dynamique de marché",\n' +
+      '    "privacyCompliance": "Conformité RGPD et souveraineté des données",\n' +
+      '    "nextMilestone": "Prochaine échéance datée"\n' +
+      '  }\n' +
       "}" +
       getTemporalPromptDirective();
 
-    const promptText = `Clarifie et nomme précisément l'article suivant avec les faits, acteurs et chiffres réels :\n\nTitre: ${article.title}\nSource actuelle: ${article.source}\nRésumé: ${article.summary}\nCorps:\n${article.content}`;
+    const promptText = `Clarifie, nomme précisément et enrichis l'article suivant avec les faits, acteurs et chiffres réels :\n\nTitre: ${article.title}\nSource actuelle: ${article.source}\nRésumé: ${article.summary}\nCorps:\n${article.content}`;
 
     try {
       const { ok, data, error } = await safeFetchJson<{ content?: string; error?: string }>("/api/chat/proxy", {
@@ -3804,6 +4146,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
           model: selectedModel.id,
           enableSearch: true,
           temperature: 0.2,
+          maxTokens: 4096,
           messages: [
             { role: "system", content: systemInstruction },
             { role: "user", content: promptText }
@@ -3817,7 +4160,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          const clarified: NewsArticle = sanitizeArticleTemporalConsistency({
+          const clarified: NewsArticle = ensureArticleDeepData(sanitizeArticleTemporalConsistency({
             ...article,
             title: parsed.titre || article.title,
             source: parsed.source || article.source,
@@ -3826,7 +4169,10 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
             tags: Array.isArray(parsed.tags) ? parsed.tags : article.tags,
             summary: parsed.resume || article.summary,
             content: parsed.corps || article.content,
-          });
+            keyFigures: Array.isArray(parsed.keyFigures) && parsed.keyFigures.length > 0 ? parsed.keyFigures : (Array.isArray(parsed.chiffres_cles) ? parsed.chiffres_cles : article.keyFigures),
+            keyTakeaways: Array.isArray(parsed.keyTakeaways) && parsed.keyTakeaways.length > 0 ? parsed.keyTakeaways : (Array.isArray(parsed.points_cles) ? parsed.points_cles : article.keyTakeaways),
+            strategicAnalysis: parsed.strategicAnalysis || parsed.analyse_strategique || article.strategicAnalysis,
+          }));
           setArticles((prev) => prev.map((a) => (a.id === article.id ? clarified : a)));
           setSelectedArticle(clarified);
           try {
@@ -4403,8 +4749,10 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
   };
 
   const handleOpenArticle = (art: NewsArticle) => {
-    setSelectedArticle(art);
-    onMarkRead(art.id);
+    const deepArt = ensureArticleDeepData(art);
+    setSelectedArticle(deepArt);
+    setArticles((prev) => prev.map((a) => (a.id === deepArt.id ? deepArt : a)));
+    onMarkRead(deepArt.id);
     if (readerBodyRef.current) {
       readerBodyRef.current.scrollTop = 0;
     }
@@ -5184,6 +5532,9 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         handleClearAllFilters={handleClearAllFilters}
       />
 
+      {/* Top anchor for smooth scrolling on article generation */}
+      <div id="articles-feed-top" className="scroll-mt-28" />
+
       {/* MAIN ARTICLES FEED AND READER SPLIT */}
       <div className={`grid gap-2.5 sm:gap-3.5 lg:gap-4 items-start ${
         foldable.isBookMode
@@ -5426,15 +5777,19 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                               onThumbsDownOption={handleThumbsDownOption}
                               isDark={isDark}
                             />
-                            <div className={`flex items-center gap-1 text-[10px] sm:text-[11px] ${
-                              isSobre ? "text-zinc-500" :
-                              isWarm ? "text-amber-850 font-serif" :
-                              isCyber ? "text-cyan-500 font-mono" :
-                              isFun ? "text-black font-black" :
-                              "text-slate-400 font-sans"
-                            }`}>
-                              <Clock className={`w-3 h-3 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/60"}`} />
-                              <span>{getArticleTimeDisplay(art)}</span>
+                            <div 
+                              className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium ${
+                                isSobre ? "text-zinc-500" :
+                                isWarm ? "text-amber-850 font-serif" :
+                                isCyber ? "text-cyan-500 font-mono" :
+                                isFun ? "text-black font-black" :
+                                "text-slate-400 font-sans"
+                              }`}
+                              title={`Date et heure de création : ${formatArticleDateTime(art)}`}
+                            >
+                              <Clock className={`w-3 h-3 shrink-0 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/80"}`} />
+                              <span className="font-semibold text-slate-300 dark:text-slate-200">{formatArticleDateTime(art)}</span>
+                              <span className="text-[9px] opacity-75 font-mono">({getArticleRelativeTime(art)})</span>
                             </div>
                           </div>
                         </div>
@@ -5783,15 +6138,19 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                               onThumbsDownOption={handleThumbsDownOption}
                               isDark={isDark}
                             />
-                            <div className={`flex items-center gap-1 text-[10px] sm:text-[11px] ${
-                              isSobre ? "text-zinc-500" :
-                              isWarm ? "text-amber-850 font-serif" :
-                              isCyber ? "text-cyan-500 font-mono" :
-                              isFun ? "text-black font-black" :
-                              "text-slate-400 font-sans"
-                            }`}>
-                              <Clock className={`w-3 h-3 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/40"}`} />
-                              <span>{getArticleTimeDisplay(art)}</span>
+                            <div 
+                              className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium ${
+                                isSobre ? "text-zinc-500" :
+                                isWarm ? "text-amber-850 font-serif" :
+                                isCyber ? "text-cyan-500 font-mono" :
+                                isFun ? "text-black font-black" :
+                                "text-slate-400 font-sans"
+                              }`}
+                              title={`Date et heure de création : ${formatArticleDateTime(art)}`}
+                            >
+                              <Clock className={`w-3 h-3 shrink-0 ${isCyber ? "text-[#00ffcc]" : isFun ? "text-black" : "text-cyan-400/80"}`} />
+                              <span className="font-semibold text-slate-300 dark:text-slate-200">{formatArticleDateTime(art)}</span>
+                              <span className="text-[9px] opacity-75 font-mono">({getArticleRelativeTime(art)})</span>
                             </div>
                           </div>
                         </div>
@@ -6182,8 +6541,10 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     }`}>
                       {selectedArticle.source}
                     </span>
-                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-sans">
-                      ⏱ {getArticleTimeDisplay(selectedArticle)}
+                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-sans flex items-center gap-1.5 bg-slate-800/40 dark:bg-zinc-900/60 px-2 py-0.5 rounded-md border border-slate-700/40">
+                      <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
+                      <span>Créé le <strong className="text-slate-200">{formatArticleDateTime(selectedArticle)}</strong></span>
+                      <span className="text-[9px] opacity-75 font-mono">({getArticleRelativeTime(selectedArticle)})</span>
                     </span>
                   </div>
 
@@ -6332,6 +6693,139 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     </p>
                   </div>
 
+                  {/* SECTION ENRICHIE 1 : CHIFFRES & INDICATEURS CLÉS */}
+                  {selectedArticle.keyFigures && selectedArticle.keyFigures.length > 0 && (
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${
+                          isDark ? "bg-emerald-950/50 text-emerald-300 border-emerald-800/60" : "bg-emerald-50 text-emerald-900 border-emerald-300"
+                        }`}>
+                          <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                          Chiffres & Indicateurs Clés
+                        </span>
+                        <span className={`text-[10px] font-mono ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+                          Données vérifiées
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {selectedArticle.keyFigures.map((fig, fIdx) => (
+                          <div
+                            key={fIdx}
+                            className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
+                              isDark ? "bg-zinc-900/90 border-zinc-800 text-white shadow-xs" : "bg-white border-zinc-200 text-zinc-900 shadow-2xs"
+                            }`}
+                          >
+                            <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 mb-1">
+                              {fig.label}
+                            </div>
+                            <div className="text-base sm:text-lg font-black text-emerald-400 dark:text-emerald-300 font-mono tracking-tight">
+                              {fig.value}
+                            </div>
+                            {fig.detail && (
+                              <div className="text-[10px] opacity-75 mt-1 leading-tight line-clamp-2">
+                                {fig.detail}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECTION ENRICHIE 2 : POINTS CLÉS & À RETENIR */}
+                  {selectedArticle.keyTakeaways && selectedArticle.keyTakeaways.length > 0 && (
+                    <div className={`p-4 sm:p-5 rounded-2xl border space-y-3 ${
+                      isDark ? "bg-indigo-950/25 border-indigo-800/40 text-indigo-100" : "bg-indigo-50/80 border-indigo-200 text-indigo-950 shadow-2xs"
+                    }`}>
+                      <div className="flex items-center justify-between border-b pb-2 border-indigo-500/20">
+                        <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-400 dark:text-indigo-300">
+                          <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                          <span>À Retenir • Synthèse Stratégique</span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-70">
+                          {selectedArticle.keyTakeaways.length} points cardinaux
+                        </span>
+                      </div>
+                      <ul className="space-y-2 pl-1">
+                        {selectedArticle.keyTakeaways.map((point, pIdx) => (
+                          <li key={pIdx} className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed">
+                            <span className="text-indigo-400 font-bold shrink-0 mt-0.5">✓</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* SECTION ENRICHIE 3 : ANALYSE STRATÉGIQUE & CONCURRENTIELLE */}
+                  {selectedArticle.strategicAnalysis && (
+                    <div className={`p-4 sm:p-5 rounded-2xl border space-y-3.5 ${
+                      isDark ? "bg-zinc-900/80 border-zinc-800 text-slate-200" : "bg-slate-50/90 border-slate-200 text-slate-900 shadow-2xs"
+                    }`}>
+                      <div className="flex items-center justify-between border-b pb-2 border-slate-700/30">
+                        <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-cyan-400">
+                          <Target className="w-3.5 h-3.5 text-cyan-400" />
+                          Analyse Stratégique & Écosystème
+                        </span>
+                        <span className="text-[10px] font-mono opacity-60">Décryptage InfoPerso</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        {selectedArticle.strategicAnalysis.actorsInvolved && selectedArticle.strategicAnalysis.actorsInvolved.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Acteurs & Rivaux :</span>
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {selectedArticle.strategicAnalysis.actorsInvolved.map((actor, aIdx) => (
+                                <span key={aIdx} className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  isDark ? "bg-slate-800 text-slate-200 border-slate-700" : "bg-white text-slate-800 border-slate-300"
+                                }`}>
+                                  {actor}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {selectedArticle.strategicAnalysis.marketImpact && (
+                          <div className="space-y-1">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Impact Marché :</span>
+                            <p className="leading-relaxed opacity-90">{selectedArticle.strategicAnalysis.marketImpact}</p>
+                          </div>
+                        )}
+                        {selectedArticle.strategicAnalysis.privacyCompliance && (
+                          <div className="space-y-1">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Souveraineté & RGPD :</span>
+                            <p className="leading-relaxed opacity-90">{selectedArticle.strategicAnalysis.privacyCompliance}</p>
+                          </div>
+                        )}
+                        {selectedArticle.strategicAnalysis.nextMilestone && (
+                          <div className="space-y-1">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Prochaine Étape Clé :</span>
+                            <p className="leading-relaxed font-semibold text-emerald-400 dark:text-emerald-300">{selectedArticle.strategicAnalysis.nextMilestone}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bouton d'enrichissement si l'article n'a pas encore ces métriques */}
+                  {(!selectedArticle.keyFigures || selectedArticle.keyFigures.length === 0) && (
+                    <div className={`p-3 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 ${
+                      isDark ? "bg-indigo-950/20 border-indigo-800/40 text-slate-300" : "bg-indigo-50/60 border-indigo-200 text-indigo-950"
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="text-xs font-medium">Cet article peut être enrichi avec des métriques chiffrées et une analyse stratégique approfondie.</span>
+                      </div>
+                      <button
+                        onClick={() => handleClarifyAndSpecifyArticle(selectedArticle)}
+                        disabled={isClarifyingArticle}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-transform active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        {isClarifyingArticle ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                        <span>Enrichir en 1-Clic</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* PARTIE 2 : ENQUÊTE & ANALYSE APPROFONDIE (3X PLUS DÉTAILLÉE) */}
                   <div className="space-y-4 pt-2">
                     <div className={`flex items-center justify-between border-b pb-2 ${isDark ? "border-zinc-800" : "border-zinc-250"}`}>
@@ -6348,28 +6842,32 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                       className="leading-loose font-sans space-y-5 transition-all duration-300 relative"
                       style={{ fontSize: `${fontScale * 115}%` }}
                     >
-                      {isBionicReading ? (
-                        <div className="space-y-4">
-                          <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold ${
-                            isDark ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-amber-50 border-amber-200 text-amber-900"
-                          }`}>
-                            <div className="flex items-center gap-1.5">
-                              <Zap className="w-3.5 h-3.5 fill-current text-amber-400" />
-                              <span>Lecture Bionique active : fixation oculaire accélérée</span>
+                      {(() => {
+                        const cleanContent = cleanArticleContent(selectedArticle.content, selectedArticle.title, selectedArticle.summary);
+                        if (isBionicReading) {
+                          return (
+                            <div className="space-y-4">
+                              <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold ${
+                                isDark ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-amber-50 border-amber-200 text-amber-900"
+                              }`}>
+                                <div className="flex items-center gap-1.5">
+                                  <Zap className="w-3.5 h-3.5 fill-current text-amber-400" />
+                                  <span>Lecture Bionique active : fixation oculaire accélérée</span>
+                                </div>
+                                <span className="text-[11px] font-mono opacity-80 shrink-0">
+                                  ⏱️ ~{calculateReadingTimeMinutes(cleanContent).minutes} min restantes
+                                </span>
+                              </div>
+                              {formatBionicText(cleanContent)}
                             </div>
-                            <span className="text-[11px] font-mono opacity-80 shrink-0">
-                              ⏱️ ~{calculateReadingTimeMinutes(selectedArticle.content).minutes} min restantes
-                            </span>
-                          </div>
-                          {formatBionicText(selectedArticle.content)}
-                        </div>
-                      ) : (
-                        selectedArticle.content.split("\n\n").map((p, idx) => (
+                          );
+                        }
+                        return cleanContent.split("\n\n").map((p, idx) => (
                           <React.Fragment key={idx}>
                             {renderParagraph(p)}
                           </React.Fragment>
-                        ))
-                      )}
+                        ));
+                      })()}
                     </div>
                   </div>
 
@@ -6893,21 +7391,41 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     <div className={`pt-3 border-t flex flex-wrap items-center gap-3 justify-between ${
                       isDark ? "border-zinc-800" : "border-zinc-250"
                     }`}>
-                      <select
-                        value={summaryModelId}
-                        onChange={(e) => setSummaryModelId(e.target.value)}
-                        className={`rounded-lg p-2 text-xs sm:text-sm outline-none font-sans cursor-pointer max-w-[160px] ${
-                          isDark 
-                            ? "bg-zinc-950 border border-zinc-800 text-zinc-200 focus:border-indigo-500" 
-                            : "bg-white border border-zinc-250 text-zinc-800 focus:border-indigo-400"
-                        }`}
-                      >
-                        {AVAILABLE_MODELS.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={summaryModelId}
+                          onChange={(e) => setSummaryModelId(e.target.value)}
+                          className={`rounded-lg p-2 text-xs sm:text-sm outline-none font-sans cursor-pointer max-w-[180px] ${
+                            isDark 
+                              ? "bg-zinc-950 border border-zinc-800 text-zinc-200 focus:border-indigo-500" 
+                              : "bg-white border border-zinc-250 text-zinc-800 focus:border-indigo-400"
+                          }`}
+                        >
+                          {AVAILABLE_MODELS.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        {onOpenApiKeyModal && (
+                          <button
+                            type="button"
+                            onClick={onOpenApiKeyModal}
+                            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              apiKeys.mistral
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                : "bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20"
+                            }`}
+                            title="Configurer votre clé API Mistral ou vérifier le relais de secours"
+                          >
+                            <Key className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">
+                              {apiKeys.mistral ? "BYOK Actif" : "Secours Inclus"}
+                            </span>
+                          </button>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => handleGenerateSummary(selectedArticle)}

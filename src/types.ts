@@ -69,6 +69,19 @@ export interface ActivityLog {
   time: string;
 }
 
+export interface ArticleKeyFigure {
+  label: string;
+  value: string;
+  detail?: string;
+}
+
+export interface ArticleStrategicAnalysis {
+  actorsInvolved?: string[];
+  marketImpact?: string;
+  privacyCompliance?: string;
+  nextMilestone?: string;
+}
+
 export interface NewsArticle {
   id: number;
   title: string;
@@ -91,7 +104,13 @@ export interface NewsArticle {
   isSerendipitous?: boolean;
   isLive?: boolean;
   isNewTop20?: boolean;
+  isLatestGeneration?: boolean;
   rawRssLink?: string;
+
+  // Enrichissements informatifs directs
+  keyFigures?: ArticleKeyFigure[];
+  keyTakeaways?: string[];
+  strategicAnalysis?: ArticleStrategicAnalysis;
 }
 
 export type DiscoveryMode = "focus" | "balanced" | "serendipity";
@@ -182,9 +201,9 @@ export interface AlphabetteSuiteConfig {
 export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: "mistral-small-latest",
-    name: "Mistral Small (Cloud EU)",
+    name: "Mistral Small (Secours Actif Inclus)",
     provider: "mistral",
-    description: "Modèle souverain européen rapide et économique, idéal pour la synthèse de flux et l'analyse d'actualités.",
+    description: "Modèle souverain européen rapide & économique. Fonctionne avec votre clé BYOK ou le relais de secours managé inclus.",
     contextWindow: "32k tokens",
     strength: "Souveraineté RGPD, rapidité & synthèse",
   },

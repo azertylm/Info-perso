@@ -439,16 +439,18 @@ app.post("/api/chat/proxy", async (req, res) => {
     }
   }
 
-  if (!key && provider !== "gemini" && provider !== "hybrid_mistral" && provider !== "local") {
+  // Si aucune clé n'est fournie pour les fournisseurs tiers payants stricts (OpenAI, Anthropic, DeepSeek, Kimi)
+  if (!key && !["gemini", "mistral", "hybrid_mistral", "local"].includes(provider)) {
     res.status(400).json({
-      error: `Clé API manquante pour ${provider}. Veuillez la configurer dans l'onglet Clés API.`,
+      error: `Clé API manquante pour ${provider}. Veuillez la configurer dans le menu Clé API.`,
     });
     return;
   }
 
   try {
-    // 2. PROVIDER-SPECIFIC HANDLERS
-    if (provider === "hybrid_mistral" || provider === "local") {
+    // 2. SOVEREIGN PROVIDERS HANDLER (Mistral, Hybrid, Local, Gemini Relay)
+    // Ne bloque JAMAIS l'utilisateur : utilise la clé BYOK si présente, ou bascule de façon fluide sur le relais serveur / moteur résilient
+    if (provider === "hybrid_mistral" || provider === "local" || provider === "mistral" || provider === "gemini") {
       const systemMessage = messages.find((m: any) => m.role === "system");
       const systemInstruction = systemMessage ? systemMessage.content : undefined;
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
@@ -457,8 +459,9 @@ app.post("/api/chat/proxy", async (req, res) => {
         systemInstruction,
         messages,
         temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.2,
-        providerOverride: provider as any,
-        apiKeyOverride: key
+        maxTokens: typeof req.body.maxTokens === "number" ? req.body.maxTokens : 4096,
+        providerOverride: provider === "gemini" ? "hybrid_mistral" : (provider as any),
+        apiKeyOverride: key || undefined
       });
 
       res.json({
@@ -471,36 +474,6 @@ app.post("/api/chat/proxy", async (req, res) => {
         fallbackOccurred: result.fallbackOccurred
       });
       return;
-    }
-
-    if (provider === "gemini" || provider === "hybrid_mistral" || provider === "local" || provider === "mistral") {
-      const actualKey = key || process.env.MISTRAL_API_KEY;
-      const systemMessage = messages.find((m: any) => m.role === "system");
-      const systemInstruction = systemMessage ? systemMessage.content : undefined;
-      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
-
-      try {
-        const result = await aiService.askAI(lastUserMsg, {
-          systemInstruction,
-          messages,
-          temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.2,
-          apiKeyOverride: actualKey,
-          providerOverride: "hybrid_mistral"
-        });
-
-        res.json({
-          content: fixTemporalConsistency(result.content),
-          usage: { promptTokens: 0, completionTokens: 0 },
-          modelUsed: result.modelUsed,
-          providerUsed: result.providerUsed,
-          isSovereign: result.isSovereign,
-          sovereigntyTier: result.sovereigntyTier,
-          fallbackOccurred: result.fallbackOccurred
-        });
-        return;
-      } catch (err: any) {
-        console.warn("[Proxy Mistral Sovereign] Erreur ou bascule résiliente:", err?.message || err);
-      }
     }
 
     if (provider === "openai") {

@@ -54,7 +54,7 @@ export const SEMANTIC_RELATION_MAP: Record<string, { related: string[]; descript
     description: "Écosystèmes naturels, dérèglement climatique et politiques environnementales"
   },
   "incendies": {
-    related: ["Laurent Nuñez", "Sécurité Civile", "Environnement", "Sécheresse", "Canadair", "Forêts", "Climat"],
+    related: ["Sécurité Civile", "Environnement", "Sécheresse", "Canadair", "Forêts", "Climat", "Prévention"],
     description: "Feux de forêts, feux de végétation et secours d'urgence"
   },
   "climat": {
@@ -405,7 +405,6 @@ export function groupTagsByRubrique(tags: string[]): Record<string, string[]> {
       norm.includes("loi") ||
       norm.includes("securite") ||
       norm.includes("justice") ||
-      norm.includes("nunez") ||
       norm.includes("societe")
     ) {
       rubriques["⚖️ Société, France & Politique"].push(tag);
