@@ -120,7 +120,7 @@ Réponds avec concision (150 à 200 mots maximum), mordant et arguments factuels
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "gemini",
-          model: "gemini-3.8-flash",
+          model: "gemini-3.5-flash-lite",
           apiKey: geminiApiKey || "",
           messages: [{ role: "user", content: prompt }]
         })

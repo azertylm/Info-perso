@@ -371,15 +371,14 @@ async function callExternalApi(url: string, headers: Record<string, string>, bod
 
 // Helper to resolve user/UI model aliases to valid Gemini API model IDs
 function resolveGeminiModel(modelName?: string): string {
-  if (!modelName) return "gemini-3.8-flash";
+  if (!modelName) return "gemini-3.5-flash-lite";
   const lower = modelName.toLowerCase();
-  if (lower.includes("3.8")) return "gemini-3.8-flash";
-  if (lower.includes("lite") || lower.includes("flash-lite")) return "gemini-3.1-flash-lite";
+  if (lower.includes("3.5") || lower.includes("flash-lite") || lower.includes("lite")) return "gemini-3.5-flash-lite";
+  if (lower.includes("3.1") && lower.includes("lite")) return "gemini-3.1-flash-lite";
+  if (lower.includes("3.8") || lower.includes("flash")) return "gemini-3.8-flash";
+  if (lower.includes("pro")) return "gemini-3.1-pro-preview";
   if (lower.includes("latest") || lower.includes("flash-latest")) return "gemini-flash-latest";
-  if (lower.includes("3.7")) return "gemini-3.8-flash"; // Upgrade 3.7 to 3.8 to avoid 503 high-demand errors
-  if (lower.includes("pro")) return "gemini-3.8-flash"; // Map pro to 3.8-flash on free tier to avoid 0-quota errors
-  if (lower.includes("flash")) return "gemini-3.8-flash";
-  return "gemini-3.8-flash";
+  return "gemini-3.5-flash-lite";
 }
 
 const CURRENT_CALENDAR_YEAR = new Date().getFullYear();
@@ -412,12 +411,105 @@ function fixTemporalConsistency(text: string): string {
   return cleaned;
 }
 
+// Quota & Anti-Abuse Tracking for ALPHABETTE Suite
+interface UserQuotaRecord {
+  date: string;
+  count: number;
+  registeredAt: number;
+}
+const serverUserQuotas = new Map<string, UserQuotaRecord>();
+
+function getServerTodayString(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function checkAndConsumeServerQuota(userId: string, isSubscribed: boolean, hasByokKey: boolean): {
+  allowed: boolean;
+  limit: number;
+  used: number;
+  remaining: number;
+  isTrial: boolean;
+  daysElapsed: number;
+} {
+  // Subscribers using their BYOK key have 100% unlimited requests
+  if (isSubscribed || hasByokKey) {
+    return { allowed: true, limit: Infinity, used: 0, remaining: Infinity, isTrial: false, daysElapsed: 0 };
+  }
+
+  const today = getServerTodayString();
+  const id = userId || "anonymous";
+  let record = serverUserQuotas.get(id);
+
+  if (!record) {
+    record = { date: today, count: 0, registeredAt: Date.now() };
+    serverUserQuotas.set(id, record);
+  } else if (record.date !== today) {
+    record.date = today;
+    record.count = 0;
+  }
+
+  const daysElapsed = Math.floor((Date.now() - record.registeredAt) / (1000 * 60 * 60 * 24));
+  const isTrial = daysElapsed < 7; // Jours 1 à 7
+  const limit = isTrial ? 20 : 5;  // 20 req/j en essai, 5 req/j dès J+8
+
+  if (record.count >= limit) {
+    return { allowed: false, limit, used: record.count, remaining: 0, isTrial, daysElapsed };
+  }
+
+  record.count += 1;
+  return {
+    allowed: true,
+    limit,
+    used: record.count,
+    remaining: Math.max(0, limit - record.count),
+    isTrial,
+    daysElapsed
+  };
+}
+
+// Endpoint de consultation du quota
+app.get("/api/alphabette/quota-status", (req, res) => {
+  const userId = String(req.query.userId || "anonymous");
+  const isSubscribed = req.query.isSubscribed === "true";
+  const quota = checkAndConsumeServerQuota(userId, isSubscribed, true); // read-only check
+  const today = getServerTodayString();
+  const record = serverUserQuotas.get(userId);
+  const used = (record && record.date === today) ? record.count : 0;
+  const daysElapsed = record ? Math.floor((Date.now() - record.registeredAt) / (1000 * 60 * 60 * 24)) : 0;
+  const isTrial = daysElapsed < 7;
+  const limit = isSubscribed ? Infinity : (isTrial ? 20 : 5);
+  res.json({
+    date: today,
+    dailyCount: used,
+    dailyLimit: limit,
+    remaining: isSubscribed ? Infinity : Math.max(0, limit - used),
+    isTrial,
+    daysElapsed,
+    isSubscribed
+  });
+});
+
 // 1. CHAT PROXY ENDPOINT
 app.post("/api/chat/proxy", async (req, res) => {
-  const { provider, model, messages, apiKey } = req.body;
+  const { provider, model, messages, apiKey, userId, isSubscribed } = req.body;
 
   if (!provider || !messages || !Array.isArray(messages)) {
     res.status(400).json({ error: "Paramètres 'provider' et 'messages' requis." });
+    return;
+  }
+
+  // Quota anti-abuse check if using internal key
+  const hasUserKey = Boolean(apiKey && String(apiKey).trim().length > 0);
+  const quota = checkAndConsumeServerQuota(userId, Boolean(isSubscribed), hasUserKey);
+  if (!quota.allowed) {
+    res.status(429).json({
+      error: "QUOTA_EXCEEDED",
+      message: `Votre quota journalier offert est épuisé (${quota.limit} requêtes/jour). Revenez demain ou abonnez-vous (15 €/an pour l'app ou 40 €/an pour le bouquet) pour débloquer l'illimité avec votre propre clé API (BYOK).`,
+      quotaLimit: quota.limit,
+      quotaUsed: quota.used,
+      isTrial: quota.isTrial,
+      daysElapsed: quota.daysElapsed
+    });
     return;
   }
 
@@ -434,23 +526,132 @@ app.post("/api/chat/proxy", async (req, res) => {
       key = process.env.MISTRAL_API_KEY || "";
     } else if (provider === "deepseek") {
       key = process.env.DEEPSEEK_API_KEY || "";
+    } else if (provider === "grok") {
+      key = process.env.GROK_API_KEY || process.env.XAI_API_KEY || "";
     } else if (provider === "kimi") {
       key = process.env.KIMI_API_KEY || "";
     }
   }
 
-  // Si aucune clé n'est fournie pour les fournisseurs tiers payants stricts (OpenAI, Anthropic, DeepSeek, Kimi)
+  // Si aucune clé n'est fournie pour les fournisseurs tiers payants stricts (OpenAI, Anthropic, DeepSeek, Grok, Kimi)
   if (!key && !["gemini", "mistral", "hybrid_mistral", "local"].includes(provider)) {
     res.status(400).json({
-      error: `Clé API manquante pour ${provider}. Veuillez la configurer dans le menu Clé API.`,
+      error: `Clé API manquante pour ${provider}. Veuillez la configurer dans le Trousseau de clés API.`,
     });
     return;
   }
 
   try {
-    // 2. SOVEREIGN PROVIDERS HANDLER (Mistral, Hybrid, Local, Gemini Relay)
-    // Ne bloque JAMAIS l'utilisateur : utilise la clé BYOK si présente, ou bascule de façon fluide sur le relais serveur / moteur résilient
-    if (provider === "hybrid_mistral" || provider === "local" || provider === "mistral" || provider === "gemini") {
+    // 2. GOOGLE GEMINI FLASH HANDLER (Palier Offert & Google Gen AI SDK)
+    if (provider === "gemini") {
+      const systemMessage = messages.find((m: any) => m.role === "system");
+      const systemInstruction = systemMessage ? systemMessage.content : undefined;
+      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+
+      const aiKey = key || process.env.GEMINI_API_KEY || "";
+      if (!aiKey) {
+        res.status(400).json({ error: "Clé Gemini API non configurée." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey: aiKey });
+      let combinedPrompt = "";
+      if (systemInstruction) {
+        combinedPrompt += `${systemInstruction}\n\n`;
+      }
+      if (messages && messages.length > 0) {
+        for (const m of messages) {
+          if (m.role === "system") continue;
+          combinedPrompt += `[${m.role === "user" ? "Utilisateur" : "Assistant"}]\n${m.content}\n\n`;
+        }
+      } else {
+        combinedPrompt += lastUserMsg;
+      }
+
+      const requestedModel = resolveGeminiModel(model);
+      const isJson = req.body.responseFormat === "json" || combinedPrompt.toLowerCase().includes("json");
+      const enableSearch = Boolean(req.body.enableSearch);
+
+      const candidateModels = [
+        requestedModel,
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-flash-latest"
+      ];
+      const uniqueCandidates = Array.from(new Set(candidateModels));
+
+      let content = "";
+      let modelUsed = "";
+      let lastErr: any = null;
+
+      for (const cand of uniqueCandidates) {
+        try {
+          const config: any = {
+            temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.3,
+            maxOutputTokens: typeof req.body.maxTokens === "number" ? req.body.maxTokens : 6000,
+          };
+          if (enableSearch) {
+            config.tools = [{ googleSearch: {} }];
+          } else if (isJson) {
+            config.responseMimeType = "application/json";
+          }
+
+          const response = await ai.models.generateContent({
+            model: cand,
+            contents: combinedPrompt,
+            config
+          });
+          if (response && response.text) {
+            content = response.text;
+            modelUsed = cand;
+            break;
+          }
+        } catch (err: any) {
+          lastErr = err;
+          console.warn(`[Gemini Direct] Candidate ${cand} unavailable (${err?.status || err?.code || 'error'}), trying next...`);
+        }
+      }
+
+      if (!content) {
+        console.info("[Gemini Direct] Candidats externes saturés (429/quota). Bascule souveraine immédiate vers aiService.");
+        const fallbackResult = await aiService.askAI(lastUserMsg || combinedPrompt, {
+          systemInstruction,
+          messages,
+          responseFormat: req.body.responseFormat || (isJson ? "json" : undefined),
+          temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.3,
+          maxTokens: typeof req.body.maxTokens === "number" ? req.body.maxTokens : 4000
+        });
+
+        res.json({
+          content: fixTemporalConsistency(fallbackResult.content),
+          usage: { promptTokens: 0, completionTokens: 0 },
+          modelUsed: fallbackResult.modelUsed || "sovereign-resilience-fallback",
+          providerUsed: "sovereign_synthesizer",
+          isSovereign: true,
+          sovereigntyTier: "Moteur Résilient Souverain (Secours Quota)",
+          fallbackOccurred: true,
+          fallbackReason: (lastErr?.message?.includes("429") || lastErr?.message?.includes("quota") || lastErr?.message?.includes("RESOURCE_EXHAUSTED"))
+            ? "Quota Google Gemini dépassé (429 Resource Exhausted). Bascule automatique vers le moteur d'analyse souverain ALPHABETTE."
+            : "Bascule automatique vers le moteur souverain de résilience ALPHABETTE."
+        });
+        return;
+      }
+
+      res.json({
+        content: fixTemporalConsistency(content),
+        usage: { promptTokens: 0, completionTokens: 0 },
+        modelUsed,
+        providerUsed: "gemini",
+        isSovereign: true,
+        sovereigntyTier: "Google Gen AI Flash (Palier Offert)",
+        fallbackOccurred: false
+      });
+      return;
+    }
+
+    // 3. SOVEREIGN PROVIDERS HANDLER (Mistral, Hybrid, Local)
+    if (provider === "hybrid_mistral" || provider === "local" || provider === "mistral") {
       const systemMessage = messages.find((m: any) => m.role === "system");
       const systemInstruction = systemMessage ? systemMessage.content : undefined;
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
@@ -460,7 +661,7 @@ app.post("/api/chat/proxy", async (req, res) => {
         messages,
         temperature: typeof req.body.temperature === "number" ? req.body.temperature : 0.2,
         maxTokens: typeof req.body.maxTokens === "number" ? req.body.maxTokens : 4096,
-        providerOverride: provider === "gemini" ? "hybrid_mistral" : (provider as any),
+        providerOverride: (provider as any),
         apiKeyOverride: key || undefined
       });
 
@@ -575,6 +776,27 @@ app.post("/api/chat/proxy", async (req, res) => {
       return;
     }
 
+    if (provider === "grok") {
+      const data = await callExternalApi(
+        "https://api.x.ai/v1/chat/completions",
+        { Authorization: `Bearer ${key}` },
+        {
+          model: model || "grok-2-latest",
+          messages: messages,
+          temperature: 0.7,
+        }
+      );
+
+      res.json({
+        content: fixTemporalConsistency(data.choices?.[0]?.message?.content || ""),
+        usage: {
+          promptTokens: data.usage?.prompt_tokens || 0,
+          completionTokens: data.usage?.completion_tokens || 0,
+        },
+      });
+      return;
+    }
+
     if (provider === "kimi") {
       // Moonshot/Kimi API is OpenAI compatible
       const data = await callExternalApi(
@@ -599,12 +821,28 @@ app.post("/api/chat/proxy", async (req, res) => {
 
     res.status(400).json({ error: `Fournisseur inconnu ou non supporté : ${provider}` });
   } catch (err: any) {
-    if (err?.status === 429 || (err?.message && String(err.message).toLowerCase().includes("quota"))) {
-      console.log("[Chat Proxy] Rate limit/quota encountered. Responding with service fallback.");
-    } else {
-      console.error("Chat Proxy Error:", err?.message || String(err));
+    console.warn("[Chat Proxy] Incident ou quota rencontré:", err?.message || String(err));
+    try {
+      const fallbackPrompt = (messages && Array.isArray(messages) && messages.slice(-1)[0]?.content) || "Actualité";
+      const fallbackResult = await aiService.askAI(fallbackPrompt, {
+        messages,
+        responseFormat: req.body?.responseFormat,
+        temperature: 0.3
+      });
+      res.json({
+        content: fixTemporalConsistency(fallbackResult.content),
+        usage: { promptTokens: 0, completionTokens: 0 },
+        modelUsed: fallbackResult.modelUsed || "sovereign-resilience-fallback",
+        providerUsed: "sovereign_synthesizer",
+        isSovereign: true,
+        sovereigntyTier: "Moteur Résilient Souverain (Secours Actif)",
+        fallbackOccurred: true,
+        fallbackReason: "Quota ou indisponibilité API externe. Prise de relais automatique par le moteur souverain ALPHABETTE."
+      });
+      return;
+    } catch (_fallbackErr) {
+      res.status(500).json({ error: err?.message || "Erreur interne lors de la requête LLM." });
     }
-    res.status(500).json({ error: err?.message || "Erreur interne lors de la requête LLM." });
   }
 });
 
@@ -969,8 +1207,9 @@ app.post("/api/chat/test-key", async (req, res) => {
       
       const rawTestModels = [
         resolveGeminiModel(model),
-        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
         "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
         "gemini-flash-latest",
         "gemini-3.1-pro-preview"
       ];
@@ -1000,7 +1239,16 @@ app.post("/api/chat/test-key", async (req, res) => {
       if (result && result.text) {
         res.json({ success: true });
       } else {
-        res.json({ success: false, error: testError?.message || "Pas de réponse textuelle générée." });
+        const isQuota = testError?.message?.includes("429") || testError?.message?.includes("quota") || testError?.message?.includes("RESOURCE_EXHAUSTED");
+        if (isQuota) {
+          res.json({
+            success: true,
+            warning: "Clé valide mais quota Google Gemini saturé (429 Resource Exhausted). Le relais souverain prendra automatiquement le relais.",
+            isQuotaExceeded: true
+          });
+        } else {
+          res.json({ success: false, error: testError?.message || "Pas de réponse textuelle générée." });
+        }
       }
       return;
     }
@@ -2147,6 +2395,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Vite Middleware & production serving
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const publicPath = path.join(process.cwd(), "public");
+    if (fs.existsSync(publicPath)) {
+      app.use(express.static(publicPath));
+    }
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

@@ -1,4 +1,4 @@
-export type Provider = "mistral" | "local" | "gemini" | "openai" | "anthropic" | "deepseek" | "kimi";
+export type Provider = "gemini" | "mistral" | "local" | "openai" | "anthropic" | "deepseek" | "grok" | "kimi";
 
 export interface ModelConfig {
   id: string;
@@ -37,6 +37,7 @@ export interface ApiKeys {
   anthropic: string;
   mistral: string;
   deepseek: string;
+  grok: string;
   kimi: string;
 }
 
@@ -197,15 +198,23 @@ export interface AlphabetteSuiteConfig {
   };
 }
 
-// Modèles Mistral AI exclusifs conformes aux instructions souveraines ALPHABETTE
+// Modèles IA de l'écosystème ALPHABETTE (Palier offert Google Gen AI + BYOK multi-fournisseurs)
 export const AVAILABLE_MODELS: ModelConfig[] = [
   {
+    id: "gemini-3.5-flash-lite",
+    name: "Gemini 3.5 Flash Lite (Palier Offert Inclus)",
+    provider: "gemini",
+    description: "Modèle Google Gen AI ultra-rapide de dernière génération pour le palier offert (20 req/j essai, puis 5 req/j). Recherche Google Grounding temps réel incluse.",
+    contextWindow: "1M tokens",
+    strength: "Actualités en direct, vitesse fulgurante & synthèse",
+  },
+  {
     id: "mistral-small-latest",
-    name: "Mistral Small (Secours Actif Inclus)",
+    name: "Mistral Small (Souverain Cloud EU)",
     provider: "mistral",
-    description: "Modèle souverain européen rapide & économique. Fonctionne avec votre clé BYOK ou le relais de secours managé inclus.",
+    description: "Modèle souverain européen rapide & économique. Fonctionne avec votre clé BYOK ou le relais managé.",
     contextWindow: "32k tokens",
-    strength: "Souveraineté RGPD, rapidité & synthèse",
+    strength: "Souveraineté RGPD, rapidité & esprit critique",
   },
   {
     id: "mistral-large-latest",
@@ -224,12 +233,36 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     strength: "Efficacité & polyvalence B2B",
   },
   {
-    id: "codestral-latest",
-    name: "Codestral (Mistral AI)",
-    provider: "mistral",
-    description: "Spécialisé dans la logique, les structures de données strictes et les calculs de rentabilité.",
-    contextWindow: "256k tokens",
-    strength: "Raisonnement logique & structuration",
+    id: "deepseek-chat",
+    name: "DeepSeek V3 (BYOK)",
+    provider: "deepseek",
+    description: "Modèle ultra-performant à coût minime avec votre propre clé API DeepSeek au prix coûtant.",
+    contextWindow: "64k tokens",
+    strength: "Économie maximale & pertinence analytique",
+  },
+  {
+    id: "grok-2-latest",
+    name: "xAI Grok 2 (BYOK)",
+    provider: "grok",
+    description: "Modèle Grok par xAI pour un esprit vif, des analyses sans filtre et l'accès direct aux tendances.",
+    contextWindow: "128k tokens",
+    strength: "Analyse percutante & débat contradictoire",
+  },
+  {
+    id: "claude-3-5-haiku-latest",
+    name: "Claude 3.5 Haiku (BYOK)",
+    provider: "anthropic",
+    description: "Précision éditoriale et style littéraire remarquable avec votre propre clé Anthropic.",
+    contextWindow: "200k tokens",
+    strength: "Élégance de rédaction & rigueur éthique",
+  },
+  {
+    id: "gpt-4o-mini",
+    name: "OpenAI GPT-4o Mini (BYOK)",
+    provider: "openai",
+    description: "Traitement multitâche et rapidité avec votre propre clé API OpenAI au prix coûtant.",
+    contextWindow: "128k tokens",
+    strength: "Polyvalence universelle",
   },
   {
     id: "local-mistral",

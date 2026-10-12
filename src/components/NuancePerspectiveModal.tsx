@@ -122,7 +122,7 @@ Réponds UNIQUEMENT au format JSON strict avec la structure suivante :
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "gemini",
-          model: "gemini-3.8-flash",
+          model: "gemini-3.5-flash-lite",
           apiKey: geminiApiKey || "",
           messages: [{ role: "user", content: prompt }]
         })

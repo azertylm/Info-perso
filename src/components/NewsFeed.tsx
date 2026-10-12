@@ -85,6 +85,7 @@ import { getNextSuggestedWords, normalizeKeyword } from "../lib/semanticExplorer
 import { EditorialMixerBar, ArticleFeedbackWidget, TagActionModal } from "./PersonalizationSuite";
 import { sanitizeArticleTemporalConsistency, fixTemporalConsistency, getTemporalPromptDirective } from "../lib/temporalConsistency";
 import { ensureArticleDeepData, cleanArticleContent, formatArticleDateTime, getArticleRelativeTime, TRUMP_TMTG_FULL_CONTENT } from "../lib/articleEnricher";
+import { getQuotaStatus, incrementQuotaUsage } from "../lib/quotaManager";
 import { useFoldable } from "../lib/useFoldable";
 import { FoldableBar } from "./FoldableBar";
 import { FlexTabletopDeck } from "./FlexTabletopDeck";
@@ -1444,7 +1445,7 @@ export default function NewsFeed({
         createdAt: art.createdAt || (Date.now() - idx * 20 * 60 * 1000)
       }));
       if (missing.length > 0) {
-        list = [...missing, ...(list || [])];
+        list = [...(list || []), ...missing];
       }
 
       const sharedFromUrl = getSharedArticleFromUrl(list);
@@ -1831,6 +1832,78 @@ export default function NewsFeed({
         tags: ["DeepSeek", "Mistral", "MoE"],
         summary: "L'architecture Mixture-of-Experts (MoE) s'impose comme le nouveau standard pour réduire drastiquement la consommation électrique des centres de calcul sans compromis sur le raisonnement.",
         content: "Les derniers modèles publiés par Mistral AI et DeepSeek confirment le succès de l'activation conditionnelle des paramètres : seuls 5% à 10% des poids du réseau neuronal sont sollicités pour chaque token généré.\n\nCette approche mathématique permet de diviser par trois l'empreinte énergétique des serveurs GPU tout en maintenant des scores de raisonnement comparables aux modèles denses les plus imposants.\n\nLes hébergeurs cloud et entreprises technologiques adoptent massivement ces modèles open-weights pour maîtriser leurs coûts opérationnels et respecter leurs objectifs environnementaux."
+      },
+      {
+        theme: "Batteries Tout-Solide : Déploiement des Premières Lignes Pilotes avec 1000 km d'Autonomie",
+        cat: "Technologie",
+        src: "Reuters Énergie",
+        emoji: "🔋",
+        tags: ["Batteries", "Automobile", "Énergie", "Innovation"],
+        summary: "Les leaders européens et mondiaux de l'électromobilité amorcent la production en série de cellules d'électrolyte solide, assurant une recharge en 8 minutes sans risque d'emballement thermique.",
+        content: "Les lignes pilotes inaugurées cette semaine franchissent un seuil critique pour l'industrie automobile mondiale. Avec une densité énergétique dépassant 450 Wh/kg, ces batteries tout-solide éliminent le séparateur liquide inflammable au profit d'une matrice céramique inerte.\n\nLes premiers tests dynamiques sur piste valident des autonomies réelles supérieures à 1000 kilomètres en conditions hivernales comme estivales.\n\nLa baisse des coûts industriels anticipée d'ici 2027 promet de démocratiser cette technologie auprès du grand public."
+      },
+      {
+        theme: "Aviation Commerciale Décarbonée : Premier Vol d'Essai d'un Turbopropulseur Hybride Électrique",
+        cat: "Environnement",
+        src: "Air & Cosmos",
+        emoji: "✈️",
+        tags: ["Aéronautique", "Climat", "Mobilité", "Innovation"],
+        summary: "Un consortium aéronautique européen boucle avec succès une liaison régionale de 600 km avec une réduction de 50% de la consommation de carburant fossile.",
+        content: "L'appareil expérimental a décollé de l'aéroport de Toulouse-Blagnac pour rallier Lyon sous propulsion combinée thermique-électrique. L'assistance de moteurs électriques à haut rendement lors des phases de montée optimise le régime moteur et diminue les nuisances sonores de moitié aux abords des pistes.\n\nCe jalon rapproche l'Europe de ses objectifs de décarbonation des lignes intérieures et régionales.\n\nLes autorités de l'aviation civile préparent le cadre de certification pour une exploitation commerciale avant la fin de la décennie."
+      },
+      {
+        theme: "Robotique Humanoïde : Préhension Bionique Dextre et Déploiement en Milieu Industriel",
+        cat: "Technologie",
+        src: "Usine Nouvelle",
+        emoji: "🦾",
+        tags: ["Robotique", "Industrie", "Hardware", "Automation"],
+        summary: "Des mains robotiques articulées dotées de capteurs tactiles capacitifs réussissent l'assemblage de composants micrométriques sans intervention humaine directe.",
+        content: "Les derniers essais menés en usines pilotes démontrent une sensibilité tactile comparable au toucher humain. Capables de doser leur pression de quelques grammes à plusieurs dizaines de kilos, ces manipulateurs humanoïdes manipulent verres, câblages et pièces métalliques avec une cadence inédite.\n\nCette avancée permet de soulager les opérateurs humains des tâches répétitives et pénibles sur les chaînes de fabrication.\n\nLes concepteurs garantissent un fonctionnement sécurisé en présence de personnel grâce à des capteurs de proximité lidar 360°."
+      },
+      {
+        theme: "Recherche Médicale : Vaccins Thérapeutiques à ARN Personnalisés contre les Récidives Tumorales",
+        cat: "Science",
+        src: "The Lancet",
+        emoji: "🧬",
+        tags: ["Santé", "Biotech", "Recherche", "Médecine"],
+        summary: "Des essais cliniques de phase 2 démontrent une division par deux du risque de récidive chez des patients atteints de mélanome grâce à des antigènes sur mesure.",
+        content: "Conçus à partir du séquençage génomique individuel de chaque tumeur, ces traitements précurseurs éduquent le système immunitaire à identifier et neutraliser les cellules cancéreuses résiduelles.\n\nL'administration conjointe d'inhibiteurs de points de contrôle immunitaire amplifie la réponse durable de l'organisme sans toxicité sévère.\n\nLes oncologues saluent une étape historique vers une médecine oncologique véritablement préventive et personnalisée."
+      },
+      {
+        theme: "Semi-conducteurs : La Gravure en 2 Nanomètres Entre en Production Pilote en Europe",
+        cat: "Économie",
+        src: "Bloomberg Europe",
+        emoji: "💾",
+        tags: ["Semi-conducteurs", "Souveraineté", "Économie", "Industrie"],
+        summary: "Les nouvelles fonderies du continent franchissent le cap de l'échelle angström avec des transistors GAAFET offrant 30% d'efficacité énergétique supplémentaire.",
+        content: "L'alliance industrielle européenne des composants électroniques concrétise les investissements du Chips Act avec la sortie des premiers wafers de 300 mm gravés en 2 nm. Cette maîtrise technologique renforce la souveraineté continentale face aux aléas géopolitiques mondiaux.\n\nLes puces produites équiperont prioritairement les calculateurs d'IA embarquée et l'électronique de puissance automobile.\n\nLes commandes institutionnelles et industrielles garantissent déjà le plein emploi des capacités de production."
+      },
+      {
+        theme: "Transition Littorale en Méditerranée : Restauration des Herbiers de Posidonie et Récifs Artificiels",
+        cat: "Local",
+        src: "Midi Libre",
+        emoji: "🌊",
+        tags: ["Occitanie", "Hérault", "Mer", "Écologie"],
+        summary: "Le littoral d'Agde, Sète et du Grau-du-Roi bénéficie d'un programme pilote de transplantation de posidonie stabilisant le fond marin et absorbant le carbone bleu.",
+        content: "Les biologistes marins de la région Occitanie constatent une reprise vigoureuse des herbiers replantés sur les zones dégradées par les ancrages. Ces prairies sous-marines capturent jusqu'à sept fois plus de carbone par hectare que les forêts tropicales.\n\nL'installation de modules récifaux protège également les côtes contre la houle hivernale tout en servant de nurserie pour les dorades et loups de Méditerranée.\n\nDes suivis vidéo sous-marins participatifs permettent aux résidents et écoliers de suivre l'évolution de la biodiversité en direct."
+      },
+      {
+        theme: "Archéologie Spatiale : Une Cité Antique Majeure Découverte Sous la Végétation par Imagerie Lidar",
+        cat: "Culture",
+        src: "National Geographic",
+        emoji: "🏛️",
+        tags: ["Archéologie", "Histoire", "Culture", "Patrimoine"],
+        summary: "Des impulsions laser aéroportées révèlent des centaines de structures monumentales, voies pavées et aqueducs enfouis sous le couvert végétal depuis deux millénaires.",
+        content: "Grâce à des drones équipés de capteurs Lidar multispectraux, les archéologues ont cartographié l'équivalent de 50 kilomètres carrés de vestiges sans déplacer une seule motte de terre. Les modélisations 3D mettent au jour des places cérémonielles et des réseaux de canaux d'une complexité insoupçonnée.\n\nCette découverte bouleverse les théories admises sur la densité démographique et l'organisation politique des civilisations anciennes.\n\nDes fouilles ciblées sur le terrain débutent pour dater précisément les artefacts métalliques et céramiques mis au jour."
+      },
+      {
+        theme: "Cuisine Durable et Gastronomie : Les Tables d'Occitanie Récompensées pour leur 100% Circuit Court",
+        cat: "Local",
+        src: "La Gazette de Montpellier",
+        emoji: "🍽️",
+        tags: ["Gastronomie", "Local", "Hérault", "Terroir"],
+        summary: "De Montpellier au bassin de Thau, chefs et maraîchers bio instaurent une charte d'approvisionnement direct garantissant la fraîcheur maximale des récoltes du matin.",
+        content: "Les tables étoilées et auberges de terroir du département de l'Hérault démontrent qu'excellence culinaire et démarche zéro déchet forment une alliance vertueuse. Les menus sont réinventés chaque jour au gré de la pêche locale et des cueillettes maraîchères de saison.\n\nCette relation directe élimine les intermédiaires et rémunère équitablement les producteurs passionnés de la région.\n\nLe public plébiscite cette authenticité gourmande qui valorise les variétés végétales oubliées et les saveurs méditerranéennes."
       }
     ];
 
@@ -1853,9 +1926,21 @@ export default function NewsFeed({
       };
     });
 
-    // Choose model
-    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.8-flash") || AVAILABLE_MODELS[0];
-    const userApiKey = apiKeys[selectedModel.provider];
+    // Quota verification for Alphabette suite
+    const currentQuota = getQuotaStatus();
+    const hasAnyCustomKey = Boolean(
+      apiKeys.gemini || apiKeys.mistral || apiKeys.openai || apiKeys.anthropic || apiKeys.deepseek || (apiKeys as any).grok
+    );
+    if (currentQuota.isQuotaExceeded && !hasAnyCustomKey && !currentQuota.isSubscribed) {
+      onNotify(`⚠️ Quota journalier offert atteint (${currentQuota.dailyLimit} req/jour). Revenez demain ou débloquez l'illimité avec votre clé API !`);
+      setIsBulkGenerating(false);
+      window.dispatchEvent(new CustomEvent("alphabette_show_quota_modal"));
+      return;
+    }
+
+    // Choose model: prioritize Google Gen AI Gemini Flash for instant live-grounded generation
+    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.5-flash-lite") || AVAILABLE_MODELS[0];
+    const userApiKey = (apiKeys as any)?.[selectedModel.provider] || "";
 
     const currentYear = new Date().getFullYear();
     const currentDateStr = new Date().toLocaleDateString("fr-FR");
@@ -1886,7 +1971,7 @@ export default function NewsFeed({
       "Uniquement le tableau JSON brut [ ... ], sans balises markdown." +
       getTemporalPromptDirective();
 
-    const promptText = `Recherche et sélectionne 20 articles d'actualité du jour vérifiés et récents (${currentDateStr} ${currentYear}). Fournis des données denses et complètes. Réponds uniquement par le tableau JSON.`;
+    const promptText = `Recherche les actualités majeures vérifiées parues aujourd'hui (${currentDateStr} ${currentYear}) et sélectionne 20 articles récents et variés (Technologie, IA, Économie, Sciences, Espace, Écologie, Culture). Rédige 20 articles complets et précis. Réponds STRICTEMENT par le tableau JSON brut [ { ... } ].`;
 
     let generatedValidArticles: NewsArticle[] = [];
 
@@ -1898,8 +1983,10 @@ export default function NewsFeed({
           provider: selectedModel.provider,
           model: selectedModel.id,
           enableSearch: true,
-          temperature: 0.2,
-          maxTokens: 4096,
+          temperature: 0.35,
+          maxTokens: 6000,
+          userId: localStorage.getItem("infoperso_user_email") || "local_user",
+          isSubscribed: currentQuota.isSubscribed,
           messages: [
             { role: "system", content: systemInstruction },
             { role: "user", content: promptText }
@@ -2003,15 +2090,21 @@ export default function NewsFeed({
       console.warn("Bulk article AI generation error, using rich verified fallback:", err);
     }
 
+    if (generatedValidArticles.length > 0) {
+      incrementQuotaUsage();
+    }
+
     // Combine generated articles with tailored fallbacks to guarantee a full 20-article feed
     let finalNewArticles: NewsArticle[] = [];
     if (generatedValidArticles.length >= 20) {
       finalNewArticles = generatedValidArticles.slice(0, 20);
     } else {
       const needed = 20 - generatedValidArticles.length;
+      // Shuffle fallbacks to avoid ever repeating the exact same articles
+      const shuffledFallbacks = [...tailoredFallbacks].sort(() => Math.random() - 0.5);
       finalNewArticles = [
         ...generatedValidArticles,
-        ...tailoredFallbacks.slice(0, needed)
+        ...shuffledFallbacks.slice(0, needed)
       ];
     }
     finalNewArticles = finalNewArticles.map((art) => ensureArticleDeepData(sanitizeArticleTemporalConsistency(art)));
@@ -2030,18 +2123,30 @@ export default function NewsFeed({
     const newTitles = new Set(top20New.map(a => a.title.trim().toLowerCase()));
     const uniqueSaved = savedArticles.filter(a => !newTitles.has(a.title.trim().toLowerCase()));
 
-    // Reset priority flags on older articles so the new batch stays #1 at the top
+    // Preserve custom articles created by user
+    const customUserArticles = articles.filter(a => (a as any).isCustomGenerated);
+    const customUserTitles = new Set(customUserArticles.map(a => a.title.trim().toLowerCase()));
+
+    // Reset priority flags on older non-custom articles so the new batch stays #1 at the top
     const remaining = articles
-      .filter(a => !top20New.some(n => n.id === a.id || n.title.trim().toLowerCase() === a.title.trim().toLowerCase()))
+      .filter(a => 
+        !top20New.some(n => n.id === a.id || n.title.trim().toLowerCase() === a.title.trim().toLowerCase()) &&
+        !customUserTitles.has(a.title.trim().toLowerCase())
+      )
       .map(a => ({
         ...a,
         featured: false,
         isNewTop20: false,
-        isLatestGeneration: false,
-        isCustomGenerated: false
+        isLatestGeneration: false
       }));
 
-    const fullFeed = [...top20New, ...uniqueSaved, ...remaining.filter(a => !uniqueSaved.some(s => s.id === a.id))];
+    // Feed combines: newly generated batch, user custom articles, saved articles, and rest
+    const fullFeed = [
+      ...top20New,
+      ...customUserArticles.filter(c => !top20New.some(t => t.id === c.id)),
+      ...uniqueSaved.filter(s => !customUserArticles.some(c => c.id === s.id)),
+      ...remaining.filter(a => !uniqueSaved.some(s => s.id === a.id))
+    ];
     setArticles(fullFeed);
     localStorage.setItem("infoperso_articles", JSON.stringify(fullFeed));
     localStorage.setItem("infoperso_last_updated", nowTime.toString());
@@ -2797,15 +2902,34 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           body: JSON.stringify({ url: interest.trim() })
         });
         if (extractRes.ok && extractRes.data?.success && extractRes.data.article) {
-          const extracted = ensureArticleDeepData(sanitizeArticleTemporalConsistency(extractRes.data.article));
+          const extracted = ensureArticleDeepData(sanitizeArticleTemporalConsistency({
+            ...extractRes.data.article,
+            isCustomGenerated: true,
+            isLatestGeneration: true,
+            isNewTop20: true,
+            featured: true,
+            createdAt: Date.now(),
+            time: "À l'instant",
+            score: 100
+          }));
           await saveArticleToServerRegistry(extracted);
-          setArticles((prev) => [extracted, ...prev.filter((a) => a.id !== extracted.id)]);
+          setArticles((prev) => {
+            const updated = [extracted, ...prev.filter((a) => a.id !== extracted.id).map(a => ({ ...a, isLatestGeneration: false }))];
+            try {
+              localStorage.setItem("infoperso_articles", JSON.stringify(updated));
+              localStorage.setItem("infoperso_last_updated", Date.now().toString());
+            } catch {}
+            return updated;
+          });
           setSelectedArticle(extracted);
           if (extracted.imageUrl) {
             setCurrentReaderPhoto(extracted.imageUrl);
           }
           setIsGeneratingCustom(null);
-          onNotify(`✨ Article extrait en direct de ${extracted.source} !`);
+          onNotify(`✨ Article extrait en direct et placé en #1 au tout début de la page !`);
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }, 100);
           return;
         }
       } catch (extractErr) {
@@ -2828,8 +2952,8 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
     setIsGeneratingCustom(cleanTopic);
     
     // Choose model
-    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.8-flash") || AVAILABLE_MODELS[0];
-    const userApiKey = apiKeys[selectedModel.provider];
+    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.5-flash-lite") || AVAILABLE_MODELS[0];
+    const userApiKey = (apiKeys as any)?.[selectedModel.provider] || "";
 
     const currentYear = new Date().getFullYear();
     const currentDateStr = new Date().toLocaleDateString("fr-FR");
@@ -2994,6 +3118,7 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
           featured: true, // make it featured so it is placed in priority articles
           isCustomGenerated: true,
           isLatestGeneration: true,
+          isNewTop20: true,
           createdAt: Date.now(),
           title: candidateTitle,
           source: parsed.source || sourceHint,
@@ -3053,15 +3178,22 @@ Formatte avec des sauts de ligne clairs, des émoticônes utiles et un ton direc
         }
 
         await saveArticleToServerRegistry(newArticle);
-        setArticles((prev) => [
-          newArticle,
-          ...prev.filter(a => a.id !== newArticle.id).map(a => ({ ...a, isLatestGeneration: false }))
-        ]);
+        setArticles((prev) => {
+          const updated = [
+            newArticle,
+            ...prev.filter(a => a.id !== newArticle.id).map(a => ({ ...a, isLatestGeneration: false }))
+          ];
+          try {
+            localStorage.setItem("infoperso_articles", JSON.stringify(updated));
+            localStorage.setItem("infoperso_last_updated", Date.now().toString());
+          } catch {}
+          return updated;
+        });
         setSelectedArticle(newArticle);
         setIsSettingsVoletOpen(false);
         onNotify(isUrl 
-          ? `🔗 Article importé avec succès et placé au tout début de la première page !`
-          : `✨ Nouvel article rédigé et placé en #1 au tout début de la première page !`
+          ? `🔗 Article importé avec succès et placé au tout début de la page en position #1 !`
+          : `✨ Nouvel article rédigé et placé en position #1 au tout début de la page !`
         );
         setTimeout(() => {
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3214,7 +3346,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: AVAILABLE_MODELS[0]?.id || "gemini-2.5-flash",
+          model: AVAILABLE_MODELS[0]?.id || "gemini-3.5-flash-lite",
           messages: [{ role: "user", content: prompt }],
           apiKey: apiKeys.gemini || undefined
         })
@@ -3926,17 +4058,17 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       return true;
     })
     .sort((a, b) => {
-      // 1. Priorité absolue : le dernier batch d'articles générés (isLatestGeneration)
+      // 1. Priorité absolue : le tout dernier article généré en direct (isLatestGeneration)
       const aLatest = (a as any).isLatestGeneration ? 1 : 0;
       const bLatest = (b as any).isLatestGeneration ? 1 : 0;
       if (aLatest !== bLatest) return bLatest - aLatest;
 
-      // 2. Les 20 nouveaux articles récents (isNewTop20)
+      // 2. Priorité aux 20 nouveaux articles de la génération actuelle (isNewTop20)
       const aNew = (a as any).isNewTop20 ? 1 : 0;
       const bNew = (b as any).isNewTop20 ? 1 : 0;
       if (aNew !== bNew) return bNew - aNew;
 
-      // 3. Articles personnalisés sur mesure
+      // 3. Articles personnalisés créés sur mesure par l'utilisateur (isCustomGenerated)
       const aCustom = (a as any).isCustomGenerated ? 1 : 0;
       const bCustom = (b as any).isCustomGenerated ? 1 : 0;
       if (aCustom !== bCustom) return bCustom - aCustom;
@@ -3944,12 +4076,12 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       const aTime = (a as any).createdAt || (typeof a.id === "number" ? a.id : 0);
       const bTime = (b as any).createdAt || (typeof b.id === "number" ? b.id : 0);
 
-      // 4. Tri chronologique par défaut : les plus récents en premier
+      // 4. Par défaut : tri chronologique strict (les plus récents en premier)
       if (sortBy === "time" || sortBy === "date") {
         return bTime - aTime;
       }
 
-      // 5. Tri par score : départagé par score puis par récence
+      // 5. Tri par score : départagé par score puis par date de création
       if (b.score !== a.score) return b.score - a.score;
       return bTime - aTime;
     });
@@ -4095,8 +4227,8 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
       return;
     }
 
-    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.8-flash") || AVAILABLE_MODELS[0];
-    const userApiKey = apiKeys[selectedModel.provider];
+    const selectedModel = AVAILABLE_MODELS.find((m) => m.id === "gemini-3.5-flash-lite") || AVAILABLE_MODELS[0];
+    const userApiKey = (apiKeys as any)?.[selectedModel.provider] || "";
 
     const systemInstruction = 
       "Tu es le rédacteur en chef d'InfoPerso, expert en journalisme d'investigation et fact-checking.\n" +
@@ -5041,19 +5173,19 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
               onClick={() => {
                 const meta = saveArticlesOffline(articles);
                 refreshMeta();
-                onNotify(`💾 ${meta.count} articles sauvegardés en cache hors-ligne (${meta.sizeKb} Ko) pour le métro ou l'avion !`);
+                onNotify(`💾 ${meta.count} articles et photos synchronisés dans le cache Workbox (${meta.sizeKb} Ko) pour le métro, l'avion ou zone blanche !`);
               }}
-              className={`compact-action-btn px-2 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 border transition-all cursor-pointer shadow-xs ${
+              className={`compact-action-btn px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shadow-xs ${
                 !isOnline
-                  ? "bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse"
+                  ? "bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse font-bold"
                   : isDark
-                  ? "bg-slate-800/60 hover:bg-slate-800 border-slate-700/70 text-slate-300 hover:text-white"
+                  ? "bg-slate-800/70 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white"
                   : "bg-white hover:bg-slate-50 border-slate-300 text-slate-700 shadow-xs"
               }`}
-              title="Sources & Cache local"
+              title={isOnline ? "Mettre en cache hors-ligne Workbox (articles, analyses et photos)" : "Mode hors-ligne actif (données issues du cache Workbox)"}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-400" : "bg-amber-400 animate-ping"}`} />
-              <span>Source</span>
+              <span>{isOnline ? "Cache Workbox" : "Hors-Ligne"}</span>
               <span className="text-[10px] opacity-80 font-mono">({cacheMeta.count})</span>
             </button>
 
@@ -5113,6 +5245,30 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                 <span>Importer dans mon flux</span>
               </>
             )}
+          </button>
+        </div>
+      )}
+
+      {/* 📶 BANNIÈRE D'ÉTAT HORS-LIGNE WORKBOX DANS LE FLUX */}
+      {!isOnline && (
+        <div className="mb-2 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs flex items-center justify-between gap-2 shadow-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <span className="font-semibold truncate">
+              Mode Hors-Ligne Actif — {cacheMeta.count || articles.length} articles consultables localement via le Service Worker Workbox
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              const cached = loadArticlesOffline();
+              if (cached && cached.length > 0) {
+                setArticles(cached);
+                onNotify(`🔄 ${cached.length} articles rechargés depuis le cache local Workbox`);
+              }
+            }}
+            className="shrink-0 text-[11px] font-medium bg-amber-950/70 hover:bg-amber-900 border border-amber-800/60 text-amber-300 px-2.5 py-1 rounded-lg transition cursor-pointer"
+          >
+            Recharger le cache
           </button>
         </div>
       )}
@@ -5580,12 +5736,12 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                 <div className="flex items-center gap-2">
                   <Flame className={`w-4 h-4 ${isFun ? "text-yellow-500 fill-yellow-400 animate-bounce" : isCyber ? "text-[#00ffcc]" : isSobre ? "text-zinc-900" : isWarm ? "text-amber-800" : "text-amber-400 fill-amber-400/20"}`} />
                   <h3 className={`font-bold text-[11px] sm:text-xs tracking-wider uppercase ${isSobre ? "text-zinc-900 font-black" : isWarm ? "text-amber-950 font-serif font-black" : isCyber ? "text-cyan-400 font-mono" : isFun ? "text-black font-black" : "text-white font-extrabold"}`}>
-                    Les 20 Nouveaux Articles (En tête de liste)
+                    Les Nouveaux Articles & Vos Générations (En tête de page)
                   </h3>
                 </div>
                 <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center gap-1 shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {Math.min(featuredArticles.length, 20)} nouveaux en direct
+                  {Math.min(featuredArticles.length, 20)} articles prioritaires en direct
                 </span>
               </div>
 
@@ -5621,6 +5777,15 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                           <div className="flex items-center justify-between gap-1.5 mb-2">
                             <div className="flex items-center gap-1.5 min-w-0 truncate">
                               <span className={getBadgeClass()}>{art.category}</span>
+                              {(art as any).isLatestGeneration ? (
+                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-amber-400 via-rose-400 to-amber-300 text-black shadow-xs flex items-center gap-1 animate-pulse">
+                                  ✨ Récemment généré
+                                </span>
+                              ) : (art as any).isCustomGenerated ? (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-indigo-500/25 text-indigo-300 border border-indigo-500/40">
+                                  🌟 Sur mesure
+                                </span>
+                              ) : null}
                               <span className="opacity-35 text-[10px]">•</span>
                               <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate ${
                                 isSobre ? "text-zinc-600" :
@@ -5993,6 +6158,15 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                           <div className="flex items-center justify-between gap-1.5 mb-2">
                             <div className="flex items-center gap-1.5 min-w-0 truncate">
                               <span className={getBadgeClass()}>{art.category}</span>
+                              {(art as any).isLatestGeneration ? (
+                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-amber-400 via-rose-400 to-amber-300 text-black shadow-xs flex items-center gap-1 animate-pulse">
+                                  ✨ Récemment généré
+                                </span>
+                              ) : (art as any).isCustomGenerated ? (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-indigo-500/25 text-indigo-300 border border-indigo-500/40">
+                                  🌟 Sur mesure
+                                </span>
+                              ) : null}
                               <span className="opacity-35 text-[10px]">•</span>
                               <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate ${
                                 isSobre ? "text-zinc-600" :

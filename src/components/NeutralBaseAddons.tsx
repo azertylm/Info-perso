@@ -544,7 +544,7 @@ export function RealTimeTranslator({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             provider: "gemini",
-            model: "gemini-3.8-flash",
+            model: "gemini-3.5-flash-lite",
             apiKey,
             messages: [
               {

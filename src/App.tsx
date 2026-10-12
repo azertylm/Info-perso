@@ -33,7 +33,8 @@ import {
   Wrench,
   Lock,
   Key,
-  ExternalLink
+  ExternalLink,
+  WifiOff
 } from "lucide-react";
 
 import { ApiKeys, RibInfo, NewsArticle } from "./types";
@@ -71,8 +72,13 @@ import {
   CustomArticleForm
 } from "./components/NeutralBaseAddons";
 
-// ALPHABETTE SUBSCRIPTION SYSTEM
+// ALPHABETTE SUBSCRIPTION & BOUQUET SYSTEM
 import AlphabettePricingModal from "./components/AlphabettePricingModal";
+import AlphabetteNavbar from "./components/AlphabetteNavbar";
+import AlphabetteQuotaExceededModal from "./components/AlphabetteQuotaExceededModal";
+import ApiKeyTrousseauModal from "./components/ApiKeyTrousseauModal";
+import { PWAInstallButton } from "./components/PWAInstallButton";
+import { useNetworkStatus } from "./lib/offlineManager";
 
 // Standard French RIB defaults
 const DEFAULT_RIB: RibInfo = {
@@ -92,6 +98,7 @@ const DEFAULT_KEYS: ApiKeys = {
   anthropic: "",
   mistral: "",
   deepseek: "",
+  grok: "",
   kimi: ""
 };
 
@@ -104,12 +111,15 @@ export default function App() {
 
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
+  const { isOnline } = useNetworkStatus();
 
   // Pricing Modal (ALPHABETTE / Valentin RICHAUD)
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
-  // Quick API Key Modal (Mistral BYOK / Sovereign Backup)
+  // Quick API Key Modal & Full Trousseau Modal
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isTrousseauModalOpen, setIsTrousseauModalOpen] = useState(false);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
 
   // Zero-Knowledge Vault & Workshop Modals
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -137,6 +147,18 @@ export default function App() {
       document.documentElement.setAttribute("data-theme", "light");
     }
   }, [themeMode]);
+
+  // Listen for global quota modal and trousseau events
+  useEffect(() => {
+    const handleShowQuota = () => setIsQuotaModalOpen(true);
+    const handleShowTrousseau = () => setIsTrousseauModalOpen(true);
+    window.addEventListener("alphabette_show_quota_modal", handleShowQuota);
+    window.addEventListener("alphabette_show_trousseau_modal", handleShowTrousseau);
+    return () => {
+      window.removeEventListener("alphabette_show_quota_modal", handleShowQuota);
+      window.removeEventListener("alphabette_show_trousseau_modal", handleShowTrousseau);
+    };
+  }, []);
 
   // Curiosity score state
   const [curiosityScore, setCuriosityScore] = useState<number>(() => {
@@ -984,6 +1006,14 @@ export default function App() {
         </div>
       )}
 
+      {/* NAVIGATION ALPHABETTE (Bouquet souverain) */}
+      <AlphabetteNavbar
+        onOpenPricing={() => setIsPricingModalOpen(true)}
+        onOpenKeyring={() => setIsTrousseauModalOpen(true)}
+        themeMode={themeMode}
+        activeApp="infoperso"
+      />
+
       {/* TOPBAR */}
       <header className={`sticky top-0 z-40 transition-all duration-300 flex items-center justify-between ${
         isSobre ? `${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"} border-b min-h-[44px] sm:min-h-[52px] landscape:min-h-[36px] py-1 sm:py-1.5 landscape:py-0.5 px-2 sm:px-4 landscape:px-2 shadow-xs` :
@@ -1032,6 +1062,9 @@ export default function App() {
 
         {/* Top actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* PWA INSTALL BUTTON (Workbox & Home Screen) */}
+          <PWAInstallButton className="hidden sm:inline-flex" />
+
           {/* ZERO-KNOWLEDGE VAULT BUTTON (Infos Perso / ALPHABETTE) */}
           <button
             onClick={() => setIsVaultModalOpen(true)}
@@ -1180,6 +1213,21 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* BANNIÈRE HORS-LIGNE WORKBOX */}
+      {!isOnline && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-200 px-3 py-1.5 text-xs flex items-center justify-between z-30 shadow-xs">
+          <div className="flex items-center gap-2">
+            <WifiOff className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+            <span>
+              <strong>Mode Hors-Ligne Actif</strong> — Vos flux d'actualités et synthèses restent accessibles grâce au Service Worker Workbox.
+            </span>
+          </div>
+          <span className="text-[11px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-700/50 hidden sm:inline font-mono">
+            Workbox Offline
+          </span>
+        </div>
+      )}
 
       {/* THIN LEVEL PROGRESS BAR */}
       <div className="w-full h-[1px] bg-zinc-200 dark:bg-zinc-800" />
@@ -1784,6 +1832,31 @@ export default function App() {
         onKeysChange={handleKeysChange}
         onNotify={triggerToast}
         displayMode={displayMode}
+        themeMode={themeMode}
+      />
+
+      {/* MODALE QUOTA ÉPUISÉ ALPHABETTE (Essai 20 req/j ou Post-Essai 5 req/j) */}
+      <AlphabetteQuotaExceededModal
+        isOpen={isQuotaModalOpen}
+        onClose={() => setIsQuotaModalOpen(false)}
+        onOpenSubscribe={() => {
+          setIsQuotaModalOpen(false);
+          setIsPricingModalOpen(true);
+        }}
+        onOpenKeyring={() => {
+          setIsQuotaModalOpen(false);
+          setIsTrousseauModalOpen(true);
+        }}
+        themeMode={themeMode}
+      />
+
+      {/* PANNEAU TROUSSEAU API (Espace Abonné BYOK - Mistral, Google, OpenAI, Anthropic, DeepSeek, Grok) */}
+      <ApiKeyTrousseauModal
+        isOpen={isTrousseauModalOpen}
+        onClose={() => setIsTrousseauModalOpen(false)}
+        keys={apiKeys}
+        onKeysChange={handleKeysChange}
+        onNotify={triggerToast}
         themeMode={themeMode}
       />
 
