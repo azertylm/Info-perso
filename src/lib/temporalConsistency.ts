@@ -99,11 +99,21 @@ export function sanitizeArticleTemporalConsistency<T extends { title?: string; s
  * Prompt instruction block to be appended to all generative and clarifying AI calls.
  */
 export function getTemporalPromptDirective(): string {
+  const now = new Date();
+  const fullDateStr = now.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
   return (
-    `\n\n🔴 RÈGLE MAJEURE DE COHÉRENCE TEMPORELLE (ANNÉE EN COURS : ${CURRENT_YEAR}) :\n` +
-    `- Nous sommes actuellement en ${CURRENT_YEAR}.\n` +
+    `\n\n🔴 RÈGLE MAJEURE DE COHÉRENCE TEMPORELLE ET ACTUALITÉ EN DIRECT (DATE RÉELLE : ${fullDateStr}) :\n` +
+    `- DATE RÉELLE DU JOUR : ${fullDateStr} (${CURRENT_YEAR}).\n` +
+    `- TOUS LES ÉVÉNEMENTS RÉCENTS (cette nuit, ce matin, hier, cette semaine) se déroulent OBLIGATOIREMENT en OCTOBRE ${CURRENT_YEAR} (ex: dans la nuit du 11 au 12 octobre ${CURRENT_YEAR}).\n` +
+    `- INTERDICTION FORMELLE d'antidater les faits d'actualité chaude à des mois antérieurs (ex: NE JAMAIS écrire 'avril ${CURRENT_YEAR}' pour une dépêche récente de cette nuit). L'événement chaud est ancré au 12 octobre ${CURRENT_YEAR}.\n` +
     `- TOUTES LES PROJECTIONS FUTURES, CARNETS DE COMMANDES, HORIZONS, OBJECTIFS ET LIVRAISONS DOIVENT ÊTRE STRICTEMENT POSTÉRIEURES À AUJOURD'HUI (${CURRENT_YEAR}, ${NEXT_YEAR}, ${EXTENDED_FUTURE_YEAR}, 2030...).\n` +
     `- INTERDICTION FORMELLE d'utiliser des dates passées (${CURRENT_YEAR - 2}, ${CURRENT_YEAR - 1}, 2024, 2025) lorsqu'on parle d'engagements ou de prévisions futures (par exemple, NE JAMAIS ÉCRIRE "garantissant des commandes jusqu'en 2025", mais "jusqu'en ${NEXT_YEAR}" ou "${EXTENDED_FUTURE_YEAR}").\n` +
-    `- Les seules dates passées autorisées sont celles d'événements historiques déjà achevés (ex: "fondée en 2024", "loi votée en 2023"). Tout horizon ou carnet de commandes futur doit obligatoirement viser ${CURRENT_YEAR}, ${NEXT_YEAR} ou au-delà.`
+    `- Les seules dates passées autorisées sont celles d'événements historiques déjà achevés (ex: "fondé en 1615", "loi votée en 2023").`
   );
 }

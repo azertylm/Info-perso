@@ -83,6 +83,21 @@ export function decodeArticleFromShare(encoded: string): NewsArticle | null {
         score = 92;
       }
 
+      if (
+        data.id === 654495961000 ||
+        lowerTitle.includes("mondial de l’auto 2026") ||
+        lowerTitle.includes("mondial de l'auto 2026") ||
+        (lowerTitle.includes("60 constructeurs") && lowerTitle.includes("offensive chinoise"))
+      ) {
+        title = "Plus de 60 constructeurs, offensive chinoise… Ce qui vous attend au Mondial de l’auto 2026 avec un monde automobile toujours plus électrique";
+        source = "Le Figaro Automobile";
+        category = "Automobile";
+        emoji = "🚗⚡";
+        tags = ["Mondial de l'Auto", "Véhicules Électriques", "Offensive Chinoise", "Batteries LFP", "Stellantis", "Renault", "BYD"];
+        summary = "Le Mondial de l’automobile de Paris opère un retour spectaculaire avec plus de 60 constructeurs réunis à la Porte de Versailles. Face à la déferlante des marques chinoises (BYD, Leapmotor, XPeng) et aux nouvelles surtaxes douanières européennes, les constructeurs tricolores et européens contre-attaquent sur le terrain décisif des citadines 100 % électriques à moins de 25 000 euros.";
+        score = 95;
+      }
+
       return {
         id: typeof data.id === "number" ? data.id : Date.now(),
         title,

@@ -10,7 +10,7 @@
  * - Synchronisation et préchauffage de médias via postMessage
  */
 
-const CACHE_VERSION = 'v2.1.0';
+const CACHE_VERSION = 'v2.5.0';
 const STATIC_CACHE_NAME = `infoperso-static-${CACHE_VERSION}`;
 const NEWS_FEED_CACHE_NAME = `infoperso-news-feed-${CACHE_VERSION}`;
 const NEWS_IMAGES_CACHE_NAME = `infoperso-news-images-${CACHE_VERSION}`;

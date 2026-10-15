@@ -51,6 +51,7 @@ export function registerServiceWorker(): Workbox | null {
     wbInstance.addEventListener('installed', (event) => {
       if (event.isUpdate) {
         console.log('[Workbox] Nouvelle version de l\'application disponible');
+        wbInstance?.messageSkipWaiting();
         notifyListeners({ type: 'UPDATE_AVAILABLE' });
       } else {
         console.log('[Workbox] InfoPerso est désormais entièrement accessible hors-ligne !');

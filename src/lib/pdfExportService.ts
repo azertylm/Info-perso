@@ -16,12 +16,26 @@ export async function loadImageAsBase64(
   // 1. Si c'est déjà une data URL base64
   if (url.startsWith("data:image/")) {
     const isPng = url.startsWith("data:image/png");
-    return {
-      dataUrl: url,
-      format: isPng ? "PNG" : "JPEG",
-      width: 800,
-      height: 450
-    };
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          dataUrl: url,
+          format: isPng ? "PNG" : "JPEG",
+          width: img.naturalWidth || 800,
+          height: img.naturalHeight || 450
+        });
+      };
+      img.onerror = () => {
+        resolve({
+          dataUrl: url,
+          format: isPng ? "PNG" : "JPEG",
+          width: 800,
+          height: 450
+        });
+      };
+      img.src = url;
+    });
   }
 
   // 2. Tenter le chargement direct via Image DOM avec canvas
@@ -32,8 +46,10 @@ export async function loadImageAsBase64(
       img.onload = () => {
         try {
           const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth || 800;
-          canvas.height = img.naturalHeight || 450;
+          const naturalWidth = img.naturalWidth || 800;
+          const naturalHeight = img.naturalHeight || 450;
+          canvas.width = naturalWidth;
+          canvas.height = naturalHeight;
           const ctx = canvas.getContext("2d");
           if (!ctx) {
             resolve(null);
@@ -44,8 +60,8 @@ export async function loadImageAsBase64(
           resolve({
             dataUrl,
             format: "JPEG",
-            width: canvas.width,
-            height: canvas.height
+            width: naturalWidth,
+            height: naturalHeight
           });
         } catch (_err) {
           resolve(null);
@@ -71,12 +87,24 @@ export async function loadImageAsBase64(
         const base64data = reader.result as string;
         if (base64data && base64data.startsWith("data:image/")) {
           const isPng = base64data.includes("image/png");
-          resolve({
-            dataUrl: base64data,
-            format: isPng ? "PNG" : "JPEG",
-            width: 800,
-            height: 450
-          });
+          const img = new Image();
+          img.onload = () => {
+            resolve({
+              dataUrl: base64data,
+              format: isPng ? "PNG" : "JPEG",
+              width: img.naturalWidth || 800,
+              height: img.naturalHeight || 450
+            });
+          };
+          img.onerror = () => {
+            resolve({
+              dataUrl: base64data,
+              format: isPng ? "PNG" : "JPEG",
+              width: 800,
+              height: 450
+            });
+          };
+          img.src = base64data;
         } else {
           resolve(null);
         }
@@ -225,33 +253,64 @@ export async function exportArticleAsPdf({
     // 3. ILLUSTRATION PHOTO (PHOTO IMAGE)
     // ==========================================
     if (photoData && photoData.dataUrl) {
-      // Hauteur au ratio ~ 16:9 adapté pour tenir élégamment
-      const imgWidth = contentWidth;
-      const imgHeight = Math.min(84, Math.round(contentWidth * (photoData.height / (photoData.width || 1))));
+      const naturalW = photoData.width || 800;
+      const naturalH = photoData.height || 450;
+      const naturalRatio = naturalW / (naturalH || 1);
 
-      checkPageBreak(imgHeight + 14);
+      // Calcul des dimensions bornées strictes respectant le ratio d'aspect sans aucune déformation :
+      // Largeur max : 135 mm (taille éditoriale équilibrée, pas démesurée)
+      // Hauteur max : 68 mm (évite d'écraser la mise en page)
+      const maxBoxWidth = Math.min(135, contentWidth);
+      const maxBoxHeight = 68;
+
+      let targetWidth = maxBoxWidth;
+      let targetHeight = targetWidth / naturalRatio;
+
+      if (targetHeight > maxBoxHeight) {
+        targetHeight = maxBoxHeight;
+        targetWidth = targetHeight * naturalRatio;
+      }
+
+      if (targetWidth > maxBoxWidth) {
+        targetWidth = maxBoxWidth;
+        targetHeight = targetWidth / naturalRatio;
+      }
+
+      // Arrondi propre pour les coordonnées jsPDF
+      targetWidth = Math.round(targetWidth * 10) / 10;
+      targetHeight = Math.round(targetHeight * 10) / 10;
+
+      // Centrage horizontal parfait
+      const imgX = margin + ((contentWidth - targetWidth) / 2);
+
+      checkPageBreak(targetHeight + 14);
 
       try {
-        // Cadre rectangulaire de l'image
+        // Insertion de l'image aux proportions exactes d'origine
         doc.addImage(
           photoData.dataUrl,
           photoData.format,
-          margin,
+          imgX,
           currentY,
-          imgWidth,
-          imgHeight,
+          targetWidth,
+          targetHeight,
           undefined,
           "FAST"
         );
 
-        currentY += imgHeight + 4;
+        // Bordure fine élégante de protection visuelle
+        doc.setDrawColor(226, 232, 240); // Slate 200
+        doc.setLineWidth(0.3);
+        doc.rect(imgX, currentY, targetWidth, targetHeight, "S");
 
-        // Légende photo & licence
+        currentY += targetHeight + 3.5;
+
+        // Légende photo & licence centrée
         doc.setFont("helvetica", "italic");
         doc.setFontSize(7.5);
         doc.setTextColor(148, 163, 184); // Slate 400
-        const photoCaption = `Photo d'illustration • ${article.category || "Actualité"} • Licence libre de droit (Unsplash / Wikimedia)`;
-        doc.text(photoCaption, margin, currentY);
+        const photoCaption = `Photo d'illustration • ${article.category || "Actualité"} • Proportions et fidélité d'origine préservées`;
+        doc.text(photoCaption, pageWidth / 2, currentY, { align: "center" });
 
         currentY += 8;
       } catch (imgErr) {

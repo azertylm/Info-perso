@@ -24,7 +24,10 @@ import {
   RotateCcw,
   Palette,
   Zap,
-  Film
+  Film,
+  Eye,
+  LayoutGrid,
+  List
 } from "lucide-react";
 import { NewsArticle } from "../types";
 import {
@@ -44,6 +47,13 @@ interface SettingsVoletProps {
   // Theme styling
   theme?: string;
   isDark?: boolean;
+  // Display & Flux layout (spécial Big 2)
+  viewMode?: "grid" | "list";
+  setViewMode?: (mode: "grid" | "list") => void;
+  easyModeLevel?: number;
+  setEasyModeLevel?: (val: number) => void;
+  isReaderMaximized?: boolean;
+  setIsReaderMaximized?: (val: boolean) => void;
   // Filters & State
   minScore: number;
   setMinScore: (val: number) => void;
@@ -91,6 +101,12 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
   onClose,
   theme = "default",
   isDark = true,
+  viewMode = "grid",
+  setViewMode,
+  easyModeLevel = 0,
+  setEasyModeLevel,
+  isReaderMaximized = false,
+  setIsReaderMaximized,
   minScore,
   setMinScore,
   readingTimeFilter,
@@ -417,7 +433,7 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
+        className={`w-full max-w-4xl max-h-[92vh] settings-modal-container flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
           isFun
             ? "bg-amber-50 border-4 border-black text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
             : isSobre
@@ -467,13 +483,23 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="Fermer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-400 border border-cyan-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Fermer les réglages pour observer le flux en direct"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Voir le flux</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* SOLUTION 5: Persistent Active Filters Bar with 1-click Clear and Memorization */}
@@ -587,7 +613,7 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
         >
           <button
             onClick={() => setActiveTab("themes")}
-            className={`px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
+            className={`settings-tab-btn px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
               activeTab === "themes"
                 ? "border-cyan-500 text-cyan-500 font-bold"
                 : "border-transparent opacity-65 hover:opacity-100"
@@ -598,18 +624,18 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
           </button>
           <button
             onClick={() => setActiveTab("flux_ia")}
-            className={`px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
+            className={`settings-tab-btn px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
               activeTab === "flux_ia"
                 ? "border-cyan-500 text-cyan-500 font-bold"
                 : "border-transparent opacity-65 hover:opacity-100"
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            Flux &amp; IA
+            <Eye className="w-4 h-4 text-cyan-400" />
+            Affichage &amp; Flux IA
           </button>
           <button
             onClick={() => setActiveTab("filters")}
-            className={`px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
+            className={`settings-tab-btn px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
               activeTab === "filters"
                 ? "border-cyan-500 text-cyan-500 font-bold"
                 : "border-transparent opacity-65 hover:opacity-100"
@@ -620,7 +646,7 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
           </button>
           <button
             onClick={() => setActiveTab("algo")}
-            className={`px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
+            className={`settings-tab-btn px-3.5 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
               activeTab === "algo"
                 ? "border-cyan-500 text-cyan-500 font-bold"
                 : "border-transparent opacity-65 hover:opacity-100"
@@ -1463,9 +1489,198 @@ export const SettingsVolet: React.FC<SettingsVoletProps> = ({
             </div>
           )}
 
-          {/* TAB 2: FLUX & IA (BULK & SUR MESURE) */}
+          {/* TAB 2: AFFICHAGE, ERGONOMIE & FLUX IA */}
           {activeTab === "flux_ia" && (
             <div className="space-y-6">
+              {/* Card 1: Configuration Affichage du Flux & Mode Big 2 */}
+              <div
+                className={`p-4 sm:p-5 rounded-2xl border ${
+                  isFun
+                    ? "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    : isDark
+                    ? "bg-gradient-to-b from-slate-800/80 to-slate-900/80 border-cyan-500/30 shadow-lg shadow-cyan-950/20"
+                    : "bg-white border-slate-200 shadow-sm"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <h4 className="font-bold text-sm sm:text-base flex items-center gap-2">
+                      <LayoutGrid className="w-4 h-4 text-cyan-400" />
+                      Affichage &amp; Lisibilité du Flux (Spécial Mode Big 2)
+                    </h4>
+                    <p className="text-xs opacity-75 mt-1">
+                      Ajustez la disposition des articles pour que le flux reste spacieux et aéré, particulièrement en grand format ou avec les grands caractères.
+                    </p>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-black flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                    title="Voir le résultat en direct sur le flux"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Voir mon flux</span>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Mise en page du flux : 1 Colonne vs 2 Colonnes */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-2">
+                      Mise en page des articles dans le flux :
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (setViewMode) setViewMode("list");
+                          onNotify("📄 Disposition 1 Colonne activée : confort maximal pour les grands caractères.");
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                          viewMode === "list" || easyModeLevel === 2
+                            ? "bg-cyan-500/15 border-cyan-500 text-cyan-300 shadow-sm"
+                            : isDark
+                            ? "bg-slate-800/40 border-slate-700/80 hover:bg-slate-800/70 text-slate-300"
+                            : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800"
+                        }`}
+                      >
+                        <List className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold flex items-center gap-1.5">
+                            <span>1 Colonne Large</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-cyan-500 text-black uppercase">
+                              Recommandé Big 2
+                            </span>
+                          </div>
+                          <p className="text-[11px] opacity-75 mt-0.5 leading-snug">
+                            Chaque article prend toute la largeur. Aucun texte compressé, lecture fluide en gros caractères.
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (setViewMode) setViewMode("grid");
+                          onNotify("⊞ Disposition Grille 2 colonnes activée.");
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                          viewMode === "grid" && easyModeLevel !== 2
+                            ? "bg-cyan-500/15 border-cyan-500 text-cyan-300 shadow-sm"
+                            : isDark
+                            ? "bg-slate-800/40 border-slate-700/80 hover:bg-slate-800/70 text-slate-300"
+                            : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800"
+                        }`}
+                      >
+                        <LayoutGrid className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold flex items-center gap-1.5">
+                            <span>Grille 2 Colonnes</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-700 text-slate-300">
+                              Standard
+                            </span>
+                          </div>
+                          <p className="text-[11px] opacity-75 mt-0.5 leading-snug">
+                            Deux articles côte à côte. Pratique sur grand écran en taille normale.
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Taille du texte & Échelle Big Mode */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-2">
+                      Taille du texte &amp; Grossissement (Big Mode) :
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { level: 0, label: "Standard", scale: "100%", desc: "Taille classique" },
+                        { level: 1, label: "Big 1", scale: "+25%", desc: "Texte agrandi" },
+                        { level: 2, label: "Big 2 Maxi", scale: "+35% extra", desc: "Très grands caractères" }
+                      ].map((item) => {
+                        const isActive = easyModeLevel === item.level;
+                        return (
+                          <button
+                            key={item.level}
+                            type="button"
+                            onClick={() => {
+                              if (setEasyModeLevel) setEasyModeLevel(item.level);
+                              if (item.level === 2 && setViewMode) {
+                                setViewMode("list");
+                              }
+                            }}
+                            className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                              isActive
+                                ? "bg-cyan-500 text-black border-cyan-400 shadow-md font-bold"
+                                : isDark
+                                ? "bg-slate-800/50 border-slate-700/80 hover:bg-slate-700/50 text-slate-300"
+                                : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-800"
+                            }`}
+                          >
+                            <div className="text-xs font-bold">{item.label}</div>
+                            <div className={`text-[10px] ${isActive ? "text-black/80 font-semibold" : "text-cyan-400 font-mono"}`}>
+                              {item.scale}
+                            </div>
+                            <div className={`text-[9px] mt-0.5 truncate ${isActive ? "text-black/70" : "opacity-60"}`}>
+                              {item.desc}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {easyModeLevel === 2 && (
+                      <p className="text-[11px] text-cyan-300/90 bg-cyan-950/40 border border-cyan-800/40 rounded-lg px-2.5 py-1.5 mt-2 flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span>En mode Big 2, le flux s'affiche automatiquement en 1 colonne large afin que chaque article soit parfaitement lisible sans aucun découpage étriqué.</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Format d'ouverture du lecteur d'article */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-2">
+                      Affichage du lecteur d'article :
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (setIsReaderMaximized) setIsReaderMaximized(true);
+                          onNotify("📖 Lecteur configuré en Plein écran : préserve la clarté du flux.");
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                          isReaderMaximized
+                            ? "bg-cyan-500/15 border-cyan-500 text-cyan-300"
+                            : isDark ? "bg-slate-800/30 border-slate-700 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-700"
+                        }`}
+                      >
+                        <div className="text-xs font-semibold">
+                          📖 Plein écran centré (Idéal Big 2)
+                        </div>
+                        {isReaderMaximized && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (setIsReaderMaximized) setIsReaderMaximized(false);
+                          onNotify("📑 Lecteur configuré en Vue scindée (Split).");
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                          !isReaderMaximized
+                            ? "bg-cyan-500/15 border-cyan-500 text-cyan-300"
+                            : isDark ? "bg-slate-800/30 border-slate-700 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-700"
+                        }`}
+                      >
+                        <div className="text-xs font-semibold">
+                          📑 Vue scindée côte à côte (Split)
+                        </div>
+                        {!isReaderMaximized && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               {/* Bulk Generation Card */}
               <div
                 className={`p-4 rounded-xl border ${

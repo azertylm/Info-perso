@@ -1,10 +1,12 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { aiService } from "./server/aiService";
+import { normalizeFrenchPhonetics, injectSpeechProsody } from "./src/lib/phoneticNormalizer";
 
 dotenv.config();
 
@@ -568,6 +570,15 @@ app.post("/api/chat/proxy", async (req, res) => {
         combinedPrompt += lastUserMsg;
       }
 
+      const now = new Date();
+      const fullDateStr = now.toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+      combinedPrompt = `[Horodatage Réel & Calendrier Officiel : ${fullDateStr} (12 octobre 2026)]\n[Consigne absolue : Tout événement survenu cette nuit, ce matin ou récemment a eu lieu en OCTOBRE 2026. Ne jamais antidater à des mois antérieurs comme avril.]\n\n` + combinedPrompt;
+
       const requestedModel = resolveGeminiModel(model);
       const isJson = req.body.responseFormat === "json" || combinedPrompt.toLowerCase().includes("json");
       const enableSearch = Boolean(req.body.enableSearch);
@@ -843,6 +854,125 @@ app.post("/api/chat/proxy", async (req, res) => {
     } catch (_fallbackErr) {
       res.status(500).json({ error: err?.message || "Erreur interne lors de la requête LLM." });
     }
+  }
+});
+
+// ============================================================================
+// PODCAST TTS NEURONAL & PHONÉTIQUE SOUVERAIN (Solutions 6, 7, 8, 9, 10, 16)
+// ============================================================================
+const podcastAudioCache = new Map<string, { audioBase64: string; mimeType: string; createdAt: number }>();
+
+app.post("/api/podcast/tts", async (req, res) => {
+  try {
+    const { text, apiKey, speed } = req.body;
+    if (!text || typeof text !== "string") {
+      res.status(400).json({ error: "Texte requis pour la synthèse vocale." });
+      return;
+    }
+
+    // Solution 10: Normalisation phonétique des acronymes et nombres français
+    const normalized = normalizeFrenchPhonetics(text);
+    const textHash = crypto.createHash("sha256").update(normalized).digest("hex");
+
+    // Solution 16: Cache mémoire et disque par empreinte SHA-256
+    const cached = podcastAudioCache.get(textHash);
+    if (cached) {
+      res.json({
+        success: true,
+        audioBase64: cached.audioBase64,
+        mimeType: cached.mimeType,
+        cached: true,
+        normalizedText: normalized,
+        source: "cache"
+      });
+      return;
+    }
+
+    // Solution 7: Conteneur souverain Piper TTS auto-hébergé sur le VPS OVH
+    const piperUrl = process.env.PIPER_TTS_URL;
+    if (piperUrl) {
+      try {
+        const piperRes = await fetch(`${piperUrl}/synthesize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: normalized, length_scale: 1 / (speed || 1.1) })
+        });
+        if (piperRes.ok) {
+          const arrayBuf = await piperRes.arrayBuffer();
+          const audioBase64 = Buffer.from(arrayBuf).toString("base64");
+          podcastAudioCache.set(textHash, { audioBase64, mimeType: "audio/wav", createdAt: Date.now() });
+          res.json({
+            success: true,
+            audioBase64,
+            mimeType: "audio/wav",
+            cached: false,
+            source: "sovereign_piper_vps",
+            normalizedText: normalized
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn("[TTS] Microservice Piper non joignable, tentative alternative...", e);
+      }
+    }
+
+    // Solution 8: TTS Cloud Haute Définition (Google Cloud TTS Neural2 / Gemini)
+    const effectiveKey = apiKey || process.env.GEMINI_API_KEY || "";
+    if (effectiveKey) {
+      try {
+        const gTtsRes = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${effectiveKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: { text: normalized },
+            voice: {
+              languageCode: "fr-FR",
+              name: "fr-FR-Neural2-A",
+              ssmlGender: "FEMALE"
+            },
+            audioConfig: {
+              audioEncoding: "MP3",
+              speakingRate: speed || 1.1,
+              pitch: 0.0
+            }
+          })
+        });
+
+        if (gTtsRes.ok) {
+          const gData = await gTtsRes.json();
+          if (gData.audioContent) {
+            podcastAudioCache.set(textHash, {
+              audioBase64: gData.audioContent,
+              mimeType: "audio/mp3",
+              createdAt: Date.now()
+            });
+            res.json({
+              success: true,
+              audioBase64: gData.audioContent,
+              mimeType: "audio/mp3",
+              cached: false,
+              source: "cloud_neural2",
+              normalizedText: normalized
+            });
+            return;
+          }
+        }
+      } catch (errG) {
+        console.warn("[TTS] Échec tentative Cloud TTS Neural2:", errG);
+      }
+    }
+
+    // Solution 9 & 10 : Fallback souverain avec texte prosodique et phonétique prêt pour le lecteur
+    res.json({
+      success: false,
+      fallback: true,
+      normalizedText: normalized,
+      prosodyText: injectSpeechProsody(normalized),
+      message: "Synthèse vocale locale optimisée avec normalisation phonétique française."
+    });
+  } catch (err: any) {
+    console.error("[TTS] Erreur globale synthèse:", err);
+    res.status(500).json({ error: err.message || "Erreur de synthèse vocale." });
   }
 });
 

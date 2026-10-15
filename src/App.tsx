@@ -1504,8 +1504,16 @@ export default function App() {
                 stats={stats}
                 unlockedBadges={unlockedBadges}
                 passiveSignalsSettings={passiveSignalsSettings}
-                onAwardCuriosityPoints={handleAwardCuriosityPoints}
                 isEasyMode={isEasyMode}
+                easyModeLevel={easyModeLevel}
+                setEasyModeLevel={(level: number) => {
+                  setEasyModeLevel(level);
+                  try {
+                    localStorage.setItem("infoperso_easy_mode", String(level));
+                  } catch {}
+                  const labels = ["Standard (100%)", "Big 1 (+25%)", "Big 2 Maxi (+35% de plus)"];
+                  triggerToast(`✨ Taille d'affichage : ${labels[level]}`);
+                }}
                 onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
               />
             </div>

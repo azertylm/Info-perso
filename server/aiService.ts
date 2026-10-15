@@ -379,6 +379,15 @@ class ServerRelayStrategy implements AiStrategy {
       combinedPrompt += "\n\nRéponds EXCLUSIVEMENT sous la forme d'un JSON valide, sans balises additionnelles.";
     }
 
+    const now = new Date();
+    const fullDateStr = now.toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+    combinedPrompt = `[Horodatage Réel & Calendrier Officiel : ${fullDateStr} (12 octobre 2026)]\n[Consigne absolue : Tout événement survenu cette nuit, ce matin ou récemment a eu lieu en OCTOBRE 2026. Ne jamais antidater à des mois antérieurs.]\n\n` + combinedPrompt;
+
     const candidateModels = [
       "gemini-3.5-flash-lite",
       "gemini-3.1-flash-lite",
@@ -390,14 +399,20 @@ class ServerRelayStrategy implements AiStrategy {
 
     for (const modelCand of candidateModels) {
       try {
+        const config: any = {
+          temperature: options.temperature ?? 0.3,
+          maxOutputTokens: options.maxTokens ?? 5000,
+        };
+        if (options.enableSearch) {
+          config.tools = [{ googleSearch: {} }];
+        } else if (options.responseFormat === "json") {
+          config.responseMimeType = "application/json";
+        }
+
         response = await ai.models.generateContent({
           model: modelCand,
           contents: combinedPrompt,
-          config: {
-            temperature: options.temperature ?? 0.3,
-            maxOutputTokens: options.maxTokens ?? 5000,
-            responseMimeType: options.responseFormat === "json" ? "application/json" : undefined,
-          }
+          config
         });
         if (response && response.text) break;
       } catch (err: any) {

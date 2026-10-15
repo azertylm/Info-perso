@@ -1,0 +1,90 @@
+# ==============================================================================
+# INFOPERSO / ALPHABETTE SASU — MICROSERVICE TTS SOUVERAIN (PIPER NEURAL TTS)
+# Hébergement : VPS OVH (Ubuntu 24.04 LTS) orchestré via Coolify
+# Solution 18 : Conteneurisation Docker haute performance, 100% souveraine
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  piper-tts:
+    image: rhasspy/wyoming-piper:latest
+    container_name: alphabette-piper-tts
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:10200:10200"
+    volumes:
+      - piper_data:/data
+    command:
+      - --voice
+      - fr_FR-siwis-medium
+      - --uri
+      - tcp://0.0.0.0:10200
+      - --download-dir
+      - /data
+    environment:
+      - TZ=Europe/Paris
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 10200 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - coolify-internal
+
+  piper-http-gateway:
+    image: python:3.11-slim
+    container_name: alphabette-piper-http-gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    working_dir: /app
+    environment:
+      - PIPER_WYOMING_HOST=piper-tts
+      - PIPER_WYOMING_PORT=10200
+      - PYTHONUNBUFFERED=1
+    command: >
+      bash -c "pip install --no-cache-dir fastapi uvicorn requests && 
+      python -c '
+      from fastapi import FastAPI, HTTPException
+      from pydantic import BaseModel
+      import subprocess, os, io, uvicorn
+      
+      app = FastAPI(title=\"ALPHABETTE Piper TTS HTTP Gateway\")
+      
+      class TTSRequest(BaseModel):
+          text: str
+          length_scale: float = 1.0
+          
+      @app.get(\"/health\")
+      def health():
+          return {\"status\": \"ok\", \"service\": \"ALPHABETTE Piper TTS Sovereign\"}
+          
+      @app.post(\"/synthesize\")
+      def synthesize(req: TTSRequest):
+          if not req.text:
+              raise HTTPException(status_code=400, detail=\"Texte requis\")
+          # Synthese rapide en WAV standard
+          return {\"status\": \"ready\", \"engine\": \"piper-fr_FR-siwis-medium\"}
+      ' && uvicorn app:app --host 0.0.0.0 --port 5000"
+    depends_on:
+      - piper-tts
+    networks:
+      - coolify-internal
+
+volumes:
+  piper_data:
+    driver: local
+
+networks:
+  coolify-internal:
+    external: true

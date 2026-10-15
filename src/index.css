@@ -178,6 +178,26 @@ html:not(.dark) {
     padding-left: 0.6rem !important;
     padding-right: 0.6rem !important;
   }
+
+  /* Optimisations spécifiques au Mode Big 2 (lisibilité parfaite du flux et des réglages) */
+  .feed-articles-container {
+    grid-template-columns: 1fr !important;
+  }
+
+  .settings-modal-container {
+    max-height: 94vh !important;
+    width: 96vw !important;
+    max-width: 960px !important;
+  }
+
+  .settings-tab-btn {
+    font-size: 14px !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+    white-space: nowrap !important;
+  }
 }
 
 /* Custom modern scrollbar stylings */

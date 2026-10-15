@@ -84,7 +84,7 @@ import { CultureBarAndModal, CULTURE_SHORTCUTS } from "./CultureBarAndModal";
 import { getNextSuggestedWords, normalizeKeyword } from "../lib/semanticExplorer";
 import { EditorialMixerBar, ArticleFeedbackWidget, TagActionModal } from "./PersonalizationSuite";
 import { sanitizeArticleTemporalConsistency, fixTemporalConsistency, getTemporalPromptDirective } from "../lib/temporalConsistency";
-import { ensureArticleDeepData, cleanArticleContent, formatArticleDateTime, getArticleRelativeTime, TRUMP_TMTG_FULL_CONTENT } from "../lib/articleEnricher";
+import { ensureArticleDeepData, cleanArticleContent, formatArticleDateTime, getArticleRelativeTime, TRUMP_TMTG_FULL_CONTENT, MONDIAL_AUTO_2026_FULL_CONTENT, ENFANTS_ROUGES_FIRE_FULL_CONTENT } from "../lib/articleEnricher";
 import { getQuotaStatus, incrementQuotaUsage } from "../lib/quotaManager";
 import { useFoldable } from "../lib/useFoldable";
 import { FoldableBar } from "./FoldableBar";
@@ -102,6 +102,44 @@ import { ExecutiveBriefingModal } from "./ExecutiveBriefingModal";
 
 // Initial mock dataset from static HTML template
 const INITIAL_ARTICLES: NewsArticle[] = [
+  {
+    id: 1791807600000,
+    featured: true,
+    title: "Paris : Le marché historique des Enfants Rouges entièrement détruit par un violent incendie cette nuit",
+    source: "Le Parisien & AFP",
+    category: "Société",
+    time: "Ce matin (12 oct. 2026)",
+    score: 100,
+    emoji: "🔥🏛️",
+    tags: ["Paris", "Incendie", "Marché des Enfants Rouges", "Marais", "Faits Divers", "Patrimoine", "3e Arrondissement"],
+    imageUrl: "https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80",
+    summary: "Un violent incendie s'est déclaré vers 3 heures du matin ce lundi 12 octobre 2026 au marché des Enfants Rouges, rue de Bretagne dans le 3e arrondissement de Paris. Le plus ancien marché alimentaire couvert de la capitale, fondé en 1615 et classé monument historique, a été entièrement détruit malgré la mobilisation de plus de 70 sapeurs-pompiers. Aucune victime civile n'est à déplorer.",
+    keyFigures: [
+      { label: "Sapeurs-Pompiers", value: "70+ Soldats du feu", detail: "Mobilisés à 3h15 avec une quinzaine d'engins d'intervention" },
+      { label: "Fondation Historique", value: "1615 (411 ans)", detail: "Plus vieux marché couvert de Paris, classé monument historique en 1982" },
+      { label: "Bilan Humain", value: "0 Victime Civile", detail: "1 sapeur-pompier soigné pour un léger coup de chaud" },
+      { label: "Échoppes Détruites", value: "20+ Commerces", detail: "Commerçants, traiteurs et primeurs du Marais sinistrés" }
+    ],
+    keyTakeaways: [
+      "Incendie nocturne majeur ce lundi 12 octobre 2026 vers 3h du matin au marché des Enfants Rouges (Paris 3e).",
+      "Bâtiment historique de 1615 entièrement embrasé et toitures effondrées, marché classé monument historique totalement sinistré.",
+      "Aucune victime civile à déplorer grâce à l'heure tardive et à l'intervention rapide de 70 sapeurs-pompiers de Paris.",
+      "Enquête judiciaire ouverte par le parquet de Paris et promesse municipale d'un fonds de soutien et de reconstruction à l'identique."
+    ],
+    strategicAnalysis: {
+      actorsInvolved: [
+        "Brigade de Sapeurs-Pompiers de Paris (BSPP)",
+        "Mairie de Paris (Anne Hidalgo & Ariel Weil)",
+        "Commerçants des Enfants Rouges",
+        "Architectes des Bâtiments de France"
+      ],
+      marketImpact: "Perte temporaire d'un haut lieu gastronomique et patrimonial du Marais, impact économique sévère pour les artisans.",
+      privacyCompliance: "Périmètre de sécurité établi rue de Bretagne et assistance psychologique déployée en mairie de Paris Centre.",
+      nextMilestone: "Conclusions des experts de la police scientifique sur l'origine du feu et vote des aides d'urgence au Conseil de Paris."
+    },
+    content: ENFANTS_ROUGES_FIRE_FULL_CONTENT,
+    createdAt: 1791807600000
+  },
   {
     id: 100,
     featured: true,
@@ -834,6 +872,47 @@ export const upgradeVagueArticleIfKnown = (art: NewsArticle): NewsArticle => {
     }));
   }
 
+  if (
+    art.id === 654495961000 ||
+    allText.includes("mondial de l’auto 2026") ||
+    allText.includes("mondial de l'auto 2026") ||
+    (allText.includes("mondial de l’auto") && allText.includes("électrique")) ||
+    (allText.includes("60 constructeurs") && allText.includes("offensive chinoise"))
+  ) {
+    return ensureArticleDeepData(sanitizeArticleTemporalConsistency({
+      ...art,
+      id: 654495961000,
+      title: "Plus de 60 constructeurs, offensive chinoise… Ce qui vous attend au Mondial de l’auto 2026 avec un monde automobile toujours plus électrique",
+      source: "Le Figaro Automobile",
+      category: "Automobile",
+      emoji: "🚗⚡",
+      tags: ["Mondial de l'Auto", "Véhicules Électriques", "Offensive Chinoise", "Batteries LFP", "Stellantis", "Renault", "BYD"],
+      summary: "Le Mondial de l’automobile de Paris opère un retour spectaculaire avec plus de 60 constructeurs réunis à la Porte de Versailles. Face à la déferlante des marques chinoises (BYD, Leapmotor, XPeng) et aux nouvelles surtaxes douanières européennes, les constructeurs tricolores et européens contre-attaquent sur le terrain décisif des citadines 100 % électriques à moins de 25 000 euros.",
+      content: MONDIAL_AUTO_2026_FULL_CONTENT
+    }));
+  }
+
+  if (
+    art.id === 1791807600000 ||
+    allText.includes("enfants rouges") ||
+    (allText.includes("marché") && (allText.includes("brûlé") || allText.includes("incendie")) && allText.includes("paris"))
+  ) {
+    return ensureArticleDeepData(sanitizeArticleTemporalConsistency({
+      ...art,
+      id: 1791807600000,
+      title: "Paris : Le marché historique des Enfants Rouges entièrement détruit par un violent incendie cette nuit",
+      source: "Le Parisien & AFP",
+      category: "Société",
+      time: "Ce matin (12 oct. 2026)",
+      score: 100,
+      emoji: "🔥🏛️",
+      tags: ["Paris", "Incendie", "Marché des Enfants Rouges", "Marais", "Faits Divers", "Patrimoine", "3e Arrondissement"],
+      imageUrl: art.imageUrl || "https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80",
+      summary: "Un violent incendie s'est déclaré vers 3 heures du matin ce lundi 12 octobre 2026 au marché des Enfants Rouges, rue de Bretagne dans le 3e arrondissement de Paris. Le plus ancien marché alimentaire couvert de la capitale, fondé en 1615 et classé monument historique, a été entièrement détruit malgré la mobilisation de plus de 70 sapeurs-pompiers. Aucune victime civile n'est à déplorer.",
+      content: ENFANTS_ROUGES_FIRE_FULL_CONTENT
+    }));
+  }
+
   // Ensure any article referencing future projections (order backlogs, shipments, horizons) is temporally sanitized
   // AND systematically guaranteed to contain rich key figures, takeaways, and strategic analysis
   return ensureArticleDeepData(sanitizeArticleTemporalConsistency(art));
@@ -1041,6 +1120,8 @@ interface NewsFeedProps {
   };
   onAwardCuriosityPoints?: (points: number, reason: string, category?: string, actionType?: "read" | "share" | "quiz") => void;
   isEasyMode?: boolean;
+  easyModeLevel?: number;
+  setEasyModeLevel?: (val: number) => void;
   refreshFluxTrigger?: number;
   onOpenApiKeyModal?: () => void;
 }
@@ -1064,6 +1145,8 @@ export default function NewsFeed({
   passiveSignalsSettings = { trackReadingTime: true, trackScrollDepth: true, trackReReading: true, trackCategoryWeights: true },
   onAwardCuriosityPoints = () => {},
   isEasyMode = false,
+  easyModeLevel = 0,
+  setEasyModeLevel,
   refreshFluxTrigger = 0,
   onOpenApiKeyModal
 }: NewsFeedProps) {
@@ -2171,7 +2254,20 @@ export default function NewsFeed({
   const [searchQuery, setSearchQuery] = useState("");
   const [minScore, setMinScore] = useState(40);
   const [sortBy, setSortBy] = useState<"score" | "date" | "time">("time");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const isBig2 = easyModeLevel === 2;
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    try {
+      const saved = localStorage.getItem("infoperso_view_mode");
+      if (saved === "list" || saved === "grid") return saved;
+    } catch {}
+    return "grid";
+  });
+  const handleSetViewMode = (mode: "grid" | "list") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("infoperso_view_mode", mode);
+    } catch {}
+  };
   // Mode Photographie ("En photo") - Persisté localement, activé par défaut
   const [photoMode, setPhotoMode] = useState<boolean>(() => {
     try {
@@ -5077,24 +5173,24 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
             {/* View Mode */}
             <div className="flex items-center rounded-xl p-0.5 border border-slate-700/50 bg-slate-800/30">
               <button
-                onClick={() => setViewMode("grid")}
+                onClick={() => handleSetViewMode("grid")}
                 className={`compact-action-btn p-1.5 rounded-lg transition-all cursor-pointer ${
                   viewMode === "grid"
                     ? "bg-cyan-500 text-white"
                     : "opacity-60 hover:opacity-100"
                 }`}
-                title="Vue Grille"
+                title="Vue Grille (2 colonnes en taille standard)"
               >
                 <Grid className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => setViewMode("list")}
+                onClick={() => handleSetViewMode("list")}
                 className={`compact-action-btn p-1.5 rounded-lg transition-all cursor-pointer ${
                   viewMode === "list"
                     ? "bg-cyan-500 text-white"
                     : "opacity-60 hover:opacity-100"
                 }`}
-                title="Vue Liste"
+                title="Vue 1 Colonne Large (Recommandé pour Big 2 / Grands caractères)"
               >
                 <List className="w-3.5 h-3.5" />
               </button>
@@ -5144,16 +5240,16 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
             {/* Quick Secondary Tools: Podcast, RSS, Source, Foldable */}
             <button
               onClick={() => setShowPodcastModal(true)}
-              className={`compact-action-btn px-2 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border shadow-xs ${
+              className={`compact-action-btn px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all border shadow-xs ${
                 isDark
-                  ? "bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/40 text-rose-300 hover:text-white"
-                  : "bg-rose-50 hover:bg-rose-100 border-rose-300 text-rose-800"
+                  ? "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-white"
+                  : "bg-white hover:bg-zinc-100 border-zinc-300 text-zinc-900"
               }`}
-              title="Briefing Audio Flash (3 minutes d'actualités vocales)"
+              title="Flash 90 secondes (5 dossiers d'actualité synthétiques, régénérables en 1 clic)"
             >
-              <Radio className="w-3 h-3 text-rose-400 animate-pulse shrink-0" />
-              <span>Podcast</span>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/30 text-rose-200 font-mono shrink-0">3m</span>
+              <Radio className="w-3.5 h-3.5 shrink-0 opacity-80" />
+              <span>Flash 90s</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded font-mono shrink-0 font-bold border border-zinc-400/40">5 dossiers</span>
             </button>
 
             <button
@@ -5652,6 +5748,12 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         onClose={() => setIsSettingsVoletOpen(false)}
         theme={displayMode}
         isDark={isDark}
+        viewMode={viewMode}
+        setViewMode={handleSetViewMode}
+        easyModeLevel={easyModeLevel}
+        setEasyModeLevel={setEasyModeLevel}
+        isReaderMaximized={isReaderMaximized}
+        setIsReaderMaximized={setIsReaderMaximized}
         minScore={minScore}
         setMinScore={setMinScore}
         readingTimeFilter={readingTimeFilter}
@@ -5734,18 +5836,46 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
                 <div className="flex items-center gap-2">
-                  <Flame className={`w-4 h-4 ${isFun ? "text-yellow-500 fill-yellow-400 animate-bounce" : isCyber ? "text-[#00ffcc]" : isSobre ? "text-zinc-900" : isWarm ? "text-amber-800" : "text-amber-400 fill-amber-400/20"}`} />
-                  <h3 className={`font-bold text-[11px] sm:text-xs tracking-wider uppercase ${isSobre ? "text-zinc-900 font-black" : isWarm ? "text-amber-950 font-serif font-black" : isCyber ? "text-cyan-400 font-mono" : isFun ? "text-black font-black" : "text-white font-extrabold"}`}>
+                  <Flame className={`w-4 h-4 ${
+                    isFun
+                      ? "text-yellow-500 fill-yellow-400 animate-bounce"
+                      : isCyber
+                      ? "text-[#00ffcc]"
+                      : isSobre
+                      ? isDark ? "text-amber-400" : "text-amber-600"
+                      : isWarm
+                      ? "text-amber-800"
+                      : isDark
+                      ? "text-amber-400 fill-amber-400/20"
+                      : "text-amber-600 fill-amber-600/20"
+                  }`} />
+                  <h3 className={`font-bold text-[11px] sm:text-xs tracking-wider uppercase ${
+                    isSobre
+                      ? isDark ? "text-zinc-100 font-black" : "text-zinc-900 font-black"
+                      : isWarm
+                      ? isDark ? "text-amber-100 font-serif font-black" : "text-amber-950 font-serif font-black"
+                      : isCyber
+                      ? "text-cyan-400 font-mono font-bold"
+                      : isFun
+                      ? isDark ? "text-white font-black" : "text-black font-black"
+                      : isDark
+                      ? "text-zinc-100 font-extrabold"
+                      : "text-zinc-900 font-extrabold"
+                  }`}>
                     Les Nouveaux Articles & Vos Générations (En tête de page)
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center gap-1 shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs border ${
+                  isDark
+                    ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-300"
+                    : "bg-emerald-50 border-emerald-300 text-emerald-850"
+                }`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   {Math.min(featuredArticles.length, 20)} articles prioritaires en direct
                 </span>
               </div>
 
-              <div className={`grid gap-3 sm:gap-4 ${selectedArticle ? "grid-cols-1" : (viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}`}>
+              <div className={`grid gap-3 sm:gap-4 feed-articles-container ${selectedArticle ? "grid-cols-1" : (viewMode === "grid" && !isBig2 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}`}>
                 {featuredArticles.map((art, idx) => {
                   const isSaved = savedIds.has(art.id);
                   const isRead = readIds.has(art.id);
@@ -5777,11 +5907,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                           <div className="flex items-center justify-between gap-1.5 mb-2">
                             <div className="flex items-center gap-1.5 min-w-0 truncate">
                               <span className={getBadgeClass()}>{art.category}</span>
-                              {(art as any).isLatestGeneration ? (
-                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-amber-400 via-rose-400 to-amber-300 text-black shadow-xs flex items-center gap-1 animate-pulse">
-                                  ✨ Récemment généré
-                                </span>
-                              ) : (art as any).isCustomGenerated ? (
+                              {(art as any).isCustomGenerated ? (
                                 <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-indigo-500/25 text-indigo-300 border border-indigo-500/40">
                                   🌟 Sur mesure
                                 </span>
@@ -5970,8 +6096,8 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
           <div className="space-y-3 pt-4">
             {regularArticles.length > 0 && (
               <div className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-cyan-400" />
-                <h3 className="font-sans font-bold text-[10px] tracking-widest uppercase text-slate-400">
+                <Award className="w-4 h-4 text-cyan-500" />
+                <h3 className={`font-sans font-bold text-[10px] tracking-widest uppercase ${isDark ? "text-slate-400" : "text-slate-600"}`}>
                   Articles précédents et archives ({regularArticles.length} au total)
                 </h3>
               </div>
@@ -5983,21 +6109,21 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                 isWarm ? "bg-[#FAF6F0] border-amber-900/10 text-amber-950 font-serif" :
                 isCyber ? "bg-black border-cyan-500/30 text-[#00ffcc] font-mono shadow-[0_0_15px_rgba(6,182,212,0.15)]" :
                 isFun ? "bg-yellow-100 border-3 border-black rounded-2xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" :
-                "bg-slate-900/40 border border-slate-800 text-slate-300"
+                isDark ? "bg-slate-900/40 border border-slate-800 text-slate-300" : "bg-white border-zinc-200 text-zinc-800 shadow-xs"
               }`}>
                 <AlertTriangle className={`w-10 h-10 mx-auto animate-pulse ${
                   isSobre ? "text-zinc-700" :
                   isWarm ? "text-amber-900" :
                   isCyber ? "text-[#00ffcc]" :
                   isFun ? "text-black" :
-                  "text-amber-400"
+                  "text-amber-500"
                 }`} />
                 <h4 className={`font-sans font-extrabold text-base sm:text-lg ${
                   isSobre ? "text-zinc-900" :
                   isWarm ? "text-amber-950 font-serif" :
                   isCyber ? "text-white font-mono" :
                   isFun ? "text-black" :
-                  "text-slate-100"
+                  isDark ? "text-slate-100" : "text-zinc-900"
                 }`}>
                   Aucun article ne correspond aux filtres actuels
                 </h4>
@@ -6006,7 +6132,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                   isWarm ? "text-amber-900/80 font-serif" :
                   isCyber ? "text-cyan-500 font-mono" :
                   isFun ? "text-black font-semibold" :
-                  "text-slate-400"
+                  isDark ? "text-slate-400" : "text-zinc-600"
                 }`}>
                   Les critères de recherche ou mots-clés sélectionnés sont trop restrictifs par rapport aux actualités actuellement disponibles.
                 </p>
@@ -6088,9 +6214,9 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                       isWarm ? "text-amber-900/80 font-serif" :
                       isCyber ? "text-cyan-500 font-mono" :
                       isFun ? "text-black" :
-                      "text-slate-400"
+                      isDark ? "text-slate-400" : "text-zinc-600"
                     }`}>
-                      Vous cherchez des informations sur <strong className={isSobre ? "text-zinc-950" : isWarm ? "text-amber-950 font-bold" : isCyber ? "text-white font-mono" : isFun ? "text-black font-extrabold" : "text-white"}>"{searchQuery}"</strong> ? Notre IA peut rédiger un article complet instantanément !
+                      Vous cherchez des informations sur <strong className={isSobre ? "text-zinc-950" : isWarm ? "text-amber-950 font-bold" : isCyber ? "text-white font-mono" : isFun ? "text-black font-extrabold" : isDark ? "text-white" : "text-zinc-950"}>"{searchQuery}"</strong> ? Notre IA peut rédiger un article complet instantanément !
                     </p>
                     <button
                       onClick={() => {
@@ -6116,7 +6242,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                 )}
               </div>
             ) : (
-              <div className={`grid gap-3 sm:gap-4 ${selectedArticle ? "grid-cols-1" : (viewMode === "grid" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}`}>
+              <div className={`grid gap-3 sm:gap-4 feed-articles-container ${selectedArticle ? "grid-cols-1" : (viewMode === "grid" && !isBig2 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}`}>
                 {regularArticles.map((art, idx) => {
                   const catColor = CATEGORY_COLORS[art.category] || { text: "text-zinc-400", bg: "bg-zinc-850/50", border: "border-white/5" };
                   const isSaved = savedIds.has(art.id);
@@ -6158,11 +6284,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                           <div className="flex items-center justify-between gap-1.5 mb-2">
                             <div className="flex items-center gap-1.5 min-w-0 truncate">
                               <span className={getBadgeClass()}>{art.category}</span>
-                              {(art as any).isLatestGeneration ? (
-                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-amber-400 via-rose-400 to-amber-300 text-black shadow-xs flex items-center gap-1 animate-pulse">
-                                  ✨ Récemment généré
-                                </span>
-                              ) : (art as any).isCustomGenerated ? (
+                              {(art as any).isCustomGenerated ? (
                                 <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-indigo-500/25 text-indigo-300 border border-indigo-500/40">
                                   🌟 Sur mesure
                                 </span>
@@ -6357,14 +6479,14 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
           className={
             selectedArticle
               ? isReaderMaximized
-                ? "fixed inset-x-0 bottom-0 top-14 sm:top-16 z-50 bg-white dark:bg-zinc-950 flex flex-col p-1 sm:p-2 w-full h-[calc(100dvh-56px)] sm:h-[calc(100dvh-64px)] overflow-hidden"
+                ? "fixed inset-x-0 bottom-0 top-[84px] sm:top-[96px] z-50 bg-white dark:bg-zinc-950 flex flex-col p-1 sm:p-2 w-full h-[calc(100dvh-84px)] sm:h-[calc(100dvh-96px)] overflow-hidden shadow-2xl"
                 : isListCollapsedInSplit
-                  ? "fixed inset-x-0 bottom-0 top-14 sm:top-16 landscape:top-11 z-50 bg-white dark:bg-zinc-950 flex flex-col p-0 sm:landscape:sticky sm:landscape:inset-auto sm:landscape:top-12 sm:landscape:z-20 sm:landscape:bg-transparent sm:landscape:p-0 sm:landscape:h-[calc(100vh-56px)] md:sticky md:inset-auto md:top-16 lg:top-16 md:z-20 md:bg-transparent md:p-0 md:h-[calc(100vh-76px)] lg:h-[calc(100vh-76px)] col-span-12 w-full transition-all"
+                  ? "fixed inset-x-0 bottom-0 top-[84px] sm:top-[96px] landscape:top-12 z-50 bg-white dark:bg-zinc-950 flex flex-col p-0 sm:landscape:sticky sm:landscape:inset-auto sm:landscape:top-14 sm:landscape:z-20 sm:landscape:bg-transparent sm:landscape:p-0 sm:landscape:h-[calc(100vh-60px)] md:sticky md:inset-auto md:top-[96px] lg:top-[96px] md:z-20 md:bg-transparent md:p-0 md:h-[calc(100vh-104px)] lg:h-[calc(100vh-104px)] col-span-12 w-full transition-all shadow-2xl md:shadow-none"
                   : foldable.isBookMode
-                    ? "col-span-7 sticky top-14 sm:top-16 z-20 bg-transparent p-0 h-[calc(100vh-76px)] w-full transition-all"
+                    ? "col-span-7 sticky top-[84px] sm:top-[96px] z-20 bg-transparent p-0 h-[calc(100vh-104px)] w-full transition-all"
                     : foldable.isFlexMode
-                      ? "fixed inset-x-0 bottom-0 top-14 sm:top-16 z-50 bg-white dark:bg-zinc-950 flex flex-col p-0 w-full h-[calc(100dvh-56px)] overflow-hidden"
-                      : "fixed inset-x-0 bottom-0 top-14 sm:top-16 landscape:top-11 z-50 bg-white dark:bg-zinc-950 flex flex-col p-0 sm:landscape:sticky sm:landscape:inset-auto sm:landscape:top-12 sm:landscape:z-20 sm:landscape:bg-transparent sm:landscape:p-0 sm:landscape:h-[calc(100vh-56px)] md:sticky md:inset-auto md:top-16 lg:top-16 md:z-20 md:bg-transparent md:p-0 md:h-[calc(100vh-76px)] lg:h-[calc(100vh-76px)] sm:landscape:col-span-7 md:col-span-7 lg:col-span-7 xl:col-span-8 w-full transition-all"
+                      ? "fixed inset-x-0 bottom-0 top-[84px] sm:top-[96px] z-50 bg-white dark:bg-zinc-950 flex flex-col p-0 w-full h-[calc(100dvh-84px)] sm:h-[calc(100dvh-96px)] overflow-hidden shadow-2xl"
+                      : "fixed inset-x-0 bottom-0 top-[84px] sm:top-[96px] landscape:top-12 z-50 bg-white dark:bg-zinc-950 flex flex-col p-0 sm:landscape:sticky sm:landscape:inset-auto sm:landscape:top-14 sm:landscape:z-20 sm:landscape:bg-transparent sm:landscape:p-0 sm:landscape:h-[calc(100vh-60px)] md:sticky md:inset-auto md:top-[96px] lg:top-[96px] md:z-20 md:bg-transparent md:p-0 md:h-[calc(100vh-104px)] lg:h-[calc(100vh-104px)] sm:landscape:col-span-7 md:col-span-7 lg:col-span-7 xl:col-span-8 w-full transition-all shadow-2xl md:shadow-none"
               : "hidden"
           }
         >
@@ -6664,7 +6786,7 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
               {/* Reader body with attached readerBodyRef */}
               <div 
                 ref={readerBodyRef} 
-                className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 landscape:space-y-3 pr-1 scrollbar pb-20 landscape:pb-6" 
+                className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 landscape:space-y-2 pr-1 scrollbar pb-6 landscape:pb-4" 
                 onScroll={handleReaderScroll}
               >
                 {/* Clean Metadata Header Bar */}
@@ -6715,9 +6837,9 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     }`}>
                       {selectedArticle.source}
                     </span>
-                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-sans flex items-center gap-1.5 bg-slate-800/40 dark:bg-zinc-900/60 px-2 py-0.5 rounded-md border border-slate-700/40">
-                      <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <span>Créé le <strong className="text-slate-200">{formatArticleDateTime(selectedArticle)}</strong></span>
+                    <span className="text-[10px] sm:text-[11px] text-zinc-600 dark:text-zinc-400 font-sans flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-800">
+                      <Clock className="w-3 h-3 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                      <span>Créé le <strong className="text-zinc-900 dark:text-zinc-100">{formatArticleDateTime(selectedArticle)}</strong></span>
                       <span className="text-[9px] opacity-75 font-mono">({getArticleRelativeTime(selectedArticle)})</span>
                     </span>
                   </div>
@@ -6867,38 +6989,35 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     </p>
                   </div>
 
-                  {/* SECTION ENRICHIE 1 : CHIFFRES & INDICATEURS CLÉS */}
+                  {/* SECTION ENRICHIE 1 : CHIFFRES & INDICATEURS CLÉS (Format ultra-compact) */}
                   {selectedArticle.keyFigures && selectedArticle.keyFigures.length > 0 && (
-                    <div className="space-y-2.5 pt-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${
-                          isDark ? "bg-emerald-950/50 text-emerald-300 border-emerald-800/60" : "bg-emerald-50 text-emerald-900 border-emerald-300"
-                        }`}>
-                          <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
-                          Chiffres & Indicateurs Clés
-                        </span>
-                        <span className={`text-[10px] font-mono ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
-                          Données vérifiées
-                        </span>
+                    <div
+                      className={`px-2.5 py-1.5 rounded-lg border flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs transition-all ${
+                        isDark
+                          ? "bg-zinc-900/60 border-zinc-800 text-zinc-300"
+                          : "bg-zinc-100/90 border-zinc-200 text-zinc-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 font-bold uppercase tracking-wider text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0">
+                        <BarChart3 className="w-3 h-3 opacity-80" />
+                        <span>Chiffres clés :</span>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
                         {selectedArticle.keyFigures.map((fig, fIdx) => (
                           <div
                             key={fIdx}
-                            className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
-                              isDark ? "bg-zinc-900/90 border-zinc-800 text-white shadow-xs" : "bg-white border-zinc-200 text-zinc-900 shadow-2xs"
-                            }`}
+                            className="inline-flex items-baseline gap-1"
+                            title={fig.detail ? `${fig.label} : ${fig.value} — ${fig.detail}` : `${fig.label} : ${fig.value}`}
                           >
-                            <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 mb-1">
-                              {fig.label}
-                            </div>
-                            <div className="text-base sm:text-lg font-black text-emerald-400 dark:text-emerald-300 font-mono tracking-tight">
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                              {fig.label} :
+                            </span>
+                            <span className="font-mono font-bold text-xs text-zinc-950 dark:text-white">
                               {fig.value}
-                            </div>
-                            {fig.detail && (
-                              <div className="text-[10px] opacity-75 mt-1 leading-tight line-clamp-2">
-                                {fig.detail}
-                              </div>
+                            </span>
+                            {fIdx < selectedArticle.keyFigures.length - 1 && (
+                              <span className="text-zinc-300 dark:text-zinc-700 select-none ml-1">·</span>
                             )}
                           </div>
                         ))}
@@ -6906,24 +7025,24 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     </div>
                   )}
 
-                  {/* SECTION ENRICHIE 2 : POINTS CLÉS & À RETENIR */}
+                  {/* SECTION ENRICHIE 2 : POINTS CLÉS & À RETENIR (Compact) */}
                   {selectedArticle.keyTakeaways && selectedArticle.keyTakeaways.length > 0 && (
-                    <div className={`p-4 sm:p-5 rounded-2xl border space-y-3 ${
-                      isDark ? "bg-indigo-950/25 border-indigo-800/40 text-indigo-100" : "bg-indigo-50/80 border-indigo-200 text-indigo-950 shadow-2xs"
+                    <div className={`p-2.5 sm:p-3 rounded-xl border space-y-1.5 ${
+                      isDark ? "bg-indigo-950/20 border-indigo-800/40 text-indigo-100" : "bg-indigo-50/70 border-indigo-200 text-indigo-950 shadow-2xs"
                     }`}>
-                      <div className="flex items-center justify-between border-b pb-2 border-indigo-500/20">
-                        <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-indigo-400 dark:text-indigo-300">
-                          <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                          <span>À Retenir • Synthèse Stratégique</span>
+                      <div className="flex items-center justify-between border-b pb-1 border-indigo-500/20">
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span>À Retenir • Synthèse</span>
                         </span>
-                        <span className="text-[10px] font-mono opacity-70">
-                          {selectedArticle.keyTakeaways.length} points cardinaux
+                        <span className="text-[9px] font-mono opacity-70">
+                          {selectedArticle.keyTakeaways.length} points
                         </span>
                       </div>
-                      <ul className="space-y-2 pl-1">
+                      <ul className="space-y-1 pl-0.5">
                         {selectedArticle.keyTakeaways.map((point, pIdx) => (
-                          <li key={pIdx} className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed">
-                            <span className="text-indigo-400 font-bold shrink-0 mt-0.5">✓</span>
+                          <li key={pIdx} className="flex items-start gap-1.5 text-xs leading-snug">
+                            <span className="text-indigo-400 font-bold shrink-0 mt-0.5 text-[10px]">✓</span>
                             <span>{point}</span>
                           </li>
                         ))}
@@ -6931,25 +7050,25 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     </div>
                   )}
 
-                  {/* SECTION ENRICHIE 3 : ANALYSE STRATÉGIQUE & CONCURRENTIELLE */}
+                  {/* SECTION ENRICHIE 3 : ANALYSE STRATÉGIQUE (Compact) */}
                   {selectedArticle.strategicAnalysis && (
-                    <div className={`p-4 sm:p-5 rounded-2xl border space-y-3.5 ${
+                    <div className={`p-2.5 sm:p-3 rounded-xl border space-y-2 ${
                       isDark ? "bg-zinc-900/80 border-zinc-800 text-slate-200" : "bg-slate-50/90 border-slate-200 text-slate-900 shadow-2xs"
                     }`}>
-                      <div className="flex items-center justify-between border-b pb-2 border-slate-700/30">
-                        <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 text-cyan-400">
-                          <Target className="w-3.5 h-3.5 text-cyan-400" />
-                          Analyse Stratégique & Écosystème
+                      <div className="flex items-center justify-between border-b pb-1 border-slate-700/30">
+                        <span className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 text-cyan-500 dark:text-cyan-400">
+                          <Target className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span>Analyse Stratégique</span>
                         </span>
-                        <span className="text-[10px] font-mono opacity-60">Décryptage InfoPerso</span>
+                        <span className="text-[9px] font-mono opacity-60">InfoPerso</span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                         {selectedArticle.strategicAnalysis.actorsInvolved && selectedArticle.strategicAnalysis.actorsInvolved.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Acteurs & Rivaux :</span>
-                            <div className="flex flex-wrap gap-1.5 mt-1">
+                          <div className="space-y-0.5">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[9px]">Acteurs :</span>
+                            <div className="flex flex-wrap gap-1 mt-0.5">
                               {selectedArticle.strategicAnalysis.actorsInvolved.map((actor, aIdx) => (
-                                <span key={aIdx} className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                <span key={aIdx} className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold border ${
                                   isDark ? "bg-slate-800 text-slate-200 border-slate-700" : "bg-white text-slate-800 border-slate-300"
                                 }`}>
                                   {actor}
@@ -6959,21 +7078,21 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                           </div>
                         )}
                         {selectedArticle.strategicAnalysis.marketImpact && (
-                          <div className="space-y-1">
-                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Impact Marché :</span>
-                            <p className="leading-relaxed opacity-90">{selectedArticle.strategicAnalysis.marketImpact}</p>
+                          <div className="space-y-0.5">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[9px]">Impact Marché :</span>
+                            <p className="leading-snug opacity-90">{selectedArticle.strategicAnalysis.marketImpact}</p>
                           </div>
                         )}
                         {selectedArticle.strategicAnalysis.privacyCompliance && (
-                          <div className="space-y-1">
-                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Souveraineté & RGPD :</span>
-                            <p className="leading-relaxed opacity-90">{selectedArticle.strategicAnalysis.privacyCompliance}</p>
+                          <div className="space-y-0.5">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[9px]">Souveraineté :</span>
+                            <p className="leading-snug opacity-90">{selectedArticle.strategicAnalysis.privacyCompliance}</p>
                           </div>
                         )}
                         {selectedArticle.strategicAnalysis.nextMilestone && (
-                          <div className="space-y-1">
-                            <span className="font-bold opacity-60 uppercase tracking-wider text-[10px]">Prochaine Étape Clé :</span>
-                            <p className="leading-relaxed font-semibold text-emerald-400 dark:text-emerald-300">{selectedArticle.strategicAnalysis.nextMilestone}</p>
+                          <div className="space-y-0.5">
+                            <span className="font-bold opacity-60 uppercase tracking-wider text-[9px]">Prochaine Étape :</span>
+                            <p className="leading-snug font-semibold text-emerald-500 dark:text-emerald-300">{selectedArticle.strategicAnalysis.nextMilestone}</p>
                           </div>
                         )}
                       </div>
@@ -7061,10 +7180,10 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                       <div className="w-5 h-5 rounded-md bg-red-600/20 text-red-500 flex items-center justify-center shrink-0">
                         <Youtube className="w-3.5 h-3.5 fill-red-600 text-red-600" />
                       </div>
-                      <span className="text-xs font-bold truncate text-slate-200 dark:text-white">
+                      <span className="text-xs font-bold truncate text-slate-900 dark:text-white">
                         Reportages YouTube
                       </span>
-                      <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 shrink-0 hidden xs:inline">
+                      <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-red-600/20 text-red-600 dark:text-red-400 border border-red-500/30 shrink-0 hidden xs:inline">
                         Actu
                       </span>
                     </div>
@@ -7115,9 +7234,9 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                   </div>
 
                   {/* Indication recherche discrète sur 1 seule ligne */}
-                  <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 flex items-center justify-between gap-1 truncate opacity-80">
+                  <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between gap-1 truncate opacity-90">
                     <span className="truncate">
-                      🔍 Recherche : <strong className="text-slate-300 dark:text-slate-300">« {extractTopicalKeywords(selectedArticle)} »</strong>
+                      🔍 Recherche : <strong className="text-slate-900 dark:text-slate-100 font-semibold">« {extractTopicalKeywords(selectedArticle)} »</strong>
                     </span>
                     <span className="shrink-0 text-[9px] text-emerald-400 font-medium">✓ Filtre actif</span>
                   </div>
@@ -8010,209 +8129,95 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                 </div>
               </div>
 
-              {/* Reader Actions Footer - 2 lignes compactes avec Partage et Export visibles en permanence */}
-              <div className="reader-actions-footer pt-2 pb-1 border-t border-slate-700/20 shrink-0 space-y-1.5">
-                {/* Ligne 1 : Défilement fluide horizontal des outils IA d'approfondissement */}
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full reader-compact-strip">
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById("creuser-sujet-section");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark 
-                        ? "bg-indigo-950/80 border-indigo-700/50 text-indigo-200 hover:text-white hover:bg-indigo-900" 
-                        : "bg-indigo-50 border-indigo-200 text-indigo-900 hover:bg-indigo-100 shadow-xs"
-                    }`}
-                    title="Approfondir le sujet avec l'IA"
-                  >
-                    <Search className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Creuser</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowNuanceModal(true)}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark
-                        ? "bg-cyan-950/70 border-cyan-700/50 text-cyan-200 hover:text-white hover:bg-cyan-900"
-                        : "bg-cyan-50 border-cyan-200 text-cyan-900 hover:bg-cyan-100 shadow-xs"
-                    }`}
-                    title="Perspectives croisées et nuances"
-                  >
-                    <Scale className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Nuances</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowTimelineModal(true)}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark
-                        ? "bg-indigo-950/70 border-indigo-700/50 text-indigo-200 hover:text-white hover:bg-indigo-900"
-                        : "bg-indigo-50 border-indigo-200 text-indigo-900 hover:bg-indigo-100 shadow-xs"
-                    }`}
-                    title="Frise chronologique de l'événement"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Frise</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowDevilModal(true)}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark
-                        ? "bg-rose-950/70 border-rose-700/50 text-rose-200 hover:text-white hover:bg-rose-900"
-                        : "bg-rose-50 border-rose-200 text-rose-900 hover:bg-rose-100 shadow-xs"
-                    }`}
-                    title="Avocat du Diable & Débat Socratique"
-                  >
-                    <Flame className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Avocat</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowQuizModal(true)}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark
-                        ? "bg-amber-950/70 border-amber-700/50 text-amber-200 hover:text-white hover:bg-amber-900"
-                        : "bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100 shadow-xs"
-                    }`}
-                    title="Quiz Mémorisation Active (+25 pts de curiosité)"
-                  >
-                    <Brain className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Quiz +25</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowExecutiveBriefingModal(true)}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark
-                        ? "bg-emerald-950/70 border-emerald-700/50 text-emerald-200 hover:text-white hover:bg-emerald-900"
-                        : "bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100 shadow-xs"
-                    }`}
-                    title="Fiche Exécutive Décisionnelle 1-page"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Fiche</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleExtractQuotes(selectedArticle)}
-                    disabled={isExtractingQuotes}
-                    className={`compact-action-btn py-1 px-2.5 border text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                      isDark
-                        ? "bg-slate-950 border-slate-800 text-slate-300 hover:text-white"
-                        : "bg-white border-slate-300 text-slate-700 hover:text-amber-700 shadow-xs"
-                    }`}
-                    title="Extraire les citations clés"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                    <span>Citations</span>
-                  </button>
-
-                  <a
-                    href={getYouTubeSearchUrl(selectedArticle, selectedYouTubeFilter)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="compact-action-btn py-1 px-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-sans font-bold rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
-                    title="Reportages & vidéos YouTube"
-                  >
-                    <Youtube className="w-3.5 h-3.5 fill-white text-white" />
-                    <span>YouTube</span>
-                  </a>
-                </div>
-
-                {/* Ligne 2 : DOCK PERMANENT 4 BOUTONS FIXES TOUJOURS VISIBLES (Partager + Exporter + 10 Outils + Original) */}
+              {/* Reader Actions Footer - 1 seule ligne ultra-compacte (sans duplication) */}
+              <div className="reader-actions-footer py-1.5 px-1 sm:px-2 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
                 <div className="grid grid-cols-4 gap-1 sm:gap-2 w-full items-center">
-                  {/* Bouton 1 : Partager - 100% visible tout le temps */}
+                  {/* Bouton 1 : Partager */}
                   <button
                     type="button"
                     onClick={() => handleShareArticle(selectedArticle)}
-                    className="compact-action-btn w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
+                    className="compact-action-btn w-full py-1 px-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-md flex items-center justify-center gap-1 cursor-pointer shadow-2xs transition-transform active:scale-95"
                     title="Partager l'article"
                   >
-                    <Share2 className="w-3.5 h-3.5 shrink-0" />
+                    <Share2 className="w-3 h-3 shrink-0" />
                     <span className="truncate">Partager</span>
                   </button>
 
-                  {/* Bouton 2 : Exporter - 100% visible tout le temps avec menu déroulant vers le haut */}
+                  {/* Bouton 2 : Exporter */}
                   <div className="relative w-full">
                     <button
                       type="button"
                       onClick={() => setShowExportDropdown(!showExportDropdown)}
-                      className="compact-action-btn w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
+                      className="compact-action-btn w-full py-1 px-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-md flex items-center justify-center gap-1 cursor-pointer shadow-2xs transition-transform active:scale-95"
                       title="Exporter l'article (PDF avec photo, HTML, TXT)"
                     >
-                      <Download className="w-3.5 h-3.5 shrink-0" />
+                      <Download className="w-3 h-3 shrink-0" />
                       <span className="truncate">Export</span>
-                      <ChevronUp className="w-3 h-3 shrink-0 opacity-80" />
+                      <ChevronUp className="w-2.5 h-2.5 shrink-0 opacity-80" />
                     </button>
 
                     {showExportDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
-                        <div className={`absolute left-0 bottom-full mb-2 w-72 max-w-[88vw] border rounded-xl shadow-2xl p-1.5 z-50 animate-fade-in flex flex-col gap-1 ${
-                          isDark ? "bg-slate-950 border-slate-700 text-slate-200" : "bg-white border-slate-300 text-slate-900"
+                        <div className={`absolute left-0 bottom-full mb-1.5 w-64 max-w-[88vw] border rounded-xl shadow-2xl p-1.5 z-50 animate-fade-in flex flex-col gap-1 ${
+                          isDark ? "bg-zinc-950 border-zinc-800 text-zinc-200" : "bg-white border-zinc-300 text-zinc-900"
                         }`}>
-                          <div className={`px-3 py-1.5 text-[10px] uppercase font-bold border-b flex items-center justify-between ${
-                            isDark ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-200"
+                          <div className={`px-2 py-1 text-[10px] uppercase font-bold border-b flex items-center justify-between ${
+                            isDark ? "text-zinc-400 border-zinc-800" : "text-zinc-500 border-zinc-200"
                           }`}>
                             <span>Formats d'exportation</span>
-                            <span className="text-[9px] font-normal lowercase opacity-75">haute qualité</span>
                           </div>
 
-                          {/* PDF avec illustration photo - OPTION MAJEURE */}
+                          {/* PDF avec illustration photo */}
                           <button
                             onClick={() => {
                               handleExportArticle(selectedArticle, "pdf");
                               setShowExportDropdown(false);
                             }}
                             disabled={isExportingPdf}
-                            className={`w-full text-left px-3 py-2.5 text-xs font-bold rounded-lg flex items-center justify-between gap-2 cursor-pointer transition-colors ${
+                            className={`w-full text-left px-2.5 py-1.5 text-xs font-bold rounded-lg flex items-center justify-between gap-1.5 cursor-pointer transition-colors ${
                               isDark
                                 ? "text-rose-200 hover:bg-rose-950/60 bg-rose-950/30 border border-rose-900/50"
                                 : "text-rose-900 hover:bg-rose-100/80 bg-rose-50 border border-rose-200"
                             }`}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                               {isExportingPdf ? (
-                                <Loader2 className="w-4 h-4 text-rose-500 animate-spin shrink-0" />
+                                <Loader2 className="w-3.5 h-3.5 text-rose-500 animate-spin shrink-0" />
                               ) : (
-                                <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+                                <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                               )}
-                              <div className="flex flex-col">
-                                <span className="font-extrabold text-[13px]">📑 PDF avec photo</span>
-                                <span className="text-[10px] opacity-80 font-normal">Mise en page A4 + illustration haute def</span>
-                              </div>
+                              <span className="font-bold text-[11px]">PDF avec photo</span>
                             </div>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-600 text-white font-black tracking-wider uppercase shrink-0 shadow-2xs">
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-rose-600 text-white font-bold uppercase">
                               PDF
                             </span>
                           </button>
 
-                          {/* HTML Fond Noir */}
+                          {/* HTML Sombre */}
                           <button
                             onClick={() => {
                               handleExportArticle(selectedArticle, "html", "dark");
                               setShowExportDropdown(false);
                             }}
-                            className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                              isDark ? "text-indigo-300 hover:bg-slate-900" : "text-slate-900 hover:bg-slate-100"
+                            className={`w-full text-left px-2.5 py-1.5 text-[11px] font-medium rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              isDark ? "text-indigo-300 hover:bg-zinc-900" : "text-zinc-900 hover:bg-zinc-100"
                             }`}
                           >
-                            <span>🌙 HTML illustré (Fond Noir OLED)</span>
+                            <span>🌙 HTML Fond Noir</span>
                           </button>
 
-                          {/* HTML Fond Clair */}
+                          {/* HTML Clair */}
                           <button
                             onClick={() => {
                               handleExportArticle(selectedArticle, "html", "light");
                               setShowExportDropdown(false);
                             }}
-                            className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                              isDark ? "text-emerald-400 hover:bg-slate-900" : "text-emerald-700 hover:bg-emerald-50"
+                            className={`w-full text-left px-2.5 py-1.5 text-[11px] font-medium rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              isDark ? "text-emerald-400 hover:bg-zinc-900" : "text-emerald-700 hover:bg-emerald-50"
                             }`}
                           >
-                            <span>☀️ HTML illustré (Fond Clair Papier)</span>
+                            <span>☀️ HTML Fond Clair</span>
                           </button>
 
                           {/* Texte brut TXT */}
@@ -8221,8 +8226,8 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                               handleExportArticle(selectedArticle, "txt");
                               setShowExportDropdown(false);
                             }}
-                            className={`w-full text-left px-3 py-2 text-xs rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                              isDark ? "text-slate-300 hover:bg-slate-900" : "text-slate-700 hover:bg-slate-100"
+                            className={`w-full text-left px-2.5 py-1.5 text-[11px] rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              isDark ? "text-zinc-300 hover:bg-zinc-900" : "text-zinc-700 hover:bg-zinc-100"
                             }`}
                           >
                             <span>📄 Texte brut (.txt)</span>
@@ -8232,31 +8237,31 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
                     )}
                   </div>
 
-                  {/* Bouton 3 : 10 Outils - 100% visible tout le temps */}
+                  {/* Bouton 3 : 10 Outils */}
                   <button
                     type="button"
                     onClick={() => setShowAllProposalsModal(true)}
-                    className={`compact-action-btn w-full py-1.5 px-2 border text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                    className={`compact-action-btn w-full py-1 px-1.5 border text-[11px] font-bold rounded-md flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 ${
                       isDark
                         ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700"
                         : "bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border-zinc-300 shadow-2xs"
                     }`}
                     title="Voir les 10 outils d'approfondissement"
                   >
-                    <LayoutGrid className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <LayoutGrid className="w-3 h-3 text-indigo-400 shrink-0" />
                     <span className="truncate">10 Outils</span>
                   </button>
 
-                  {/* Bouton 4 : Original - 100% visible tout le temps */}
+                  {/* Bouton 4 : Original */}
                   <a
                     href={getArticleOriginalUrl(selectedArticle)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="compact-action-btn w-full py-1.5 px-2 bg-linear-to-r from-indigo-500 to-cyan-500 hover:opacity-95 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 shadow-xs transition-transform active:scale-95 text-center truncate"
+                    className="compact-action-btn w-full py-1 px-1.5 bg-linear-to-r from-indigo-500 to-cyan-500 hover:opacity-95 text-white text-[11px] font-bold rounded-md flex items-center justify-center gap-1 shadow-2xs transition-transform active:scale-95 text-center truncate"
                     title="Consulter l'article original sur le site source"
                   >
                     <span className="truncate">Original</span>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                    <ExternalLink className="w-3 h-3 shrink-0" />
                   </a>
                 </div>
               </div>
@@ -8755,11 +8760,18 @@ RÉPONDS STRICTEMENT AU FORMAT JSON avec ces clés :
         isDark={isDark}
       />
 
-      {/* 1. Daily Podcast Flash Briefing Modal (3 min synthèse audio) */}
+      {/* 1. Daily Podcast Flash Briefing Modal (Flash 90s - 5 dossiers audio) */}
       <DailyPodcastModal
         isOpen={showPodcastModal}
         onClose={() => setShowPodcastModal(false)}
-        articles={filteredArticles.length > 0 ? filteredArticles : articles}
+        articles={
+          filteredArticles.length >= 5
+            ? filteredArticles
+            : [
+                ...filteredArticles,
+                ...articles.filter((a) => !filteredArticles.some((f) => f.id === a.id))
+              ]
+        }
         isDark={isDark}
         onNotify={onNotify}
         onOpenArticle={(art) => setSelectedArticle(art)}
